@@ -1,0 +1,265 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPERVISOR
+  MANAGER
+  ADMIN
+}
+
+enum TxType {
+  IN
+  OUT
+  ADJUST
+  OPENING
+  INVENTORY_APPLY
+}
+
+enum RecordStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum InventoryStatus {
+  DRAFT
+  APPLIED
+  CANCELLED
+}
+
+enum UiTextScope {
+  BOTH
+  WEB
+  MOBILE
+}
+
+model User {
+  id                  String    @id @default(uuid()) @db.Uuid
+  login               String    @unique
+  passwordHash        String
+  role                Role
+  isActive            Boolean   @default(true)
+  forcePasswordChange Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lastLoginAt         DateTime?
+  createdById         String?   @db.Uuid
+  createdBy           User?     @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers        User[]    @relation("UserCreatedBy")
+  sessions            Session[]
+  transactionsCreated Transaction[]   @relation("TransactionCreatedBy")
+  transactionsCancelled Transaction[] @relation("TransactionCancelledBy")
+  linesCancelled      TransactionLine[] @relation("TransactionLineCancelledBy")
+  inventoryCreated    InventorySession[] @relation("InventorySessionCreatedBy")
+  inventoryApplied    InventorySession[] @relation("InventorySessionAppliedBy")
+  auditLogs           AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  revokedAt DateTime?
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Category {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  items     Item[]
+}
+
+model Unit {
+  id                    String            @id @default(uuid()) @db.Uuid
+  name                  String            @unique
+  isActive              Boolean           @default(true)
+  itemsBase             Item[]            @relation("ItemBaseUnit")
+  itemsDefaultInput     Item[]            @relation("ItemDefaultInputUnit")
+  itemsReport           Item[]            @relation("ItemReportUnit")
+  itemUnits             ItemUnit[]
+  transactionLines      TransactionLine[]
+  inventoryLines        InventoryLine[]
+}
+
+model ExpenseArticle {
+  id               String            @id @default(uuid()) @db.Uuid
+  code             String            @unique
+  name             String
+  isActive         Boolean           @default(true)
+  defaultForItems  Item[]            @relation("ItemDefaultExpenseArticle")
+  transactionLines TransactionLine[]
+
+  @@index([code])
+}
+
+model Purpose {
+  id               String            @id @default(uuid()) @db.Uuid
+  code             String            @unique
+  name             String
+  isActive         Boolean           @default(true)
+  defaultForItems  Item[]            @relation("ItemDefaultPurpose")
+  transactionLines TransactionLine[]
+}
+
+model Reason {
+  id                    String            @id @default(uuid()) @db.Uuid
+  code                  String            @unique
+  name                  String
+  isActive              Boolean           @default(true)
+  transactionsCancelled Transaction[]
+  linesCancelled        TransactionLine[]
+}
+
+model UiText {
+  id        String      @id @default(uuid()) @db.Uuid
+  key       String      @unique
+  ruText    String
+  scope     UiTextScope @default(BOTH)
+  updatedAt DateTime    @updatedAt
+}
+
+model Item {
+  id                     String         @id @default(uuid()) @db.Uuid
+  code                   String         @unique
+  name                   String
+  categoryId             String         @db.Uuid
+  defaultExpenseArticleId String        @db.Uuid
+  defaultPurposeId       String         @db.Uuid
+  minQtyBase             Decimal?       @db.Decimal(18, 6)
+  isActive               Boolean        @default(true)
+  synonyms               String?
+  note                   String?
+  baseUnitId             String         @db.Uuid
+  defaultInputUnitId     String         @db.Uuid
+  reportUnitId           String         @db.Uuid
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  category               Category       @relation(fields: [categoryId], references: [id])
+  defaultExpenseArticle  ExpenseArticle @relation("ItemDefaultExpenseArticle", fields: [defaultExpenseArticleId], references: [id])
+  defaultPurpose         Purpose        @relation("ItemDefaultPurpose", fields: [defaultPurposeId], references: [id])
+  baseUnit               Unit           @relation("ItemBaseUnit", fields: [baseUnitId], references: [id])
+  defaultInputUnit       Unit           @relation("ItemDefaultInputUnit", fields: [defaultInputUnitId], references: [id])
+  reportUnit             Unit           @relation("ItemReportUnit", fields: [reportUnitId], references: [id])
+  itemUnits              ItemUnit[]
+  transactionLines       TransactionLine[]
+  inventoryLines         InventoryLine[]
+
+  @@index([code])
+  @@index([categoryId])
+}
+
+model ItemUnit {
+  id              String   @id @default(uuid()) @db.Uuid
+  itemId          String   @db.Uuid
+  unitId          String   @db.Uuid
+  factorToBase    Decimal  @db.Decimal(18, 6)
+  isAllowed       Boolean  @default(true)
+  isDefaultInput  Boolean  @default(false)
+  isDefaultReport Boolean  @default(false)
+  item            Item     @relation(fields: [itemId], references: [id])
+  unit            Unit     @relation(fields: [unitId], references: [id])
+
+  @@unique([itemId, unitId])
+}
+
+model Transaction {
+  id          String       @id @default(uuid()) @db.Uuid
+  batchId     String
+  type        TxType
+  occurredAt  DateTime
+  createdAt   DateTime     @default(now())
+  createdById String       @db.Uuid
+  note        String?
+  status      RecordStatus @default(ACTIVE)
+  cancelledAt DateTime?
+  cancelledById String?    @db.Uuid
+  reasonId    String?      @db.Uuid
+  cancelNote  String?
+  createdBy   User         @relation("TransactionCreatedBy", fields: [createdById], references: [id])
+  cancelledBy User?        @relation("TransactionCancelledBy", fields: [cancelledById], references: [id])
+  reason      Reason?      @relation(fields: [reasonId], references: [id])
+  lines       TransactionLine[]
+
+  @@index([occurredAt])
+}
+
+model TransactionLine {
+  id                  String       @id @default(uuid()) @db.Uuid
+  transactionId       String       @db.Uuid
+  itemId              String       @db.Uuid
+  qtyInput            Decimal      @db.Decimal(18, 6)
+  unitId              String       @db.Uuid
+  qtyBase             Decimal      @db.Decimal(18, 6)
+  expenseArticleId    String       @db.Uuid
+  purposeId           String       @db.Uuid
+  comment             String?
+  status              RecordStatus @default(ACTIVE)
+  cancelledAt         DateTime?
+  cancelledById       String?      @db.Uuid
+  reasonId            String?      @db.Uuid
+  cancelNote          String?
+  correctedFromLineId String?      @db.Uuid
+  transaction         Transaction  @relation(fields: [transactionId], references: [id])
+  item                Item         @relation(fields: [itemId], references: [id])
+  unit                Unit         @relation(fields: [unitId], references: [id])
+  expenseArticle      ExpenseArticle @relation(fields: [expenseArticleId], references: [id])
+  purpose             Purpose      @relation(fields: [purposeId], references: [id])
+  cancelledBy         User?        @relation("TransactionLineCancelledBy", fields: [cancelledById], references: [id])
+  reason              Reason?      @relation(fields: [reasonId], references: [id])
+  correctedFromLine   TransactionLine?  @relation("TransactionLineCorrection", fields: [correctedFromLineId], references: [id])
+  correctedToLines    TransactionLine[] @relation("TransactionLineCorrection")
+
+  @@index([itemId])
+  @@index([expenseArticleId])
+  @@index([purposeId])
+}
+
+model InventorySession {
+  id          String          @id @default(uuid()) @db.Uuid
+  occurredAt  DateTime        @db.Date
+  status      InventoryStatus @default(DRAFT)
+  createdAt   DateTime        @default(now())
+  createdById String          @db.Uuid
+  appliedAt   DateTime?
+  appliedById String?         @db.Uuid
+  note        String?
+  createdBy   User            @relation("InventorySessionCreatedBy", fields: [createdById], references: [id])
+  appliedBy   User?           @relation("InventorySessionAppliedBy", fields: [appliedById], references: [id])
+  lines       InventoryLine[]
+}
+
+model InventoryLine {
+  id            String            @id @default(uuid()) @db.Uuid
+  sessionId     String            @db.Uuid
+  itemId        String            @db.Uuid
+  unitId        String            @db.Uuid
+  qtySystemBase Decimal           @db.Decimal(18, 6)
+  qtyFactInput  Decimal?          @db.Decimal(18, 6)
+  qtyFactBase   Decimal?          @db.Decimal(18, 6)
+  deltaBase     Decimal?          @db.Decimal(18, 6)
+  apply         Boolean           @default(false)
+  comment       String?
+  session       InventorySession  @relation(fields: [sessionId], references: [id])
+  item          Item              @relation(fields: [itemId], references: [id])
+  unit          Unit              @relation(fields: [unitId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  actorId   String   @db.Uuid
+  action    String
+  entity    String
+  entityId  String?  @db.Uuid
+  payload   Json
+  createdAt DateTime @default(now())
+  actor     User     @relation(fields: [actorId], references: [id])
+}

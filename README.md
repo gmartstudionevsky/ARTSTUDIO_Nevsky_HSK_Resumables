@@ -53,3 +53,23 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 - Безопасное подключение локальных шрифтов: `src/styles/fonts.css`
 - Инструкция по шрифтам: `docs/fonts.md`
 - Папка для локальных файлов: `public/fonts/`
+
+## Database & Prisma (локально)
+
+1. Скопируйте `.env.example` в `.env`.
+2. Убедитесь, что `DATABASE_URL` указывает на локальный Postgres из `docker-compose.yml`.
+3. Установите зависимости:
+   - `npm i`
+4. Поднимите БД:
+   - `npm run db:up`
+5. Создайте и примените миграции:
+   - `npm run prisma:migrate`
+6. Выполните seed первого администратора (`admin` / `ChangeMe123!`):
+   - `npm run seed`
+7. Откройте Prisma Studio:
+   - `npm run prisma:studio`
+
+Дополнительно:
+
+- Остановить БД: `npm run db:down`
+- Полный сброс БД (включая volume): `npm run db:reset`
