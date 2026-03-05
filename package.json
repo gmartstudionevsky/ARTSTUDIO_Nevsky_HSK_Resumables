@@ -25,6 +25,7 @@
     "prisma:generate": "prisma generate",
     "seed:admin": "tsx prisma/seed.ts admin",
     "seed:defaults": "tsx prisma/seed.ts defaults",
+    "seed:prod": "npm run seed:admin && npm run seed:defaults",
     "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
