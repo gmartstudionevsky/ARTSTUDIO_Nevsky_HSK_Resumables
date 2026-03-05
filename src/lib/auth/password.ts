@@ -1,9 +1,9 @@
-import argon2 from 'argon2';
+import { hash, verify } from '@node-rs/argon2';
 
 export async function hashPassword(password: string): Promise<string> {
-  return argon2.hash(password);
+  return hash(password);
 }
 
 export async function verifyPassword(passwordHash: string, password: string): Promise<boolean> {
-  return argon2.verify(passwordHash, password);
+  return verify(passwordHash, password);
 }
