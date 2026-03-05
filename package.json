@@ -18,7 +18,9 @@
     "db:reset": "docker compose down -v && docker compose up -d db",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "pretypecheck": "prisma generate",
+    "prebuild": "prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
