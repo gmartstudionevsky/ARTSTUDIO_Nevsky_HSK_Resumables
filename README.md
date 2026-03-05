@@ -73,3 +73,21 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 
 - Остановить БД: `npm run db:down`
 - Полный сброс БД (включая volume): `npm run db:reset`
+
+## Auth flow
+
+1. Неавторизованные пользователи при переходе в разделы приложения (`/stock`, `/operation`, `/inventory`, `/history`, `/profile`) перенаправляются на `/login`.
+2. После успешного логина создаётся сессия в БД и выставляется cookie `asc_session` на 30 дней.
+3. Если у пользователя `forcePasswordChange=true`, клиент перенаправляет на `/change-password`.
+4. После успешной смены пароля флаг `forcePasswordChange` снимается, и пользователь попадает на `/stock`.
+5. Админ-разделы (`/admin/*`) доступны только пользователям с ролью `ADMIN`, остальные перенаправляются на `/stock`.
+6. Выход из профиля вызывает `/api/auth/logout`, сессия помечается как revoked, cookie очищается.
+
+## Как войти admin
+
+1. Выполните `npm run seed`.
+2. Откройте `/login`.
+3. Введите:
+   - login: `admin`
+   - password: `ChangeMe123!`
+4. После входа выполните обязательную смену пароля на странице `/change-password`.

@@ -1,10 +1,52 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { HelpTip } from '@/components/ui/Tooltip';
+
+type MeResponse = {
+  user: {
+    id: string;
+    login: string;
+    role: string;
+  };
+};
 
 export default function ProfilePage(): JSX.Element {
+  const router = useRouter();
+  const [user, setUser] = useState<MeResponse['user'] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
+  useEffect(() => {
+    async function fetchMe(): Promise<void> {
+      const response = await fetch('/api/auth/me', { cache: 'no-store' });
+
+      if (!response.ok) {
+        setError('Не удалось загрузить профиль');
+        setLoading(false);
+        return;
+      }
+
+      const data = (await response.json()) as MeResponse;
+      setUser(data.user);
+      setLoading(false);
+    }
+
+    void fetchMe();
+  }, []);
+
+  async function handleLogout(): Promise<void> {
+    setLogoutLoading(true);
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.replace('/login');
+    router.refresh();
+  }
+
   return (
     <section className="space-y-4">
       <Card>
@@ -13,28 +55,28 @@ export default function ProfilePage(): JSX.Element {
             <CardTitle>Профиль</CardTitle>
             <Badge variant="ok">Активен</Badge>
           </div>
-          <CardDescription>Настройки пользователя и персональные параметры интерфейса.</CardDescription>
+          <CardDescription>Информация о текущем пользователе и завершение сессии.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="flex items-center gap-2">
-            Назначение
-            <HelpTip label="Подсказка к назначению">Определяет рабочую область, где пользователь выполняет основные действия.</HelpTip>
-          </p>
-          <p className="flex items-center gap-2">
-            Единица отчётности
-            <HelpTip label="Подсказка к единице отчётности">Личная настройка для отображения количеств в карточках и отчетах.</HelpTip>
-          </p>
+          {loading ? <p>Загрузка...</p> : null}
+          {error ? <p className="text-critical">{error}</p> : null}
+          {user ? (
+            <div className="space-y-2 text-sm">
+              <p>
+                <span className="text-muted">Логин:</span> {user.login}
+              </p>
+              <p>
+                <span className="text-muted">Роль:</span> {user.role}
+              </p>
+            </div>
+          ) : null}
         </CardContent>
         <CardFooter>
-          <Button>Сохранить</Button>
-          <Button variant="secondary">Сбросить</Button>
+          <Button variant="secondary" onClick={handleLogout} loading={logoutLoading}>
+            Выйти
+          </Button>
         </CardFooter>
       </Card>
-      <EmptyState
-        title="Дополнительные настройки недоступны"
-        description="Расширенные параметры появятся в следующих итерациях."
-        actions={<Button variant="ghost">Прочитать FAQ</Button>}
-      />
     </section>
   );
 }
