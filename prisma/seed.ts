@@ -3,6 +3,8 @@ import { PrismaClient, Role, SettingKey, UiTextScope } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+type SeedMode = 'all' | 'admin' | 'defaults';
+
 const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }> = [
   { key: 'nav.stock', ruText: 'Склад' },
   { key: 'nav.operation', ruText: 'Операция' },
@@ -22,21 +24,30 @@ const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }
   { key: 'tooltip.expenseArticle', ruText: 'Статья расходов — финансовый разрез для отчёта.' },
 ];
 
-async function main() {
+const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [
+  { key: SettingKey.SUPERVISOR_BACKDATE_DAYS, value: 3 },
+  { key: SettingKey.REQUIRE_REASON_ON_CANCEL, value: true },
+  { key: SettingKey.ALLOW_NEGATIVE_STOCK, value: true },
+  { key: SettingKey.DISPLAY_DECIMALS, value: 2 },
+  { key: SettingKey.ENABLE_PERIOD_LOCKS, value: false },
+];
+
+export async function seedAdmin(): Promise<void> {
   const login = 'admin';
   const password = process.env.SEED_ADMIN_PASSWORD || 'ChangeMe123!';
+
+  const existingAdmin = await prisma.user.findUnique({ where: { login } });
+
+  if (existingAdmin) {
+    console.log(`Seed admin skipped: user '${login}' already exists.`);
+    return;
+  }
+
   const passwordHash = await argon2.hash(password);
 
-  await prisma.user.upsert({
-    where: { login },
-    create: {
+  await prisma.user.create({
+    data: {
       login,
-      passwordHash,
-      role: Role.ADMIN,
-      isActive: true,
-      forcePasswordChange: true,
-    },
-    update: {
       passwordHash,
       role: Role.ADMIN,
       isActive: true,
@@ -44,6 +55,10 @@ async function main() {
     },
   });
 
+  console.log(`Seed admin complete: user '${login}' created.`);
+}
+
+export async function seedDefaults(): Promise<void> {
   for (const item of defaultUiTexts) {
     await prisma.uiText.upsert({
       where: { key: item.key },
@@ -55,14 +70,6 @@ async function main() {
       update: {},
     });
   }
-
-  const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [
-    { key: SettingKey.SUPERVISOR_BACKDATE_DAYS, value: 3 },
-    { key: SettingKey.REQUIRE_REASON_ON_CANCEL, value: true },
-    { key: SettingKey.ALLOW_NEGATIVE_STOCK, value: true },
-    { key: SettingKey.DISPLAY_DECIMALS, value: 2 },
-    { key: SettingKey.ENABLE_PERIOD_LOCKS, value: false },
-  ];
 
   for (const setting of defaultSettings) {
     await prisma.appSetting.upsert({
@@ -89,7 +96,25 @@ async function main() {
     });
   }
 
-  console.log(`Seed complete: admin user '${login}' is ready.`);
+  console.log('Seed defaults complete: ui_texts and settings are ready.');
+}
+
+async function main(): Promise<void> {
+  const mode = (process.argv[2] as SeedMode | undefined) ?? 'all';
+
+  if (mode === 'admin') {
+    await seedAdmin();
+    return;
+  }
+
+  if (mode === 'defaults') {
+    await seedDefaults();
+    return;
+  }
+
+  await seedAdmin();
+  await seedDefaults();
+  console.log('Seed complete.');
 }
 
 main()
