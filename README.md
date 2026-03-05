@@ -38,10 +38,13 @@ npm run dev
 ## Production migrations
 
 - В runtime на Vercel используйте `DATABASE_URL` через Supabase pooler (transaction mode, порт `6543`, параметры `pgbouncer=true&connection_limit=1`).
-- Для production-миграций используйте только direct-подключение Supabase (`DIRECT_URL`, хост `db.<project-ref>.supabase.co:5432`, `sslmode=require`).
+- Для production-миграций в GitHub Actions используйте `MIGRATE_DATABASE_URL`:
+  - приоритетно Session pooler Supabase (IPv4, порт `5432`, `sslmode=require`);
+  - fallback: обычный `DATABASE_URL`, если отдельный секрет ещё не добавлен.
 - Запускайте миграции только через GitHub Action `.github/workflows/migrate-prod.yml` (manual `workflow_dispatch`):
-  - action подставляет `DATABASE_URL=${{ secrets.DIRECT_URL }}` и выполняет `npx prisma migrate deploy`;
-  - затем выполняет `npm run seed:prod` (без перетирания данных, только idempotent upsert/создание отсутствующих записей).
+  - action подставляет `DATABASE_URL=${{ secrets.MIGRATE_DATABASE_URL || secrets.DATABASE_URL }}`;
+  - action включает `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` для совместимости с pooler;
+  - action запускает `timeout 10m npx prisma migrate deploy`, затем `npm run seed:prod`.
 - Не используйте `prisma migrate dev` в production.
 
 ## Production deploy: Vercel + Supabase
