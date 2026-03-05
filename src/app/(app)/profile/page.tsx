@@ -6,7 +6,14 @@ import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/Card';
 
 type MeResponse = {
   user: {
@@ -78,14 +85,21 @@ export default function ProfilePage(): JSX.Element {
           </Button>
         </CardFooter>
       </Card>
-      {user && (user.role === 'ADMIN' || user.role === 'MANAGER') ? (
+      {user ? (
         <Card>
           <CardHeader>
             <CardTitle>Быстрые ссылки</CardTitle>
-            <CardDescription>Управление справочниками и номенклатурой.</CardDescription>
+            <CardDescription>Полезные разделы приложения.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Link href="/catalog" className="text-sm text-accent underline">Номенклатура</Link>
+          <CardContent className="space-y-2">
+            <Link href="/reports/consumption" className="block text-sm text-accent underline">
+              Отчёты
+            </Link>
+            {user.role === 'ADMIN' || user.role === 'MANAGER' ? (
+              <Link href="/catalog" className="block text-sm text-accent underline">
+                Номенклатура
+              </Link>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
