@@ -19,14 +19,40 @@ npm run dev
 
 ### Обязательные
 - `DATABASE_URL` — подключение к PostgreSQL.
-- `NEXTAUTH_SECRET` — секрет сессий.
-- `NEXTAUTH_URL` — базовый URL приложения.
+- `SESSION_SECRET` — секрет подписи сессии.
+- `NEXT_PUBLIC_APP_URL` — публичный базовый URL приложения.
+
+### Для digest cron (GitHub Actions)
+- `APP_URL` — URL приложения для вызова `/api/jobs/digest`.
+- `JOB_SECRET` — секрет для заголовка `x-job-secret`.
 
 ### Опциональные
 - `TELEGRAM_BOT_TOKEN` — токен бота Telegram.
-- `TELEGRAM_DEFAULT_CHAT_ID` — чат по умолчанию.
-- `APP_TIMEZONE` — часовой пояс приложения.
-- `CI` — флаг CI-режима.
+- `TELEGRAM_DEFAULT_CHAT_ID` — чат по умолчанию для seed defaults.
+- `NEXT_PUBLIC_ENABLE_DEBUG` — включение debug-флагов (`true/false`).
+- `SEED_ADMIN_PASSWORD` — пароль для разового создания admin.
+
+## Production deploy: Vercel + Supabase
+
+Подробные инструкции:
+- `docs/deploy/supabase.md`
+- `docs/deploy/vercel.md`
+- `docs/deploy/cron.md`
+- `docs/deploy/checklist.md`
+
+Рекомендуемый порядок релиза:
+1. Применить миграции в production БД:
+   ```bash
+   npm run prisma:generate
+   npm run prisma:migrate:deploy
+   ```
+2. Один раз выполнить seed:
+   ```bash
+   npm run seed:admin
+   npm run seed:defaults
+   ```
+3. Проверить `/api/health` и `/api/health/extended`.
+4. Включить Telegram и digest cron после проверки секретов (`APP_URL`, `JOB_SECRET`).
 
 ## Импорт XLSX
 
@@ -72,4 +98,3 @@ CI запускает линтер, typecheck, build и e2e smoke/core-flow.
 - [ ] `/inventory`: draft → заполнение → ввод факта → частичное применение работают.
 - [ ] `/reports/consumption`: группировка и экспорт работают по правам.
 - [ ] `/admin/*`: словари, пользователи, импорт, Telegram, настройки, lock-периоды, ui-тексты доступны и стабильны.
-

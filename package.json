@@ -20,7 +20,12 @@
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
     "pretypecheck": "prisma generate",
-    "prebuild": "prisma generate"
+    "prebuild": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
+    "prisma:generate": "prisma generate",
+    "seed:admin": "tsx prisma/seed.ts admin",
+    "seed:defaults": "tsx prisma/seed.ts defaults",
+    "prisma:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.16.2",
