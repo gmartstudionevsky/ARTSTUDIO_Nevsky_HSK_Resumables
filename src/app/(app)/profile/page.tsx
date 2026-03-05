@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useUiText } from '@/components/ui-texts/useUiText';
 import {
   Card,
   CardContent,
@@ -29,6 +30,9 @@ export default function ProfilePage(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [logoutLoading, setLogoutLoading] = useState(false);
+
+  const reportsLabel = useUiText('nav.reports', 'Отчёты');
+  const catalogLabel = useUiText('nav.catalog', 'Номенклатура');
 
   useEffect(() => {
     async function fetchMe(): Promise<void> {
@@ -93,11 +97,11 @@ export default function ProfilePage(): JSX.Element {
           </CardHeader>
           <CardContent className="space-y-2">
             <Link href="/reports/consumption" className="block text-sm text-accent underline">
-              Отчёты
+              {reportsLabel}
             </Link>
             {user.role === 'ADMIN' || user.role === 'MANAGER' ? (
               <Link href="/catalog" className="block text-sm text-accent underline">
-                Номенклатура
+                {catalogLabel}
               </Link>
             ) : null}
           </CardContent>

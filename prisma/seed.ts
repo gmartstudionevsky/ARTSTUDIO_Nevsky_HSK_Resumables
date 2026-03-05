@@ -1,7 +1,24 @@
 import argon2 from 'argon2';
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, UiTextScope } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }> = [
+  { key: 'nav.stock', ruText: 'Склад' },
+  { key: 'nav.operation', ruText: 'Операция' },
+  { key: 'nav.inventory', ruText: 'Инвентаризация' },
+  { key: 'nav.history', ruText: 'История' },
+  { key: 'nav.profile', ruText: 'Профиль' },
+  { key: 'nav.catalog', ruText: 'Номенклатура' },
+  { key: 'nav.reports', ruText: 'Отчёты' },
+  { key: 'nav.admin.dictionaries', ruText: 'Справочники' },
+  { key: 'nav.admin.users', ruText: 'Пользователи' },
+  { key: 'nav.admin.telegram', ruText: 'Telegram' },
+  { key: 'nav.admin.uiTexts', ruText: 'Тексты интерфейса' },
+  { key: 'tooltip.reportUnit', ruText: 'Единица отчётности — в ней показывается склад и отчёты.' },
+  { key: 'tooltip.purpose', ruText: 'Назначение — для какого направления/участка учитывается расход.' },
+  { key: 'tooltip.expenseArticle', ruText: 'Статья расходов — финансовый разрез для отчёта.' },
+];
 
 async function main() {
   const login = 'admin';
@@ -24,6 +41,18 @@ async function main() {
       forcePasswordChange: true,
     },
   });
+
+  for (const item of defaultUiTexts) {
+    await prisma.uiText.upsert({
+      where: { key: item.key },
+      create: {
+        key: item.key,
+        ruText: item.ruText,
+        scope: item.scope ?? UiTextScope.BOTH,
+      },
+      update: {},
+    });
+  }
 
   const defaultChatId = process.env.TELEGRAM_DEFAULT_CHAT_ID?.trim();
 

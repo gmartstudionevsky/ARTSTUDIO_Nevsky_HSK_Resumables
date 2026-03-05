@@ -205,3 +205,20 @@ Playwright автоматически поднимает приложение ч
 
 - `APP_URL` — production URL (например `https://example.com`).
 - `JOB_SECRET` — секрет, совпадающий со значением `JOB_SECRET` в окружении приложения.
+
+## UI Texts
+
+Управляемые UI-тексты хранятся в таблице `UiText` и редактируются в админке `/admin/ui-texts`.
+
+- Публичный API для авторизованных пользователей (`SUPERVISOR+`): `GET /api/ui-texts?q=&limit=&offset=`.
+- Админ API (`ADMIN`):
+  - `GET /api/admin/ui-texts?q=&scope=all|BOTH|WEB|MOBILE&limit=&offset=`
+  - `POST /api/admin/ui-texts` с телом `{ key, ruText, scope }`
+  - `PATCH /api/admin/ui-texts/[id]` с телом `{ ruText?, scope? }`
+- Ключ `key` неизменяемый после создания; удаление UI-текстов не предусмотрено.
+- Клиентский `UiTextProvider` загружается в layout и отдаёт тексты через `useUiText(key, fallback)`.
+- Логика выбора по `scope`:
+  - mobile (< `md`): `MOBILE` → `BOTH` → fallback
+  - desktop/web (>= `md`): `WEB` → `BOTH` → fallback
+- После сохранения в `/admin/ui-texts` вызывается `refresh()` провайдера, поэтому подписи меню и подсказки обновляются без ручного refresh страницы.
+- `npm run seed` добавляет базовые ключи `nav.*`, `nav.admin.*`, `tooltip.*`, но не перезаписывает уже существующие значения.

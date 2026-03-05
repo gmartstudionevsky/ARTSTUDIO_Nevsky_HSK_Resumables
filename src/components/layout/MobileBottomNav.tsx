@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { useUiText } from '@/components/ui-texts/useUiText';
 import { mainNavItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +27,7 @@ export function MobileBottomNav(): JSX.Element {
                 )}
               >
                 <Icon className="h-4 w-4" />
-                <span>{item.label}</span>
+                <NavItemLabel labelKey={item.label.key} fallback={item.label.fallback} />
               </Link>
             </li>
           );
@@ -34,4 +35,9 @@ export function MobileBottomNav(): JSX.Element {
       </ul>
     </nav>
   );
+}
+
+function NavItemLabel({ labelKey, fallback }: { labelKey: string; fallback: string }): JSX.Element {
+  const label = useUiText(labelKey, fallback);
+  return <span>{label}</span>;
 }

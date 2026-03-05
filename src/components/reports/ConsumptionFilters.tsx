@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { useUiText } from '@/components/ui-texts/useUiText';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { ConsumptionGroupBy } from '@/lib/reports/types';
 
@@ -27,11 +28,13 @@ export function ConsumptionFilters({
   onPreset,
   onExport,
 }: ConsumptionFiltersProps): JSX.Element {
+  const reportUnitTooltip = useUiText('tooltip.reportUnit', 'Единица отчётности — в ней показывается склад и отчёты.');
+
   return (
     <div className="space-y-3 rounded-lg border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
         <Tooltip label="Единица отчётности">
-          Количество показано в единице отчётности позиции.
+          {reportUnitTooltip}
         </Tooltip>
         <Tooltip label="Правило расчёта">
           Расход считается по операциям «Расход» в выбранном периоде.
