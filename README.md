@@ -28,6 +28,22 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 - `npm run format`
 - `npm run format:check`
 
+
+## CI build
+
+- `npm run build` можно запускать без `DATABASE_URL` и `SESSION_SECRET`.
+- Для runtime в production обязательны `DATABASE_URL` и `SESSION_SECRET`: защищённые разделы (`/(app)`, `/admin`) завершатся ошибкой при отсутствии env.
+
+## Playwright
+
+1. Установите браузеры и системные зависимости (особенно для CI/контейнера):
+   - `npx playwright install --with-deps chromium`
+   - Если зависимости уже есть в образе: `npx playwright install chromium`
+2. Запустите e2e smoke:
+   - `npx playwright test`
+
+Playwright автоматически поднимает приложение через `webServer` в конфиге.
+
 ## Health checks
 
 - `GET /health` — health status page
