@@ -1,0 +1,48 @@
+:root {
+  --color-meteorite: #212121;
+  --color-carbon: #262d36;
+  --color-egret: #fff6e5;
+  --color-pale-gold: #c49a5f;
+  --color-tibetan-red: #822c3d;
+  --color-ensign-blue: #334966;
+  --color-golden-apricot: #e3ae5a;
+
+  --bg: 33 33 33;
+  --surface: 38 45 54;
+  --text: 255 246 229;
+  --muted: 196 176 146;
+  --border: 67 78 92;
+  --accent: 227 174 90;
+  --accent-contrast: 33 33 33;
+
+  --ok: 88 165 116;
+  --warn: 227 174 90;
+  --critical: 180 68 88;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-md: 0 10px 24px rgb(0 0 0 / 0.35);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+}
+
+[data-theme='light'] {
+  --bg: 255 246 229;
+  --surface: 255 251 242;
+  --text: 33 33 33;
+  --muted: 78 77 72;
+  --border: 222 206 181;
+  --accent: 130 44 61;
+  --accent-contrast: 255 246 229;
+
+  --ok: 36 123 65;
+  --warn: 179 120 35;
+  --critical: 130 44 61;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 10px 24px rgb(28 25 23 / 0.12);
+}

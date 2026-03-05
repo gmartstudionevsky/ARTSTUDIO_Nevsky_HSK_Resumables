@@ -46,3 +46,10 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 2. Откройте DevTools → Application → Manifest и убедитесь, что manifest загружен.
 3. В Application → Service Workers проверьте, что `sw.js` зарегистрирован.
 4. Вкладка Network → Offline, затем откройте `/stock` — должна открыться `/offline`.
+
+## Дизайн-токены и шрифты
+
+- Токены и тема: `src/styles/tokens.css`
+- Безопасное подключение локальных шрифтов: `src/styles/fonts.css`
+- Инструкция по шрифтам: `docs/fonts.md`
+- Папка для локальных файлов: `public/fonts/`

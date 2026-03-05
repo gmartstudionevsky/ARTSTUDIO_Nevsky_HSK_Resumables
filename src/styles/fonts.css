@@ -1,0 +1,32 @@
+/*
+  Локальные шрифты подключайте только после добавления файлов в public/fonts.
+  Пример:
+
+  @font-face {
+    font-family: 'Circe';
+    src: url('/fonts/Circe.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'Circe';
+    src: url('/fonts/Circe-Bold.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  @font-face {
+    font-family: 'History Pro';
+    src: url('/fonts/HistoryPro.woff2') format('woff2');
+    font-display: swap;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  После подключения можно обновить переменные в tokens.css:
+  --font-sans: 'Circe', ...;
+  --font-display: 'History Pro', ...;
+*/

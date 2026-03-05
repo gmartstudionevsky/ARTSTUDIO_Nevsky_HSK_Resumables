@@ -6,7 +6,7 @@ import { TopBar } from '@/components/layout/TopBar';
 
 export function AppShell({ children }: PropsWithChildren): JSX.Element {
   return (
-    <div className="min-h-screen bg-slate-100 md:flex">
+    <div className="min-h-screen bg-bg md:flex">
       <DesktopSidebar />
       <div className="flex min-h-screen flex-1 flex-col">
         <TopBar />

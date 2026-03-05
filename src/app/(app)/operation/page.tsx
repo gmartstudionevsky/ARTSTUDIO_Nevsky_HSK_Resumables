@@ -1,16 +1,40 @@
-import Link from 'next/link';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { HelpTip } from '@/components/ui/Tooltip';
 
 export default function OperationPage(): JSX.Element {
   return (
     <section className="space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-900">Операция</h1>
-      <p className="max-w-2xl text-sm text-slate-600">Здесь появится выполнение расхода, прихода и перемещений.</p>
-      <Link
-        href="/health"
-        className="inline-flex rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
-      >
-        Перейти к /health
-      </Link>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CardTitle>Операция</CardTitle>
+            <Badge variant="warn">MVP</Badge>
+          </div>
+          <CardDescription>Выполнение расхода, прихода и перемещений.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="flex items-center gap-2">
+            Назначение
+            <HelpTip label="Подсказка к назначению">Уточняет, для какого этапа производства выполняется операция.</HelpTip>
+          </p>
+          <p className="flex items-center gap-2">
+            Единица отчётности
+            <HelpTip label="Подсказка к единице отчётности">Операция списывает количество в одной согласованной единице измерения.</HelpTip>
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Button>Новая операция</Button>
+          <Button variant="secondary">Черновики</Button>
+        </CardFooter>
+      </Card>
+      <EmptyState
+        title="Операций пока нет"
+        description="Создайте первую операцию, чтобы увидеть ленту выполнения."
+        actions={<Button variant="ghost">Открыть шаблоны</Button>}
+      />
     </section>
   );
 }
