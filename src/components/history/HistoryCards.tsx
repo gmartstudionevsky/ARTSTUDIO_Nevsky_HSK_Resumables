@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { formatRuDateTime } from '@/lib/datetime/ru';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { HistoryListItem } from '@/lib/history/types';
@@ -29,7 +30,7 @@ export function HistoryCards({ items }: { items: HistoryListItem[] }): JSX.Eleme
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium">{item.batchId}</p>
-                  <p className="text-xs text-muted">{new Date(item.occurredAt).toLocaleString('ru-RU')}</p>
+                  <p className="text-xs text-muted">{formatRuDateTime(item.occurredAt)}</p>
                 </div>
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               </div>

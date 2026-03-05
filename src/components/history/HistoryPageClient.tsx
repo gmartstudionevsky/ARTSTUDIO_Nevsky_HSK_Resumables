@@ -6,6 +6,7 @@ import { HistoryCards } from '@/components/history/HistoryCards';
 import { HistoryFilters } from '@/components/history/HistoryFilters';
 import { HistoryTable } from '@/components/history/HistoryTable';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { parseRuDateTime } from '@/lib/datetime/ru';
 import { fetchHistoryList, fetchLookup, searchItems } from '@/lib/history/api';
 import { HistoryListItem, RefOption } from '@/lib/history/types';
 
@@ -24,12 +25,19 @@ const limit = 30;
 
 export function HistoryPageClient(): JSX.Element {
   const [filters, setFilters] = useState<FiltersState>({ from: '', to: '', type: 'all', status: 'all', q: '', itemId: '', expenseArticleId: '', purposeId: '' });
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [items, setItems] = useState<HistoryListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [itemOptions, setItemOptions] = useState<Array<{ id: string; code: string; name: string }>>([]);
   const [expenseArticles, setExpenseArticles] = useState<RefOption[]>([]);
   const [purposes, setPurposes] = useState<RefOption[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(filters.q), 300);
+    return () => clearTimeout(timer);
+  }, [filters.q]);
 
   useEffect(() => {
     void Promise.all([fetchLookup('expense-articles'), fetchLookup('purposes'), searchItems('')]).then(([articleRows, purposeRows, itemRows]) => {
@@ -40,11 +48,26 @@ export function HistoryPageClient(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    void fetchHistoryList({ ...filters, from: filters.from ? new Date(filters.from).toISOString() : undefined, to: filters.to ? new Date(filters.to).toISOString() : undefined, limit, offset }).then((payload) => {
+    setLoading(true);
+    const from = filters.from ? parseRuDateTime(filters.from) : null;
+    const to = filters.to ? parseRuDateTime(filters.to) : null;
+    void fetchHistoryList({
+      from: from?.toISOString(),
+      to: to?.toISOString(),
+      type: filters.type,
+      status: filters.status,
+      q: debouncedQ,
+      itemId: filters.itemId,
+      expenseArticleId: filters.expenseArticleId,
+      purposeId: filters.purposeId,
+      limit,
+      offset,
+    }).then((payload) => {
       setItems(payload.items);
       setTotal(payload.total);
-    });
-  }, [filters, offset]);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [filters.type, filters.status, filters.itemId, filters.expenseArticleId, filters.purposeId, filters.from, filters.to, debouncedQ, offset]);
 
   const fromTo = useMemo(() => {
     const from = total === 0 ? 0 : offset + 1;
@@ -59,7 +82,11 @@ export function HistoryPageClient(): JSX.Element {
     start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 0, 0);
     setOffset(0);
-    setFilters((prev) => ({ ...prev, from: start.toISOString().slice(0, 16), to: end.toISOString().slice(0, 16) }));
+    setFilters((prev) => ({
+      ...prev,
+      from: `${String(start.getDate()).padStart(2, '0')}.${String(start.getMonth() + 1).padStart(2, '0')}.${start.getFullYear()} 00:00`,
+      to: `${String(end.getDate()).padStart(2, '0')}.${String(end.getMonth() + 1).padStart(2, '0')}.${end.getFullYear()} 23:59`,
+    }));
   }
 
   return (
@@ -78,7 +105,9 @@ export function HistoryPageClient(): JSX.Element {
         purposes={purposes}
       />
 
-      {items.length === 0 ? <EmptyState title="Операции не найдены" description="Измените фильтры или создайте операции в разделе «Операции»." /> : <><HistoryTable items={items} /><HistoryCards items={items} /></>}
+      {loading ? <p className="text-sm text-muted">Загрузка операций...</p> : null}
+      {!loading && items.length === 0 ? <EmptyState title="Операции не найдены" description="Измените фильтры или создайте операции в разделе «Операции»." /> : null}
+      {!loading && items.length > 0 ? <><HistoryTable items={items} /><HistoryCards items={items} /></> : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <p className="text-muted">Показано {fromTo.from}–{fromTo.to} из {total}</p>

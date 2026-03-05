@@ -1,10 +1,7 @@
+import { httpGet, parseResponse } from '@/lib/http/client';
 import { HistoryListResponse, HistoryQuery, HistoryTransactionDetail, RefOption } from '@/lib/history/types';
 
-async function handle<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
-  if (!response.ok) throw new Error(payload?.error ?? 'Ошибка запроса');
-  return payload as T;
-}
+const lookupCache = new Map<string, RefOption[]>();
 
 export async function fetchHistoryList(query: HistoryQuery): Promise<HistoryListResponse> {
   const params = new URLSearchParams();
@@ -12,30 +9,29 @@ export async function fetchHistoryList(query: HistoryQuery): Promise<HistoryList
     if (value === undefined || value === '') return;
     params.set(key, String(value));
   });
-  const res = await fetch(`/api/transactions?${params.toString()}`, { cache: 'no-store' });
-  return handle<HistoryListResponse>(res);
+  return httpGet<HistoryListResponse>(`/api/transactions?${params.toString()}`);
 }
 
 export async function fetchHistoryDetail(id: string): Promise<HistoryTransactionDetail> {
-  const res = await fetch(`/api/transactions/${id}`, { cache: 'no-store' });
-  return handle<HistoryTransactionDetail>(res);
+  return httpGet<HistoryTransactionDetail>(`/api/transactions/${id}`);
 }
 
 export async function fetchLookup(type: 'expense-articles' | 'purposes' | 'reasons'): Promise<RefOption[]> {
-  const res = await fetch(`/api/lookup/${type}?active=true`, { cache: 'no-store' });
-  const payload = await handle<{ items: RefOption[] }>(res);
+  const cached = lookupCache.get(type);
+  if (cached) return cached;
+  const payload = await httpGet<{ items: RefOption[] }>(`/api/lookup/${type}?active=true`);
+  lookupCache.set(type, payload.items);
   return payload.items;
 }
 
 export async function searchItems(q: string): Promise<Array<{ id: string; code: string; name: string }>> {
   const params = new URLSearchParams({ q, limit: '20', active: 'true' });
-  const res = await fetch(`/api/items?${params.toString()}`, { cache: 'no-store' });
-  const payload = await handle<{ items: Array<{ id: string; code: string; name: string }> }>(res);
+  const payload = await httpGet<{ items: Array<{ id: string; code: string; name: string }> }>(`/api/items?${params.toString()}`);
   return payload.items;
 }
 
 export async function fetchItemUnits(itemId: string): Promise<Array<{ id: string; unitId: string; unit: { id: string; name: string } }>> {
-  const res = await fetch(`/api/items/${itemId}/units`, { cache: 'no-store' });
-  const payload = await handle<{ units: Array<{ id: string; unitId: string; unit: { id: string; name: string } }> }>(res);
+  const response = await fetch(`/api/items/${itemId}/units`, { cache: 'no-store' });
+  const payload = await parseResponse<{ units: Array<{ id: string; unitId: string; unit: { id: string; name: string } }> }>(response);
   return payload.units;
 }

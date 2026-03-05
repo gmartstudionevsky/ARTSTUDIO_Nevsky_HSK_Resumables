@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { parseRuDateTime } from '@/lib/datetime/ru';
 
 import { ConsumptionFilters } from '@/components/reports/ConsumptionFilters';
 import { ConsumptionGroups } from '@/components/reports/ConsumptionGroups';
@@ -17,7 +18,7 @@ type FilterState = {
 };
 
 function formatDateInput(date: Date): string {
-  return date.toISOString().slice(0, 10);
+  return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
 }
 
 function getInitialFilters(): FilterState {
@@ -33,8 +34,12 @@ function getInitialFilters(): FilterState {
   };
 }
 
-function dateToApiRange(value: string, edge: 'from' | 'to'): string {
-  return edge === 'from' ? `${value}T00:00:00.000Z` : `${value}T23:59:59.999Z`;
+function dateToApiRange(value: string, edge: 'from' | 'to'): string | null {
+  const parsed = parseRuDateTime(value);
+  if (!parsed) return null;
+  if (edge === 'from') parsed.setHours(0, 0, 0, 0);
+  if (edge === 'to') parsed.setHours(23, 59, 59, 999);
+  return parsed.toISOString();
 }
 
 export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JSX.Element {
@@ -42,6 +47,7 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
   const [data, setData] = useState<ConsumptionReportResponse | null>(null);
   const [error, setError] = useState('');
   const [decimals, setDecimals] = useState(2);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     void fetchPolicies().then((p) => setDecimals(p.displayDecimals)).catch(() => null);
@@ -49,15 +55,24 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
 
   useEffect(() => {
     setError('');
+    const fromIso = dateToApiRange(filters.from, 'from');
+    const toIso = dateToApiRange(filters.to, 'to');
+    if (!fromIso || !toIso) {
+      setData(null);
+      setError('Укажите корректный период в формате дд.мм.гггг');
+      return;
+    }
+    setLoading(true);
 
     void fetchConsumptionReport({
-      from: dateToApiRange(filters.from, 'from'),
-      to: dateToApiRange(filters.to, 'to'),
+      from: fromIso,
+      to: toIso,
       groupBy: filters.groupBy,
       q: filters.q || undefined,
     })
-      .then((payload) => setData(payload))
+      .then((payload) => { setData(payload); setLoading(false); })
       .catch((requestError: unknown) => {
+        setLoading(false);
         setData(null);
         setError(
           requestError instanceof Error ? requestError.message : 'Не удалось загрузить отчёт',
@@ -67,8 +82,8 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
 
   const exportQuery = useMemo(
     () => ({
-      from: dateToApiRange(filters.from, 'from'),
-      to: dateToApiRange(filters.to, 'to'),
+      from: dateToApiRange(filters.from, 'from') ?? '',
+      to: dateToApiRange(filters.to, 'to') ?? '',
       groupBy: filters.groupBy,
       q: filters.q || undefined,
     }),
@@ -114,6 +129,7 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
         onExport={handleExport}
       />
 
+      {loading ? <p className="text-sm text-muted">Загрузка отчёта...</p> : null}
       {error ? <p className="text-sm text-critical">{error}</p> : null}
       {data?.meta.warnings?.length ? (
         <p className="text-xs text-warn">Есть позиции с fallback коэффициента отчётной единицы.</p>
