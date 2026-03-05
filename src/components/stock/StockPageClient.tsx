@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { StockCards } from '@/components/stock/StockCards';
 import { StockFilters } from '@/components/stock/StockFilters';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { StockTable } from '@/components/stock/StockTable';
 import { fetchPolicies } from '@/lib/operation/api';
 import { fetchStockList } from '@/lib/stock/api';
+import { StockTable } from '@/components/stock/StockTable';
 import { ActiveFilter, StockListItem, StockStatusFilter } from '@/lib/stock/types';
 
 type RefOption = { id: string; name: string; code?: string };
@@ -38,12 +38,19 @@ async function fetchLookup(path: string): Promise<RefOption[]> {
 
 export function StockPageClient(): JSX.Element {
   const [filters, setFilters] = useState<FilterState>(initialFilters);
+  const [debouncedQ, setDebouncedQ] = useState(filters.q);
   const [items, setItems] = useState<StockListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<RefOption[]>([]);
   const [expenseArticles, setExpenseArticles] = useState<RefOption[]>([]);
   const [purposes, setPurposes] = useState<RefOption[]>([]);
   const [decimals, setDecimals] = useState(2);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQ(filters.q), 300);
+    return () => clearTimeout(timer);
+  }, [filters.q]);
 
   useEffect(() => {
     void Promise.all([
@@ -59,20 +66,22 @@ export function StockPageClient(): JSX.Element {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
     void fetchStockList({
-      q: filters.q || undefined,
+      q: debouncedQ || undefined,
       categoryId: filters.categoryId || undefined,
       expenseArticleId: filters.expenseArticleId || undefined,
       purposeId: filters.purposeId || undefined,
       status: filters.status,
       active: filters.active,
-      limit: 200,
+      limit: 100,
       offset: 0,
     }).then((payload) => {
       setItems(payload.items);
       setTotal(payload.total);
-    });
-  }, [filters]);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [debouncedQ, filters.categoryId, filters.expenseArticleId, filters.purposeId, filters.status, filters.active]);
 
   return (
     <section className="space-y-4">
@@ -81,8 +90,9 @@ export function StockPageClient(): JSX.Element {
         <p className="text-sm text-muted">Актуальные остатки считаются автоматически по операциям.</p>
       </header>
       <StockFilters value={filters} categories={categories} expenseArticles={expenseArticles} purposes={purposes} onChange={setFilters} />
-      <p className="text-sm text-muted">Найдено позиций: {total}</p>
-      {items.length === 0 ? <EmptyState title="Позиции не найдены" description="Измените фильтры или добавьте операции по позициям." /> : <><StockTable items={items} decimals={decimals} /><StockCards items={items} decimals={decimals} /></>}
+      {loading ? <p className="text-sm text-muted">Загрузка данных...</p> : <p className="text-sm text-muted">Найдено позиций: {total}</p>}
+      {!loading && items.length === 0 ? <EmptyState title="Позиции не найдены" description="Измените фильтры или добавьте операции по позициям." /> : null}
+      {!loading && items.length > 0 ? <><StockTable items={items} decimals={decimals} /><StockCards items={items} decimals={decimals} /></> : null}
     </section>
   );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRuDateTime } from '@/lib/datetime/ru';
 import { UiTextItem } from '@/lib/ui-texts/types';
 
 import { Button } from '@/components/ui/Button';
@@ -15,8 +16,8 @@ export function UiTextsTable({ items, onEdit }: UiTextsTableProps): JSX.Element 
       <table className="min-w-full text-sm">
         <thead className="bg-surface text-left text-muted">
           <tr>
-            <th className="px-3 py-2">Key</th>
-            <th className="px-3 py-2">Scope</th>
+            <th className="px-3 py-2">Ключ</th>
+            <th className="px-3 py-2">Область</th>
             <th className="px-3 py-2">Текст</th>
             <th className="px-3 py-2">Обновлено</th>
             <th className="px-3 py-2">Действия</th>
@@ -28,7 +29,7 @@ export function UiTextsTable({ items, onEdit }: UiTextsTableProps): JSX.Element 
               <td className="px-3 py-2 font-mono text-xs">{item.key}</td>
               <td className="px-3 py-2">{item.scope}</td>
               <td className="px-3 py-2">{item.ruText}</td>
-              <td className="px-3 py-2 text-muted">{new Date(item.updatedAt).toLocaleString('ru-RU')}</td>
+              <td className="px-3 py-2 text-muted">{formatRuDateTime(item.updatedAt)}</td>
               <td className="px-3 py-2">
                 <Button variant="secondary" size="sm" onClick={() => onEdit(item)}>Редактировать</Button>
               </td>

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRuDateTime } from '@/lib/datetime/ru';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -77,7 +78,7 @@ export function HistoryDetailPageClient(): JSX.Element {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Операция {detail.transaction.batchId}</h1>
-          <p className="text-sm text-muted">{new Date(detail.transaction.occurredAt).toLocaleString('ru-RU')}</p>
+          <p className="text-sm text-muted">{formatRuDateTime(detail.transaction.occurredAt)}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge>{txTypeLabel(detail.transaction.type)}</Badge>
@@ -88,7 +89,7 @@ export function HistoryDetailPageClient(): JSX.Element {
       <Card>
         <CardHeader><CardTitle>Сводка</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-sm">Дата операции: <span className="font-medium">{new Date(detail.transaction.occurredAt).toLocaleString('ru-RU')}</span></p>
+          <p className="text-sm">Дата операции: <span className="font-medium">{formatRuDateTime(detail.transaction.occurredAt)}</span></p>
           <p className="text-sm">Создал: <span className="font-medium">{detail.transaction.createdBy.login}</span></p>
           <p className="text-sm">Статус: <span className="font-medium">{detail.uiStatus}</span></p>
           <p className="text-sm">Примечание: <span className="font-medium">{detail.transaction.note || '—'}</span></p>

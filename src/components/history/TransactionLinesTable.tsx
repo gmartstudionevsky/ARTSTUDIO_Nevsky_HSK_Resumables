@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { formatRuDateTime } from '@/lib/datetime/ru';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatQty } from '@/lib/qty/format';
@@ -20,16 +21,16 @@ export function TransactionLinesTable({ lines, onCancel, onCorrect, decimals }: 
         </thead>
         <tbody>
           {lines.map((line) => (
-            <tr key={line.id} className="border-t border-border align-top">
+            <tr key={line.id} className={`border-t border-border align-top ${line.status === 'CANCELLED' ? 'bg-surface/60 text-muted' : ''}`}>
               <td className="px-4 py-3">
                 <Link className="text-accent underline" href={`/items/${line.item.id}`}>{line.item.code} — {line.item.name}</Link>
-                {line.correctedFromLineId ? <p className="text-xs text-muted">Исправление строки {line.correctedFromLineId}</p> : null}
+                {line.correctedFromLineId ? <p className="text-xs text-muted">Исправлено из <span className="font-medium">{line.correctedFromLineId}</span></p> : null}
               </td>
               <td className="px-4 py-3">{formatQty(line.qtyInput, decimals)} {line.unit.name}</td>
               <td className="px-4 py-3">{line.expenseArticle.code} — {line.expenseArticle.name}<br />{line.purpose.code} — {line.purpose.name}</td>
               <td className="px-4 py-3">
                 <Badge variant={line.status === 'ACTIVE' ? 'ok' : 'neutral'}>{line.status === 'ACTIVE' ? 'Активно' : 'Отменено'}</Badge>
-                {line.status === 'CANCELLED' ? <p className="mt-1 text-xs text-muted">{line.reason ? `${line.reason.code} — ${line.reason.name}` : 'Без причины'} · {line.cancelledBy?.login ?? '-'} · {line.cancelledAt ? new Date(line.cancelledAt).toLocaleString('ru-RU') : '-'}</p> : null}
+                {line.status === 'CANCELLED' ? <p className="mt-1 text-xs text-muted">{line.reason ? `${line.reason.code} — ${line.reason.name}` : 'Без причины'} · {line.cancelledBy?.login ?? '-'} · {line.cancelledAt ? formatRuDateTime(line.cancelledAt) : '-'}</p> : null}
               </td>
               <td className="px-4 py-3">
                 {line.status === 'ACTIVE' ? <div className="flex flex-wrap gap-2"><Button size="sm" variant="secondary" onClick={() => onCancel(line)}>Отменить строку</Button><Button size="sm" onClick={() => onCorrect(line)}>Исправить</Button></div> : <span className="text-xs text-muted">—</span>}

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { formatRuDateTime } from '@/lib/datetime/ru';
 import { Badge } from '@/components/ui/Badge';
 import { HistoryListItem } from '@/lib/history/types';
 
@@ -37,7 +38,7 @@ export function HistoryTable({ items }: { items: HistoryListItem[] }): JSX.Eleme
             const badge = statusBadge(item.uiStatus);
             return (
               <tr key={item.id} className="border-t border-border">
-                <td className="px-4 py-3">{new Date(item.occurredAt).toLocaleString('ru-RU')}</td>
+                <td className="px-4 py-3">{formatRuDateTime(item.occurredAt)}</td>
                 <td className="px-4 py-3 font-medium">{item.batchId}</td>
                 <td className="px-4 py-3">{txTypeLabel(item.type)}</td>
                 <td className="px-4 py-3">{item.createdBy.login}</td>

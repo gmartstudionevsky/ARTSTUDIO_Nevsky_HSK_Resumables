@@ -1,10 +1,5 @@
+import { httpGet } from '@/lib/http/client';
 import { StockListQuery, StockListResponse } from '@/lib/stock/types';
-
-async function handle<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
-  if (!response.ok) throw new Error(payload?.error ?? 'Ошибка запроса');
-  return payload as T;
-}
 
 export async function fetchStockList(query: StockListQuery): Promise<StockListResponse> {
   const params = new URLSearchParams();
@@ -18,6 +13,5 @@ export async function fetchStockList(query: StockListQuery): Promise<StockListRe
   params.set('limit', String(query.limit ?? 50));
   params.set('offset', String(query.offset ?? 0));
 
-  const response = await fetch(`/api/stock?${params.toString()}`, { cache: 'no-store' });
-  return handle<StockListResponse>(response);
+  return httpGet<StockListResponse>(`/api/stock?${params.toString()}`);
 }

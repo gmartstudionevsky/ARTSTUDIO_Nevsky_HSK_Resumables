@@ -1,3 +1,4 @@
+import { httpGet } from '@/lib/http/client';
 import { ConsumptionReportQuery, ConsumptionReportResponse } from '@/lib/reports/types';
 
 function toSearchParams(query: ConsumptionReportQuery): URLSearchParams {
@@ -11,20 +12,11 @@ function toSearchParams(query: ConsumptionReportQuery): URLSearchParams {
   return params;
 }
 
-async function handle<T>(response: Response): Promise<T> {
-  const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
-  if (!response.ok) throw new Error(payload?.error ?? 'Ошибка запроса');
-  return payload as T;
-}
-
 export async function fetchConsumptionReport(
   query: ConsumptionReportQuery,
 ): Promise<ConsumptionReportResponse> {
   const params = toSearchParams(query);
-  const response = await fetch(`/api/reports/consumption?${params.toString()}`, {
-    cache: 'no-store',
-  });
-  return handle<ConsumptionReportResponse>(response);
+  return httpGet<ConsumptionReportResponse>(`/api/reports/consumption?${params.toString()}`);
 }
 
 export function buildConsumptionExportUrl(

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRuDateTime } from '@/lib/datetime/ru';
 import { UiTextItem } from '@/lib/ui-texts/types';
 
 import { Button } from '@/components/ui/Button';
@@ -19,9 +20,9 @@ export function UiTextsCards({ items, onEdit }: UiTextsCardsProps): JSX.Element 
             <CardTitle className="font-mono text-sm">{item.key}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <p><span className="text-muted">Scope:</span> {item.scope}</p>
+            <p><span className="text-muted">Область:</span> {item.scope}</p>
             <p>{item.ruText}</p>
-            <p className="text-xs text-muted">Обновлено: {new Date(item.updatedAt).toLocaleString('ru-RU')}</p>
+            <p className="text-xs text-muted">Обновлено: {formatRuDateTime(item.updatedAt)}</p>
             <Button variant="secondary" size="sm" onClick={() => onEdit(item)}>Редактировать</Button>
           </CardContent>
         </Card>

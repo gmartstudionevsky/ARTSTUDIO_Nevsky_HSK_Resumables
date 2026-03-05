@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRuDate } from '@/lib/datetime/ru';
 import { Role } from '@prisma/client';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -37,6 +38,13 @@ export function InventoryDetailPageClient({ role }: { role: Role }): JSX.Element
     });
   }, [load]);
 
+
+  function onPatch(lineId: string, patch: { qtyFactInput?: string | null; unitId?: string; apply?: boolean; comment?: string | null }): void {
+    void (async () => {
+      await patchInventoryLines(id, [{ lineId, ...patch }]);
+      await load();
+    })();
+  }
   const unitsByItem = useMemo(() => Object.fromEntries(detail?.lines.map((line) => [line.item.id, [{ unitId: line.unit.id, unit: line.unit }]]) ?? []), [detail?.lines]);
   const canApply = role === Role.ADMIN || role === Role.MANAGER;
   const hasAppliable = (detail?.lines ?? []).some((line) => line.apply && line.qtyFactBase !== null);
@@ -47,7 +55,7 @@ export function InventoryDetailPageClient({ role }: { role: Role }): JSX.Element
     <section className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold">Инвентаризация от {new Date(detail.session.occurredAt).toLocaleDateString('ru-RU')}</h1>
+          <h1 className="text-2xl font-semibold">Инвентаризация от {formatRuDate(detail.session.occurredAt)}</h1>
           <p className="text-sm text-muted">Факт — реально пересчитанный остаток. Отклонение — факт минус система.</p>
         </div>
         <Badge variant={detail.session.status === 'APPLIED' ? 'ok' : 'warn'}>{detail.session.status === 'APPLIED' ? 'Применена' : 'Черновик'}</Badge>
@@ -63,25 +71,19 @@ export function InventoryDetailPageClient({ role }: { role: Role }): JSX.Element
       <InventoryLinesTable
         lines={detail.lines}
         unitsByItem={unitsByItem}
-        onChange={(lineId, patch) => {
-          void (async () => {
-            await patchInventoryLines(id, [{ lineId, ...patch }]);
-            await load();
-          })();
-        }}
+        onChange={onPatch}
       />
       <InventoryLinesCards
         lines={detail.lines}
         unitsByItem={unitsByItem}
-        onChange={(lineId, patch) => {
-          void (async () => {
-            await patchInventoryLines(id, [{ lineId, ...patch }]);
-            await load();
-          })();
-        }}
+        onChange={onPatch}
       />
 
-      {detail.session.status === 'DRAFT' && canApply ? <Button disabled={!hasAppliable} onClick={() => setApplyOpen(true)}>Применить выбранное</Button> : null}
+      {detail.session.status === 'DRAFT' && canApply ? <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => {
+        detail.lines.forEach((line) => { if (line.qtyFactBase !== null) onPatch(line.id, { apply: true }); });
+      }}>Отметить все</Button><Button variant="secondary" onClick={() => {
+        detail.lines.forEach((line) => onPatch(line.id, { apply: false }));
+      }}>Снять все</Button><Button disabled={!hasAppliable} onClick={() => setApplyOpen(true)}>Применить выбранное</Button></div> : null}
       <Link href="/inventory" className="text-sm text-accent underline">← К списку</Link>
 
       <InventoryFillModal
