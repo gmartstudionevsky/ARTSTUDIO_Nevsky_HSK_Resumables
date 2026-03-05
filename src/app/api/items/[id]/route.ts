@@ -1,9 +1,42 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
-import { requireManagerOrAdminApi } from '@/lib/auth/guards';
+import { requireManagerOrAdminApi, requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 import { patchItemSchema } from '@/lib/items/validators';
+
+export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+  const { error } = await requireSupervisorOrAboveApi();
+  if (error) return error;
+
+  const item = await prisma.item.findUnique({
+    where: { id: params.id },
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      isActive: true,
+      minQtyBase: true,
+      synonyms: true,
+      note: true,
+      category: { select: { id: true, name: true } },
+      defaultExpenseArticle: { select: { id: true, code: true, name: true } },
+      defaultPurpose: { select: { id: true, code: true, name: true } },
+      baseUnit: { select: { id: true, name: true } },
+      defaultInputUnit: { select: { id: true, name: true } },
+      reportUnit: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!item) return NextResponse.json({ error: 'Позиция не найдена' }, { status: 404 });
+
+  return NextResponse.json({
+    item: {
+      ...item,
+      minQtyBase: item.minQtyBase?.toString() ?? null,
+    },
+  });
+}
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const authError = await requireManagerOrAdminApi();
