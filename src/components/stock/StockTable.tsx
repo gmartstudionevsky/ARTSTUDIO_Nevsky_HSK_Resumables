@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { Badge } from '@/components/ui/Badge';
+import { formatQty } from '@/lib/qty/format';
 import { StockListItem } from '@/lib/stock/types';
 
 function statusBadge(status: StockListItem['status']): { label: string; variant: 'ok' | 'warn' | 'neutral' } {
@@ -9,7 +10,7 @@ function statusBadge(status: StockListItem['status']): { label: string; variant:
   return { label: 'ОК', variant: 'ok' };
 }
 
-export function StockTable({ items }: { items: StockListItem[] }): JSX.Element {
+export function StockTable({ items, decimals }: { items: StockListItem[]; decimals: number }): JSX.Element {
   return (
     <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
       <table className="min-w-full text-sm">
@@ -30,7 +31,7 @@ export function StockTable({ items }: { items: StockListItem[] }): JSX.Element {
               <tr key={item.itemId} className="border-t border-border">
                 <td className="px-4 py-3">{item.code} · {item.name}</td>
                 <td className="px-4 py-3">{item.category.name}</td>
-                <td className="px-4 py-3 font-medium">{item.qtyReport}</td>
+                <td className="px-4 py-3 font-medium">{formatQty(item.qtyReport, decimals)}</td>
                 <td className="px-4 py-3">{item.reportUnit.name}</td>
                 <td className="px-4 py-3"><Badge variant={badge.variant}>{badge.label}</Badge></td>
                 <td className="px-4 py-3 text-right"><Link className="text-accent underline" href={`/items/${item.itemId}`}>Открыть</Link></td>

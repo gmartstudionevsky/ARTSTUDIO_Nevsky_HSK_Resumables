@@ -65,6 +65,14 @@ enum ImportJobStatus {
   FAILED
 }
 
+enum SettingKey {
+  SUPERVISOR_BACKDATE_DAYS
+  REQUIRE_REASON_ON_CANCEL
+  ALLOW_NEGATIVE_STOCK
+  DISPLAY_DECIMALS
+  ENABLE_PERIOD_LOCKS
+}
+
 model User {
   id                  String    @id @default(uuid()) @db.Uuid
   login               String    @unique
@@ -86,6 +94,30 @@ model User {
   inventoryApplied    InventorySession[] @relation("InventorySessionAppliedBy")
   auditLogs           AuditLog[]
   importJobs          ImportJob[]
+  appSettingsUpdated  AppSetting[] @relation("AppSettingUpdatedBy")
+  periodLocks         PeriodLock[]
+}
+
+model AppSetting {
+  id          String     @id @default(uuid()) @db.Uuid
+  key         SettingKey @unique
+  valueJson   Json
+  updatedAt   DateTime   @updatedAt
+  updatedById String?    @db.Uuid
+  updatedBy   User?      @relation("AppSettingUpdatedBy", fields: [updatedById], references: [id])
+}
+
+model PeriodLock {
+  id         String   @id @default(uuid()) @db.Uuid
+  year       Int
+  month      Int
+  isLocked   Boolean  @default(true)
+  lockedAt   DateTime @default(now())
+  lockedById String   @db.Uuid
+  note       String?
+  lockedBy   User     @relation(fields: [lockedById], references: [id])
+
+  @@unique([year, month])
 }
 
 model Session {

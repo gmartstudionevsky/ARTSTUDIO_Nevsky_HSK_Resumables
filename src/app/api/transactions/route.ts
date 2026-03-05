@@ -4,6 +4,9 @@ import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { isDateLocked } from '@/lib/period-locks/service';
+import { getSettings } from '@/lib/settings/service';
+import { getCurrentQtyBaseByItemIds } from '@/lib/stock/currentQty';
 import { sendTxCreated } from '@/lib/telegram/service';
 
 const numberInputSchema = z.union([z.string(), z.number()]).transform((value) => Number(value));
@@ -181,8 +184,22 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = createSchema.parse(body);
+    const settings = await getSettings(prisma);
 
     const occurredAt = data.occurredAt ? new Date(data.occurredAt) : new Date();
+    if (user.role === 'SUPERVISOR') {
+      const minDate = new Date();
+      minDate.setDate(minDate.getDate() - settings.supervisorBackdateDays);
+      if (occurredAt < minDate) {
+        return NextResponse.json({ error: `Супервайзеру доступен ввод задним числом только на ${settings.supervisorBackdateDays} дней.` }, { status: 403 });
+      }
+    }
+
+    const locked = await isDateLocked(occurredAt, prisma);
+    if (locked && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: `Период закрыт. Операции за ${occurredAt.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })} запрещены.` }, { status: 403 });
+    }
+
     const itemIds = [...new Set(data.lines.map((line) => line.itemId))];
     const unitsByItem = await prisma.itemUnit.findMany({
       where: { itemId: { in: itemIds }, isAllowed: true },
@@ -242,6 +259,34 @@ export async function POST(request: Request): Promise<NextResponse> {
       }
     }
 
+    const warnings: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string }> = [];
+    if (data.type === TxType.OUT) {
+      const currentQty = await getCurrentQtyBaseByItemIds(itemIds);
+      const requested = new Map<string, Prisma.Decimal>();
+      for (const line of payloadLines) {
+        requested.set(line.itemId, (requested.get(line.itemId) ?? new Prisma.Decimal(0)).add(line.qtyBase));
+      }
+
+      const insufficient: Array<{ itemId: string; code: string; name: string; currentQtyBase: string; requestedQtyBase: string; wouldBeQtyBase: string }> = [];
+      for (const itemId of itemIds) {
+        const item = itemMap.get(itemId);
+        if (!item) continue;
+        const current = currentQty.get(itemId) ?? new Prisma.Decimal(0);
+        const req = requested.get(itemId) ?? new Prisma.Decimal(0);
+        const wouldBe = current.sub(req);
+        if (wouldBe.lt(0)) {
+          if (!settings.allowNegativeStock) {
+            insufficient.push({ itemId, code: item.code, name: item.name, currentQtyBase: current.toString(), requestedQtyBase: req.toString(), wouldBeQtyBase: wouldBe.toString() });
+          } else {
+            warnings.push({ code: 'NEGATIVE_STOCK', message: `После списания остаток по позиции «${item.name}» станет отрицательным.`, itemId, itemName: item.name });
+          }
+        }
+      }
+      if (insufficient.length > 0) {
+        return NextResponse.json({ error: 'Недостаточно остатка для списания', details: insufficient }, { status: 400 });
+      }
+    }
+
     const txResult = await prisma.$transaction(async (tx) => {
       const createdTx = await tx.transaction.create({
         data: {
@@ -288,7 +333,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.error('[telegram] tx notification enqueue failed', telegramError);
     }
 
-    return NextResponse.json({ transaction: { id: txResult.createdTx.id, batchId: txResult.createdTx.batchId, type: txResult.createdTx.type, occurredAt: txResult.createdTx.occurredAt }, lines: txResult.lines });
+    return NextResponse.json({ transaction: { id: txResult.createdTx.id, batchId: txResult.createdTx.batchId, type: txResult.createdTx.type, occurredAt: txResult.createdTx.occurredAt }, lines: txResult.lines, ...(warnings.length > 0 ? { warnings } : {}) });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Некорректные данные операции' }, { status: 400 });

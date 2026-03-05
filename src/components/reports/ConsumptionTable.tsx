@@ -1,6 +1,7 @@
 import { ConsumptionReportRow } from '@/lib/reports/types';
+import { formatQty } from '@/lib/qty/format';
 
-export function ConsumptionTable({ rows }: { rows: ConsumptionReportRow[] }): JSX.Element {
+export function ConsumptionTable({ rows, decimals }: { rows: ConsumptionReportRow[]; decimals: number }): JSX.Element {
   return (
     <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
       <table className="min-w-full text-sm">
@@ -17,7 +18,7 @@ export function ConsumptionTable({ rows }: { rows: ConsumptionReportRow[] }): JS
                 <span className="font-medium">{row.item.code}</span> — {row.item.name}
               </td>
               <td className="px-4 py-3 font-medium">
-                {row.qtyReport} {row.reportUnit.name}
+                {formatQty(row.qtyReport, decimals)} {row.reportUnit.name}
               </td>
             </tr>
           ))}

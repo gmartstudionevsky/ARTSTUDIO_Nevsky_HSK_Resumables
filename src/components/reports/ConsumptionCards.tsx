@@ -1,7 +1,8 @@
 import { Card, CardContent } from '@/components/ui/Card';
+import { formatQty } from '@/lib/qty/format';
 import { ConsumptionReportRow } from '@/lib/reports/types';
 
-export function ConsumptionCards({ rows }: { rows: ConsumptionReportRow[] }): JSX.Element {
+export function ConsumptionCards({ rows, decimals }: { rows: ConsumptionReportRow[]; decimals: number }): JSX.Element {
   return (
     <div className="space-y-3 md:hidden">
       {rows.map((row) => (
@@ -11,7 +12,7 @@ export function ConsumptionCards({ rows }: { rows: ConsumptionReportRow[] }): JS
               <span className="font-medium">{row.item.code}</span> — {row.item.name}
             </p>
             <p className="text-sm font-semibold">
-              {row.qtyReport} {row.reportUnit.name}
+              {formatQty(row.qtyReport, decimals)} {row.reportUnit.name}
             </p>
           </CardContent>
         </Card>

@@ -1,5 +1,5 @@
 import argon2 from 'argon2';
-import { PrismaClient, Role, UiTextScope } from '@prisma/client';
+import { PrismaClient, Role, SettingKey, UiTextScope } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +15,8 @@ const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }
   { key: 'nav.admin.users', ruText: 'Пользователи' },
   { key: 'nav.admin.telegram', ruText: 'Telegram' },
   { key: 'nav.admin.uiTexts', ruText: 'Тексты интерфейса' },
+  { key: 'nav.admin.settings', ruText: 'Политики данных' },
+  { key: 'nav.admin.periodLocks', ruText: 'Закрытие периода' },
   { key: 'tooltip.reportUnit', ruText: 'Единица отчётности — в ней показывается склад и отчёты.' },
   { key: 'tooltip.purpose', ruText: 'Назначение — для какого направления/участка учитывается расход.' },
   { key: 'tooltip.expenseArticle', ruText: 'Статья расходов — финансовый разрез для отчёта.' },
@@ -50,6 +52,22 @@ async function main() {
         ruText: item.ruText,
         scope: item.scope ?? UiTextScope.BOTH,
       },
+      update: {},
+    });
+  }
+
+  const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [
+    { key: SettingKey.SUPERVISOR_BACKDATE_DAYS, value: 3 },
+    { key: SettingKey.REQUIRE_REASON_ON_CANCEL, value: true },
+    { key: SettingKey.ALLOW_NEGATIVE_STOCK, value: true },
+    { key: SettingKey.DISPLAY_DECIMALS, value: 2 },
+    { key: SettingKey.ENABLE_PERIOD_LOCKS, value: false },
+  ];
+
+  for (const setting of defaultSettings) {
+    await prisma.appSetting.upsert({
+      where: { key: setting.key },
+      create: { key: setting.key, valueJson: setting.value },
       update: {},
     });
   }

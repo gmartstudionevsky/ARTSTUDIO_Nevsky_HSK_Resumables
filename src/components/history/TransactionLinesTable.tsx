@@ -2,9 +2,10 @@ import Link from 'next/link';
 
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { formatQty } from '@/lib/qty/format';
 import { HistoryLine } from '@/lib/history/types';
 
-export function TransactionLinesTable({ lines, onCancel, onCorrect }: { lines: HistoryLine[]; onCancel: (line: HistoryLine) => void; onCorrect: (line: HistoryLine) => void }): JSX.Element {
+export function TransactionLinesTable({ lines, onCancel, onCorrect, decimals }: { lines: HistoryLine[]; onCancel: (line: HistoryLine) => void; onCorrect: (line: HistoryLine) => void; decimals: number }): JSX.Element {
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
       <table className="min-w-full text-sm">
@@ -24,7 +25,7 @@ export function TransactionLinesTable({ lines, onCancel, onCorrect }: { lines: H
                 <Link className="text-accent underline" href={`/items/${line.item.id}`}>{line.item.code} — {line.item.name}</Link>
                 {line.correctedFromLineId ? <p className="text-xs text-muted">Исправление строки {line.correctedFromLineId}</p> : null}
               </td>
-              <td className="px-4 py-3">{line.qtyInput} {line.unit.name}</td>
+              <td className="px-4 py-3">{formatQty(line.qtyInput, decimals)} {line.unit.name}</td>
               <td className="px-4 py-3">{line.expenseArticle.code} — {line.expenseArticle.name}<br />{line.purpose.code} — {line.purpose.name}</td>
               <td className="px-4 py-3">
                 <Badge variant={line.status === 'ACTIVE' ? 'ok' : 'neutral'}>{line.status === 'ACTIVE' ? 'Активно' : 'Отменено'}</Badge>

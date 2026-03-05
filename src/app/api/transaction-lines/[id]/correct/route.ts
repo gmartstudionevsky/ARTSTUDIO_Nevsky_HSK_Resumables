@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { isDateLocked } from '@/lib/period-locks/service';
+import { getSettings } from '@/lib/settings/service';
 
 const schema = z.object({
   qtyInput: z.union([z.string(), z.number()]).transform((value) => Number(value)),
@@ -29,6 +31,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = schema.parse(body);
     if (data.qtyInput <= 0) return NextResponse.json({ error: 'Количество должно быть больше нуля' }, { status: 400 });
+    const settings = await getSettings(prisma);
+    if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
 
     const oldLine = await prisma.transactionLine.findUnique({
       where: { id: params.id },
@@ -40,6 +44,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (!oldLine) return NextResponse.json({ error: 'Строка не найдена' }, { status: 404 });
     if (oldLine.status === RecordStatus.CANCELLED) return NextResponse.json({ error: 'Строка уже отменена' }, { status: 400 });
     if (oldLine.transaction.type !== TxType.IN && oldLine.transaction.type !== TxType.OUT && oldLine.transaction.type !== TxType.ADJUST) return NextResponse.json({ error: 'Исправление для этого типа недоступно' }, { status: 400 });
+    const locked = await isDateLocked(oldLine.transaction.occurredAt, prisma);
+    if (locked && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Период закрыт. Исправление строки недоступно, обратитесь к администратору.' }, { status: 403 });
+    }
 
     const itemUnit = await prisma.itemUnit.findFirst({ where: { itemId: oldLine.itemId, unitId: data.unitId, isAllowed: true } });
     if (!itemUnit) return NextResponse.json({ error: 'Единица не разрешена для позиции' }, { status: 400 });

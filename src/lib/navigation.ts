@@ -49,6 +49,8 @@ export const adminNavItems: NavItem[] = [
   { href: '/admin/dictionaries', label: { key: 'nav.admin.dictionaries', fallback: 'Справочники' }, icon: Settings },
   { href: '/admin/users', label: { key: 'nav.admin.users', fallback: 'Пользователи' }, icon: Users },
   { href: '/admin/import', label: { key: 'nav.admin.import', fallback: 'Импорт' }, icon: Upload },
+  { href: '/admin/settings', label: { key: 'nav.admin.settings', fallback: 'Политики данных' }, icon: Settings },
+  { href: '/admin/period-locks', label: { key: 'nav.admin.periodLocks', fallback: 'Закрытие периода' }, icon: Shield },
   { href: '/admin/integrations/telegram', label: { key: 'nav.admin.telegram', fallback: 'Telegram' }, icon: Send },
   { href: '/admin/ui-texts', label: { key: 'nav.admin.uiTexts', fallback: 'Тексты интерфейса' }, icon: FileType2 },
 ];

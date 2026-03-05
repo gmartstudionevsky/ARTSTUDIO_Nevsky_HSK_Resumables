@@ -1,4 +1,4 @@
-import { CorrectLineResult, IntakeMode, ItemOption, LookupItem, OperationType, TxResult, UnitOption } from '@/lib/operation/types';
+import { CorrectLineResult, IntakeMode, ItemOption, LookupItem, OperationType, PoliciesResponse, TxResult, UnitOption } from '@/lib/operation/types';
 
 async function handle<T>(response: Response): Promise<T> {
   const payload = (await response.json().catch(() => null)) as (T & { error?: string }) | null;
@@ -59,4 +59,10 @@ export async function correctLine(id: string, payload: Record<string, unknown>):
     body: JSON.stringify(payload),
   });
   return handle<CorrectLineResult>(res);
+}
+
+export async function fetchPolicies(): Promise<PoliciesResponse['policies']> {
+  const res = await fetch('/api/settings', { cache: 'no-store' });
+  const payload = await handle<PoliciesResponse>(res);
+  return payload.policies;
 }
