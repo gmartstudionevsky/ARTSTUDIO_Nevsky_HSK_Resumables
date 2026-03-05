@@ -37,13 +37,37 @@ npm run dev
 
 ## Production migrations
 
-- В runtime на Vercel используйте `DATABASE_URL` через Supabase pooler (transaction mode, порт `6543`, параметры `pgbouncer=true&connection_limit=1`).
-- Для production-миграций в GitHub Actions используйте `DATABASE_URL` (Transaction pooler Supabase, IPv4, порт `6543`, `sslmode=require&pgbouncer=true&connection_limit=1`).
-- Запускайте миграции только через GitHub Action `.github/workflows/migrate-prod.yml` (manual `workflow_dispatch`):
-  - action подставляет `DATABASE_URL=${{ secrets.DATABASE_URL }}`;
-  - action включает `PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1` для совместимости с pooler;
-  - action запускает `timeout 10m npx prisma migrate deploy`, затем `npm run seed:prod`.
-- Не используйте `prisma migrate dev` в production.
+- `DATABASE_URL` — только для runtime на Vercel: Supavisor **transaction mode** (`:6543`).
+- `DIRECT_URL` — только для production migrations/seed в GitHub Actions: Supavisor **session mode** (`:5432`).
+
+### Как получить обе строки в Supabase
+
+1. Откройте `Supabase → Project Settings → Database → Connection string`.
+2. Скопируйте строку **Transaction pooler** (`:6543`) и сохраните как `DATABASE_URL` для Vercel runtime.
+3. Скопируйте строку **Session pooler** (`:5432`) и сохраните как `DIRECT_URL` для GitHub Actions migration job.
+4. В обе строки подставьте фактический пароль БД и оставьте `sslmode=require`.
+
+### Что настроить в GitHub Secrets
+
+В `GitHub → Settings → Secrets and variables → Actions` задайте:
+
+- `DIRECT_URL` — Supavisor Session mode (`:5432`) для `prisma migrate deploy` и `seed:prod`.
+- `SESSION_SECRET` — production session secret.
+
+### Что настроить в Vercel Environment Variables
+
+В `Vercel → Project Settings → Environment Variables` задайте:
+
+- `DATABASE_URL` — Supavisor Transaction mode (`:6543`) для runtime.
+- `SESSION_SECRET`
+- `NEXT_PUBLIC_APP_URL`
+- прочие runtime-переменные проекта (`APP_URL`, `JOB_SECRET` и т.д.).
+
+### Важно
+
+- Не используйте transaction mode (`:6543`) для `prisma migrate deploy`.
+- Direct host вида `db.<project-ref>.supabase.co:5432` может быть недоступен из CI без IPv6, поэтому для GitHub Actions используйте Supavisor Session mode (`:5432`).
+- Миграции запускайте через workflow `.github/workflows/migrate-prod.yml` (`workflow_dispatch`), затем делайте redeploy/recheck Vercel runtime.
 
 ## Production deploy: Vercel + Supabase
 

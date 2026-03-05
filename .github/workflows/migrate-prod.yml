@@ -15,12 +15,13 @@ jobs:
       - run: npm ci
       - name: Run Prisma migrations on production
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: "1"
-        run: timeout 10m npx prisma migrate deploy
-      - name: Run production-safe seed
+          DATABASE_URL: ${{ secrets.DIRECT_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          NODE_ENV: production
+        run: npx prisma migrate deploy
+      - name: Run production seed
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
-          TELEGRAM_DEFAULT_CHAT_ID: ${{ secrets.TELEGRAM_DEFAULT_CHAT_ID }}
+          DATABASE_URL: ${{ secrets.DIRECT_URL }}
+          SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+          NODE_ENV: production
         run: npm run seed:prod

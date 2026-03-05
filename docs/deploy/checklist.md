@@ -1,7 +1,8 @@
 # Release checklist (Vercel + Supabase)
 
-- [ ] `npm run prisma:migrate:deploy` выполнен для production БД.
+- [ ] Сначала запущен GitHub Actions workflow `migrate-prod` (`workflow_dispatch`) для production БД.
 - [ ] `npm run seed:admin` выполнен один раз.
+- [ ] После успешного `migrate-prod` выполнен redeploy/recheck Vercel runtime.
 - [ ] Пароль администратора изменён после первого входа.
 - [ ] `npm run seed:defaults` выполнен один раз (ui_texts + settings + optional TG channel).
 - [ ] Импорт XLSX wizard проверен в production (`Админка → Импорт`).
