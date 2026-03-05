@@ -16,6 +16,16 @@
 DATABASE_URL=postgresql://postgres:<PASSWORD>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
 ```
 
+## 2.1) URL для GitHub Actions (миграции через pooler)
+Для GitHub Actions (особенно на Supabase Free) используйте отдельный секрет `MIGRATE_DATABASE_URL` с Transaction Pooler (IPv4):
+
+```env
+MIGRATE_DATABASE_URL=postgresql://postgres.<project-ref>:<PASSWORD>@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1
+```
+
+- Порт `6543` — pooler (IPv4), обычно доступен из GitHub Actions.
+- Порт `5432` (direct/session) на Free тарифе часто недоступен из GitHub-hosted runners.
+
 ## 3) Схемы и права
 - По умолчанию Prisma работает со схемой `public`.
 - Для MVP достаточно сервисного подключения `postgres` из Supabase project.

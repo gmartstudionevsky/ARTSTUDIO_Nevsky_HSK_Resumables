@@ -39,7 +39,7 @@ npm run dev
 
 - В runtime на Vercel используйте `DATABASE_URL` через Supabase pooler (transaction mode, порт `6543`, параметры `pgbouncer=true&connection_limit=1`).
 - Для production-миграций в GitHub Actions используйте `MIGRATE_DATABASE_URL`:
-  - приоритетно Session pooler Supabase (IPv4, порт `5432`, `sslmode=require`);
+  - используйте Transaction pooler Supabase (IPv4, порт `6543`, `sslmode=require&pgbouncer=true&connection_limit=1`);
   - fallback: обычный `DATABASE_URL`, если отдельный секрет ещё не добавлен.
 - Запускайте миграции только через GitHub Action `.github/workflows/migrate-prod.yml` (manual `workflow_dispatch`):
   - action подставляет `DATABASE_URL=${{ secrets.MIGRATE_DATABASE_URL || secrets.DATABASE_URL }}`;
