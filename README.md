@@ -185,3 +185,23 @@ Playwright автоматически поднимает приложение ч
 5. Убедитесь, что количество в отчёте отображается в единице отчётности позиции.
 6. Под `MANAGER`/`ADMIN` проверьте экспорт CSV/XLSX; под `SUPERVISOR` кнопки экспорта отсутствуют, а `GET /api/reports/consumption/export` возвращает `403`.
 7. Выполните проверки качества: `npm run lint`, `npm run typecheck`, `npm run build`.
+
+## Telegram
+
+Поддерживается интеграция с Telegram-каналами для уведомлений об операциях и ежедневного дайджеста склада.
+
+### Переменные окружения
+
+- `APP_URL` — базовый URL приложения для deep links в сообщениях.
+- `TELEGRAM_BOT_TOKEN` — токен Telegram-бота (только env, не хранится в БД).
+- `JOB_SECRET` — секрет для защищённого job endpoint `/api/jobs/digest`.
+- `TELEGRAM_DEFAULT_CHAT_ID` *(опционально)* — если задан, seed создаёт канал «Основной».
+
+### GitHub Actions cron
+
+Файл `.github/workflows/digest.yml` запускает ежедневный вызов `/api/jobs/digest` в `06:00 UTC`.
+
+Требуемые GitHub Secrets:
+
+- `APP_URL` — production URL (например `https://example.com`).
+- `JOB_SECRET` — секрет, совпадающий со значением `JOB_SECRET` в окружении приложения.

@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { sendTxCreated } from '@/lib/telegram/service';
 
 const numberInputSchema = z.union([z.string(), z.number()]).transform((value) => Number(value));
 
@@ -280,6 +281,12 @@ export async function POST(request: Request): Promise<NextResponse> {
 
       return { createdTx, lines };
     });
+
+    try {
+      void sendTxCreated(txResult.createdTx.id);
+    } catch (telegramError) {
+      console.error('[telegram] tx notification enqueue failed', telegramError);
+    }
 
     return NextResponse.json({ transaction: { id: txResult.createdTx.id, batchId: txResult.createdTx.batchId, type: txResult.createdTx.type, occurredAt: txResult.createdTx.occurredAt }, lines: txResult.lines });
   } catch (error) {

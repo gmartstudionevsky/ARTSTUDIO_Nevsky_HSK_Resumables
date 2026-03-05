@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   History,
   PackageSearch,
+  Send,
   Shield,
   Settings,
   User,
@@ -40,4 +41,5 @@ export const adminNavItems: NavItem[] = [
   { href: '/admin', label: 'Админ-панель', icon: Shield },
   { href: '/admin/dictionaries', label: 'Справочники', icon: Settings },
   { href: '/admin/users', label: 'Пользователи', icon: Users },
+  { href: '/admin/integrations/telegram', label: 'Telegram', icon: Send },
 ];

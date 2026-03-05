@@ -25,6 +25,23 @@ async function main() {
     },
   });
 
+  const defaultChatId = process.env.TELEGRAM_DEFAULT_CHAT_ID?.trim();
+
+  if (defaultChatId) {
+    await prisma.telegramChannel.upsert({
+      where: { chatId: defaultChatId },
+      create: {
+        name: 'Основной',
+        chatId: defaultChatId,
+        isActive: true,
+      },
+      update: {
+        name: 'Основной',
+        isActive: true,
+      },
+    });
+  }
+
   console.log(`Seed complete: admin user '${login}' is ready.`);
 }
 

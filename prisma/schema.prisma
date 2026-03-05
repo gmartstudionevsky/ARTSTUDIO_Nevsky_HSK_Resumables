@@ -43,6 +43,22 @@ enum UiTextScope {
   MOBILE
 }
 
+enum TelegramEventType {
+  TX_CREATED
+  DIGEST_BELOW_MIN
+  DIGEST_ZERO
+}
+
+enum NotificationKind {
+  TX
+  DIGEST
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+}
+
 model User {
   id                  String    @id @default(uuid()) @db.Uuid
   login               String    @unique
@@ -268,4 +284,41 @@ model AuditLog {
   payload   Json
   createdAt DateTime @default(now())
   actor     User     @relation(fields: [actorId], references: [id])
+}
+
+model TelegramChannel {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  chatId    String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rules     TelegramRule[]
+  logs      NotificationLog[]
+}
+
+model TelegramRule {
+  id        String            @id @default(uuid()) @db.Uuid
+  channelId String            @db.Uuid
+  isEnabled Boolean           @default(true)
+  eventType TelegramEventType
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  channel   TelegramChannel   @relation(fields: [channelId], references: [id])
+
+  @@unique([channelId, eventType])
+}
+
+model NotificationLog {
+  id        String             @id @default(uuid()) @db.Uuid
+  kind      NotificationKind
+  entityId  String
+  status    NotificationStatus
+  channelId String?            @db.Uuid
+  error     String?
+  createdAt DateTime           @default(now())
+  sentAt    DateTime?
+  channel   TelegramChannel?   @relation(fields: [channelId], references: [id])
+
+  @@unique([kind, entityId, channelId])
 }
