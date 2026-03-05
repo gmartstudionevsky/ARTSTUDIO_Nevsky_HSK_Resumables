@@ -80,7 +80,7 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 2. После успешного логина создаётся сессия в БД и выставляется cookie `asc_session` на 30 дней.
 3. Если у пользователя `forcePasswordChange=true`, клиент перенаправляет на `/change-password`.
 4. После успешной смены пароля флаг `forcePasswordChange` снимается, и пользователь попадает на `/stock`.
-5. Разделы номенклатуры (`/catalog`, `/admin/catalog`) доступны ролям `MANAGER` и `ADMIN`; `SUPERVISOR` перенаправляется на `/stock` и получает 403 на `/api/items*`.
+5. Разделы номенклатуры (`/catalog`, `/admin/catalog`) доступны ролям `MANAGER` и `ADMIN`; `SUPERVISOR` перенаправляется на `/stock`, но может читать `/api/items` и `/api/items/[id]/units` для модуля операций.
 6. Админ-разделы (`/admin/*`) доступны только пользователям с ролью `ADMIN`, остальные перенаправляются на `/stock`.
 7. Выход из профиля вызывает `/api/auth/logout`, сессия помечается как revoked, cookie очищается.
 
@@ -103,3 +103,19 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 4. В карточке измените поля, сохраните и проверьте, что изменения применены после перезагрузки.
 5. Деактивируйте позицию и убедитесь, что она пропадает из фильтра «Активные» и появляется в «Архив».
 6. Для `SUPERVISOR` доступ к `/catalog` должен перенаправлять на `/stock`, а `/api/items` должен возвращать 403.
+
+
+## Operations v1
+
+Проверка модуля операций:
+
+1. Подготовьте окружение: заполните `.env`, затем выполните `npm i`, `npm run db:up`, `npm run prisma:migrate`, `npm run seed`.
+2. В Prisma Studio создайте/проверьте справочники: минимум 1 Category, 1 ExpenseArticle, 1 Purpose, 1 Reason, 1 Unit и 1 Item с ItemUnit (`factorToBase=1`, `isAllowed=true`).
+3. Проверьте доступы:
+   - `SUPERVISOR` открывает `/operation`.
+   - `SUPERVISOR` не открывает `/catalog`.
+4. На `/operation` создайте `Приход` в режиме «Одно назначение»: выберите header purpose, добавьте строку и сохраните batch.
+5. После сохранения используйте Undo/«Отменить операцию» и проверьте статус `CANCELLED`.
+6. Создайте `Приход` в режиме «Распределить»: для строки распределите количество по двум назначениям и сохраните — в результате должны появиться две строки с разными назначениями.
+7. Нажмите «Исправить» у строки, измените количество/единицу/назначение и сохраните — исходная строка должна стать `CANCELLED`, новая строка `ACTIVE` с `correctedFromLineId`.
+8. Выполните проверки качества: `npm run lint`, `npm run typecheck`, `npm run build`.

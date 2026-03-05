@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
-import { requireManagerOrAdminApi } from '@/lib/auth/guards';
+import { requireAuthenticatedApiUser, requireManagerOrAdminApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 import { generateNextItemCode } from '@/lib/items/codeGen';
 import { createItemSchema, listItemsQuerySchema } from '@/lib/items/validators';
@@ -12,8 +12,8 @@ function isUniqueCodeError(error: unknown): boolean {
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
-  const authError = await requireManagerOrAdminApi();
-  if (authError) return authError;
+  const { error } = await requireAuthenticatedApiUser();
+  if (error) return error;
 
   try {
     const query = listItemsQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
@@ -39,7 +39,14 @@ export async function GET(request: Request): Promise<NextResponse> {
     const [items, total] = await Promise.all([
       prisma.item.findMany({
         where,
-        include: { category: true, defaultExpenseArticle: true, defaultPurpose: true },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          isActive: true,
+          defaultExpenseArticle: { select: { id: true, code: true, name: true } },
+          defaultPurpose: { select: { id: true, code: true, name: true } },
+        },
         orderBy: [{ updatedAt: 'desc' }],
         take: query.limit,
         skip: query.offset,

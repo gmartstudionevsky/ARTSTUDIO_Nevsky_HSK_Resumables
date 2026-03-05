@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
-import { requireManagerOrAdminApi } from '@/lib/auth/guards';
+import { requireAuthenticatedApiUser, requireManagerOrAdminApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 import { putItemUnitsSchema } from '@/lib/items/validators';
 
 export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
-  const authError = await requireManagerOrAdminApi();
-  if (authError) return authError;
+  const { error } = await requireAuthenticatedApiUser();
+  if (error) return error;
 
   const units = await prisma.itemUnit.findMany({
-    where: { itemId: params.id },
-    include: { unit: true },
+    where: { itemId: params.id, isAllowed: true },
+    include: { unit: { select: { id: true, name: true, isActive: true } } },
     orderBy: { unit: { name: 'asc' } },
   });
 
