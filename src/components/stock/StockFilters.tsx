@@ -26,7 +26,7 @@ interface StockFiltersProps {
 export function StockFilters({ value, categories, expenseArticles, purposes, onChange }: StockFiltersProps): JSX.Element {
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-surface p-4 md:grid-cols-2 xl:grid-cols-3">
-      <Input label="Поиск" placeholder="Код, название или синоним" value={value.q} onChange={(event) => onChange({ ...value, q: event.target.value })} />
+      <Input label="Поиск" placeholder="Код, название или синоним" data-testid="stock-search" value={value.q} onChange={(event) => onChange({ ...value, q: event.target.value })} />
       <Select label="Раздел" value={value.categoryId} onChange={(event) => onChange({ ...value, categoryId: event.target.value })}>
         <option value="">Все</option>
         {categories.map((item) => (
@@ -45,7 +45,7 @@ export function StockFilters({ value, categories, expenseArticles, purposes, onC
           <option key={item.id} value={item.id}>{item.code} — {item.name}</option>
         ))}
       </Select>
-      <Select label="Статус" value={value.status} onChange={(event) => onChange({ ...value, status: event.target.value as StockStatusFilter })}>
+      <Select label="Статус" data-testid="stock-status" value={value.status} onChange={(event) => onChange({ ...value, status: event.target.value as StockStatusFilter })}>
         <option value="all">Все</option>
         <option value="belowMin">Ниже минимума</option>
         <option value="zero">Нулевые</option>

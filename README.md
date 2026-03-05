@@ -43,6 +43,28 @@ Skeleton monorepo bootstrap for the ARTSTUDIO Consumables web application.
 
 Playwright автоматически поднимает приложение через `webServer` в конфиге.
 
+## Testing & CI
+
+### Local e2e flow
+
+1. Заполните `.env` (`DATABASE_URL`, `SESSION_SECRET`).
+2. Поднимите Postgres:
+   - `npm run db:up`
+3. Примените миграции:
+   - `npm run prisma:migrate`
+4. Выполните seed:
+   - `npm run seed`
+5. Запустите приложение:
+   - `npm run dev`
+6. В отдельном терминале запустите e2e:
+   - `npx playwright test`
+
+### CI workflow (`.github/workflows/ci.yml`)
+
+- `quality`: `npm ci` → `npm run lint` → `npm run typecheck` → `npm run build` (без env).
+- `e2e`: поднимает `postgres:16`, задаёт env (`DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV`, `APP_URL`), выполняет `npm run prisma:migrate`, `npm run seed`, затем `npx playwright test`.
+- При падении `e2e` загружаются артефакты `playwright-report/` и `test-results/`.
+
 ## Health checks
 
 - `GET /health` — health status page

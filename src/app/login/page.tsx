@@ -52,7 +52,7 @@ export default function LoginPage(): JSX.Element {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <Input label="Логин" value={login} onChange={(event) => setLogin(event.target.value)} required autoComplete="username" />
+            <Input label="Логин" value={login} onChange={(event) => setLogin(event.target.value)} required autoComplete="username" data-testid="login-login" />
             <Input
               label="Пароль"
               type="password"
@@ -60,9 +60,10 @@ export default function LoginPage(): JSX.Element {
               onChange={(event) => setPassword(event.target.value)}
               required
               autoComplete="current-password"
+              data-testid="login-password"
             />
-            {error ? <p className="rounded-md border border-critical bg-critical/10 px-3 py-2 text-sm text-critical">{error}</p> : null}
-            <Button type="submit" className="w-full" loading={loading}>
+            {error ? <p data-testid="login-error" className="rounded-md border border-critical bg-critical/10 px-3 py-2 text-sm text-critical">{error}</p> : null}
+            <Button type="submit" className="w-full" loading={loading} data-testid="login-submit">
               Войти
             </Button>
           </form>

@@ -9,7 +9,7 @@ export default function AdminDictionariesPage(): JSX.Element {
         ← Назад в основную панель
       </Link>
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-text">Справочники</h1>
+        <h1 className="text-2xl font-semibold text-text" data-testid="admin-dicts">Справочники</h1>
         <p className="text-sm text-muted">Управляйте списками, которые используются в операциях и отчётах.</p>
       </header>
       <DictionariesTabs />

@@ -74,6 +74,7 @@ export default function ChangePasswordPage(): JSX.Element {
               onChange={(event) => setCurrentPassword(event.target.value)}
               required
               autoComplete="current-password"
+              data-testid="cp-current"
             />
             <Input
               label="Новый пароль"
@@ -83,6 +84,7 @@ export default function ChangePasswordPage(): JSX.Element {
               required
               autoComplete="new-password"
               helperText="Пароль должен быть не короче 10 символов"
+              data-testid="cp-new"
             />
             <Input
               label="Подтвердите новый пароль"
@@ -91,9 +93,10 @@ export default function ChangePasswordPage(): JSX.Element {
               onChange={(event) => setConfirmPassword(event.target.value)}
               required
               autoComplete="new-password"
+              data-testid="cp-confirm"
             />
-            {error ? <p className="rounded-md border border-critical bg-critical/10 px-3 py-2 text-sm text-critical">{error}</p> : null}
-            <Button type="submit" className="w-full" loading={loading}>
+            {error ? <p data-testid="cp-error" className="rounded-md border border-critical bg-critical/10 px-3 py-2 text-sm text-critical">{error}</p> : null}
+            <Button type="submit" className="w-full" loading={loading} data-testid="cp-submit">
               Сохранить пароль
             </Button>
           </form>

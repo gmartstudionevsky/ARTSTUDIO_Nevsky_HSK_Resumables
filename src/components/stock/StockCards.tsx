@@ -13,11 +13,11 @@ function statusBadge(status: StockListItem['status']): { label: string; variant:
 
 export function StockCards({ items, decimals }: { items: StockListItem[]; decimals: number }): JSX.Element {
   return (
-    <div className="grid gap-3 md:hidden">
+    <div className="grid gap-3 md:hidden" data-testid="stock-list">
       {items.map((item) => {
         const badge = statusBadge(item.status);
         return (
-          <Card key={item.itemId}>
+          <Card key={item.itemId} data-testid={`stock-item-${item.itemId}`}>
             <CardContent>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -26,7 +26,7 @@ export function StockCards({ items, decimals }: { items: StockListItem[]; decima
                 </div>
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               </div>
-              <p className="text-sm">Остаток: <span className="font-semibold">{formatQty(item.qtyReport, decimals)} {item.reportUnit.name}</span></p>
+              <p className="text-sm">Остаток: <span className="font-semibold" data-testid={`stock-qty-${item.itemId}`}>{formatQty(item.qtyReport, decimals)} {item.reportUnit.name}</span></p>
               <Link className="text-sm text-accent underline" href={`/items/${item.itemId}`}>Открыть</Link>
             </CardContent>
           </Card>

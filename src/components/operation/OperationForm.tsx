@@ -184,23 +184,23 @@ export function OperationForm(): JSX.Element {
       <Card>
         <CardHeader><CardTitle>Новая операция</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} />
-          <Input label="Дата и время" value={dateInput} onChange={(event) => setDateInput(event.target.value)} helperText="Примеры: 1.3.26 или 01.03.2026 12:30" />
-          {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_PURPOSE', label: 'Одно назначение' }, { value: 'DISTRIBUTE_PURPOSES', label: 'Распределить' }]} /> : null}
-          {type === 'IN' && intakeMode === 'SINGLE_PURPOSE' ? <Select label="Назначение для прихода" value={headerPurposeId} onChange={(event) => setHeaderPurposeId(event.target.value)}>{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
+          <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} getItemTestId={(item) => item.value === 'IN' ? 'op-tab-in' : item.value === 'OUT' ? 'op-tab-out' : 'op-tab-adjust'} />
+          <Input label="Дата и время" value={dateInput} onChange={(event) => setDateInput(event.target.value)} helperText="Примеры: 1.3.26 или 01.03.2026 12:30" data-testid="op-datetime" />
+          {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_PURPOSE', label: 'Одно назначение' }, { value: 'DISTRIBUTE_PURPOSES', label: 'Распределить' }]} getItemTestId={(item) => item.value === 'SINGLE_PURPOSE' ? 'op-intake-single' : 'op-intake-distribute'} /> : null}
+          {type === 'IN' && intakeMode === 'SINGLE_PURPOSE' ? <Select label="Назначение для прихода" value={headerPurposeId} onChange={(event) => setHeaderPurposeId(event.target.value)} data-testid="op-header-purpose">{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
 
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="flex gap-2"><Input label="Поиск позиции" value={draft.itemId} onChange={(event) => setDraft((prev) => ({ ...prev, itemId: event.target.value }))} /><Button className="mt-7" variant="secondary" onClick={onSearchItems}>Найти</Button></div>
-            <Select label="Позиция" value={selectedItem?.id ?? ''} onChange={(event) => { void onSelectItem(event.target.value); }}><option value="">Выберите</option>{items.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
-            <Input label="Количество" value={draft.qtyInput} onChange={(event) => setDraft((prev) => ({ ...prev, qtyInput: event.target.value }))} />
-            <Select label="Единица" value={draft.unitId} onChange={(event) => setDraft((prev) => ({ ...prev, unitId: event.target.value }))}>{units.map((unit) => <option key={unit.id} value={unit.unitId}>{unit.unit.name}</option>)}</Select>
+            <div className="flex gap-2"><Input label="Поиск позиции" value={draft.itemId} onChange={(event) => setDraft((prev) => ({ ...prev, itemId: event.target.value }))} data-testid="op-item-search" /><Button className="mt-7" variant="secondary" onClick={onSearchItems} data-testid="op-search-item">Найти</Button></div>
+            <Select label="Позиция" value={selectedItem?.id ?? ''} onChange={(event) => { void onSelectItem(event.target.value); }} data-testid="op-item-select"><option value="">Выберите</option>{items.map((item) => <option key={item.id} value={item.id} data-testid={`op-item-option-${item.id}`}>{item.code} — {item.name}</option>)}</Select>
+            <Input label="Количество" value={draft.qtyInput} onChange={(event) => setDraft((prev) => ({ ...prev, qtyInput: event.target.value }))} data-testid="op-qty" />
+            <Select label="Единица" value={draft.unitId} onChange={(event) => setDraft((prev) => ({ ...prev, unitId: event.target.value }))} data-testid="op-unit">{units.map((unit) => <option key={unit.id} value={unit.unitId}>{unit.unit.name}</option>)}</Select>
             <Select label="Статья расходов" value={draft.expenseArticleId} onChange={(event) => setDraft((prev) => ({ ...prev, expenseArticleId: event.target.value }))}>{articles.map((article) => <option key={article.id} value={article.id}>{article.code} — {article.name}</option>)}</Select>
             <Select label="Назначение" value={draft.purposeId} onChange={(event) => setDraft((prev) => ({ ...prev, purposeId: event.target.value }))}>{purposes.map((purpose) => <option key={purpose.id} value={purpose.id}>{purpose.code} — {purpose.name}</option>)}</Select>
             <Input label="Комментарий" value={draft.comment} onChange={(event) => setDraft((prev) => ({ ...prev, comment: event.target.value }))} />
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" onClick={addLine}>Добавить в список</Button>
+            <Button variant="secondary" onClick={addLine} data-testid="op-add-line">Добавить в список</Button>
             {type === 'IN' && intakeMode === 'DISTRIBUTE_PURPOSES' && lines.length > 0 ? <Button variant="ghost" onClick={() => setDistributeLine(lines[lines.length - 1])}>Распределить по назначениям</Button> : null}
           </div>
           {error ? <p className="text-sm text-critical">{error}</p> : null}
@@ -208,7 +208,7 @@ export function OperationForm(): JSX.Element {
       </Card>
 
       {lines.length > 0 ? <BatchLinesList lines={lines} onDelete={(lineId) => setLines((prev) => prev.filter((line) => line.localId !== lineId))} onEdit={setEditLine} /> : null}
-      <Button onClick={save} disabled={lines.length === 0}>Сохранить операцию</Button>
+      <Button onClick={save} disabled={lines.length === 0} data-testid="op-save">Сохранить операцию</Button>
       {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.itemName}>{w.itemName}</li>)}</ul></div> : null}
 
       {result ? <ResultView transaction={result.transaction} lines={result.lines} onCancelTx={() => setCancelOpen(true)} onCancelLine={(lineId) => { setCancelLineId(lineId); setCancelOpen(true); }} onCorrectLine={(line) => { void openCorrectModal(line); }} /> : null}
