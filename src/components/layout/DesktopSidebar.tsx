@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { mainNavItems } from '@/lib/navigation';
+import { desktopNavItems } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
 
 export function DesktopSidebar(): JSX.Element {
@@ -12,7 +12,7 @@ export function DesktopSidebar(): JSX.Element {
   return (
     <aside className="hidden w-64 border-r border-border bg-surface p-4 md:block">
       <nav className="space-y-1">
-        {mainNavItems.map((item) => {
+        {desktopNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
 

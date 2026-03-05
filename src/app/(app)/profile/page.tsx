@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -77,6 +78,17 @@ export default function ProfilePage(): JSX.Element {
           </Button>
         </CardFooter>
       </Card>
+      {user && (user.role === 'ADMIN' || user.role === 'MANAGER') ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Быстрые ссылки</CardTitle>
+            <CardDescription>Управление справочниками и номенклатурой.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/catalog" className="text-sm text-accent underline">Номенклатура</Link>
+          </CardContent>
+        </Card>
+      ) : null}
     </section>
   );
 }
