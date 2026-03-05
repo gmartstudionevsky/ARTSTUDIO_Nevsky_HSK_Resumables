@@ -14,7 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Tabs } from '@/components/ui/Tabs';
 import { Toast } from '@/components/ui/Toast';
 import { parseRuDateTime } from '@/lib/datetime/ru';
-import { cancelLine, cancelTransaction, correctLine, createTransaction, fetchItemUnits, fetchLookup, searchItems } from '@/lib/operation/api';
+import { cancelLine, cancelTransaction, correctLine, createTransaction, fetchItemUnits, fetchLookup, fetchPolicies, searchItems } from '@/lib/operation/api';
 import { BatchLineDraft, IntakeMode, ItemOption, LookupItem, OperationType, TxLineView, TxResult, UnitOption } from '@/lib/operation/types';
 
 function nowText(): string {
@@ -43,6 +43,8 @@ export function OperationForm(): JSX.Element {
   const [editLine, setEditLine] = useState<BatchLineDraft | null>(null);
   const [distributeLine, setDistributeLine] = useState<BatchLineDraft | null>(null);
   const [correctLineItem, setCorrectLineItem] = useState<TxLineView | null>(null);
+  const [policies, setPolicies] = useState({ supervisorBackdateDays: 3, requireReasonOnCancel: true, allowNegativeStock: true, displayDecimals: 2, enablePeriodLocks: false });
+  const [warnings, setWarnings] = useState<Array<{ message: string; itemName: string }>>([]);
 
   const selectedItem = useMemo(() => items.find((item) => item.id === draft.itemId), [items, draft.itemId]);
 
@@ -55,6 +57,7 @@ export function OperationForm(): JSX.Element {
   }, [headerPurposeId]);
 
   useEffect(() => { void loadLookups(); }, [loadLookups]);
+  useEffect(() => { void fetchPolicies().then(setPolicies).catch(() => null); }, []);
 
   async function onSearchItems(): Promise<void> {
     const found = await searchItems(draft.itemId || '');
@@ -126,10 +129,18 @@ export function OperationForm(): JSX.Element {
       };
       const created = await createTransaction(payload);
       setResult(created);
+      setWarnings((created.warnings ?? []).map((w) => ({ message: w.message, itemName: w.itemName })));
       setToast('Операция записана');
       setLines([]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка сохранения');
+      const message = e instanceof Error ? e.message : 'Ошибка сохранения';
+      if (message.includes('Супервайзеру доступен ввод задним числом')) {
+        setError(`Нельзя сохранить: доступен ввод только на ${policies.supervisorBackdateDays} дн.`);
+      } else if (message.includes('Период закрыт')) {
+        setError('Период закрыт. Создание операции запрещено.');
+      } else {
+        setError(message);
+      }
     }
   }
 
@@ -198,13 +209,14 @@ export function OperationForm(): JSX.Element {
 
       {lines.length > 0 ? <BatchLinesList lines={lines} onDelete={(lineId) => setLines((prev) => prev.filter((line) => line.localId !== lineId))} onEdit={setEditLine} /> : null}
       <Button onClick={save} disabled={lines.length === 0}>Сохранить операцию</Button>
+      {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.itemName}>{w.itemName}</li>)}</ul></div> : null}
 
       {result ? <ResultView transaction={result.transaction} lines={result.lines} onCancelTx={() => setCancelOpen(true)} onCancelLine={(lineId) => { setCancelLineId(lineId); setCancelOpen(true); }} onCorrectLine={(line) => { void openCorrectModal(line); }} /> : null}
       {toast ? <Toast message={toast} onClose={() => setToast('')} /> : null}
 
-      <CancelModal open={cancelOpen} reasons={reasons} onClose={() => { setCancelOpen(false); setCancelLineId(''); }} onSubmit={(payload) => { void submitCancel(payload); }} />
+      <CancelModal open={cancelOpen} reasons={reasons} requireReason={policies.requireReasonOnCancel} onClose={() => { setCancelOpen(false); setCancelLineId(''); }} onSubmit={(payload) => { void submitCancel(payload); }} />
       <LineEditorModal open={Boolean(editLine)} mode="draft" units={units} articles={articles} purposes={purposes} initial={editLine ? { qtyInput: editLine.qtyInput, unitId: editLine.unitId, expenseArticleId: editLine.expenseArticleId, purposeId: editLine.purposeId, comment: editLine.comment } : {}} onClose={() => setEditLine(null)} onSubmit={(payload) => { if (!editLine) return; setLines((prev) => prev.map((line) => line.localId === editLine.localId ? { ...line, ...payload } as BatchLineDraft : line)); setEditLine(null); }} />
-      <LineEditorModal open={Boolean(correctLineItem)} mode="correct" units={correctUnits} articles={articles} purposes={purposes} reasons={reasons} initial={correctLineItem ? { qtyInput: String(correctLineItem.qtyInput), unitId: correctLineItem.unit.id, expenseArticleId: correctLineItem.expenseArticle.id, purposeId: correctLineItem.purpose.id, comment: correctLineItem.comment ?? '' } : {}} onClose={() => setCorrectLineItem(null)} onSubmit={(payload) => { void submitCorrection(payload); }} />
+      <LineEditorModal open={Boolean(correctLineItem)} mode="correct" units={correctUnits} articles={articles} purposes={purposes} reasons={reasons} requireReason={policies.requireReasonOnCancel} initial={correctLineItem ? { qtyInput: String(correctLineItem.qtyInput), unitId: correctLineItem.unit.id, expenseArticleId: correctLineItem.expenseArticle.id, purposeId: correctLineItem.purpose.id, comment: correctLineItem.comment ?? '' } : {}} onClose={() => setCorrectLineItem(null)} onSubmit={(payload) => { void submitCorrection(payload); }} />
       <DistributePurposesModal open={Boolean(distributeLine)} totalQty={distributeLine?.qtyInput ?? ''} purposes={purposes} initial={distributeLine?.distributions ?? []} onClose={() => setDistributeLine(null)} onSave={(rows) => {
         if (!distributeLine) return;
         setLines((prev) => prev.map((line) => line.localId === distributeLine.localId ? { ...line, distributions: rows } : line));

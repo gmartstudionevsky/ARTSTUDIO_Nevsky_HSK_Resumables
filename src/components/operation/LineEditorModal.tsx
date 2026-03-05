@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { LookupItem, UnitOption } from '@/lib/operation/types';
 
-export function LineEditorModal({ open, mode, units, articles, purposes, reasons, initial, onClose, onSubmit }: { open: boolean; mode: 'draft' | 'correct'; units: UnitOption[]; articles: LookupItem[]; purposes: LookupItem[]; reasons?: LookupItem[]; initial: Record<string, string>; onClose: () => void; onSubmit: (payload: Record<string, string>) => void }): JSX.Element | null {
+export function LineEditorModal({ open, mode, units, articles, purposes, reasons, initial, onClose, onSubmit, requireReason = false }: { open: boolean; mode: 'draft' | 'correct'; units: UnitOption[]; articles: LookupItem[]; purposes: LookupItem[]; reasons?: LookupItem[]; initial: Record<string, string>; onClose: () => void; onSubmit: (payload: Record<string, string>) => void; requireReason?: boolean }): JSX.Element | null {
   const [form, setForm] = useState(initial);
 
   useEffect(() => setForm(initial), [initial]);
@@ -26,13 +26,14 @@ export function LineEditorModal({ open, mode, units, articles, purposes, reasons
         {mode === 'correct' ? (
           <>
             <Select label="Причина" value={form.reasonId ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, reasonId: event.target.value }))}>
-              <option value="">Без причины</option>
+              <option value="">{requireReason ? 'Выберите причину' : 'Без причины'}</option>
               {(reasons ?? []).map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
             </Select>
+            {requireReason && !form.reasonId ? <p className="text-xs text-critical">Причина обязательна.</p> : null}
             <Input label="Примечание к отмене" value={form.cancelNote ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, cancelNote: event.target.value }))} />
           </>
         ) : null}
-        <div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose}>Отмена</Button><Button onClick={() => onSubmit(form)}>Сохранить</Button></div>
+        <div className="flex justify-end gap-2"><Button variant="secondary" onClick={onClose}>Отмена</Button><Button disabled={mode === 'correct' && requireReason && !form.reasonId} onClick={() => onSubmit(form)}>Сохранить</Button></div>
       </div>
     </div>
   );

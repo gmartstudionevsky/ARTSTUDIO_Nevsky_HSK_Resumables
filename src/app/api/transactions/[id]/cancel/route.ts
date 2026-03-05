@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { isDateLocked } from '@/lib/period-locks/service';
+import { getSettings } from '@/lib/settings/service';
 
 const schema = z.object({
   reasonId: z.string().uuid().nullable().optional(),
@@ -17,11 +19,17 @@ export async function POST(request: Request, { params }: { params: { id: string 
   try {
     const body = await request.json().catch(() => ({}));
     const data = schema.parse(body);
+    const settings = await getSettings(prisma);
+    if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
     const now = new Date();
 
     const transaction = await prisma.transaction.findUnique({ where: { id: params.id }, include: { lines: true } });
     if (!transaction) return NextResponse.json({ error: 'Операция не найдена' }, { status: 404 });
     if (transaction.status === RecordStatus.CANCELLED) return NextResponse.json({ ok: true });
+    const locked = await isDateLocked(transaction.occurredAt, prisma);
+    if (locked && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Период закрыт. Отмена операции недоступна, обратитесь к администратору.' }, { status: 403 });
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.transaction.update({

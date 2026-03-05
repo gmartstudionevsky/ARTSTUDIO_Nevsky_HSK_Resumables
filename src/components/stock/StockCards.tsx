@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
+import { formatQty } from '@/lib/qty/format';
 import { StockListItem } from '@/lib/stock/types';
 
 function statusBadge(status: StockListItem['status']): { label: string; variant: 'ok' | 'warn' | 'neutral' } {
@@ -10,7 +11,7 @@ function statusBadge(status: StockListItem['status']): { label: string; variant:
   return { label: 'ОК', variant: 'ok' };
 }
 
-export function StockCards({ items }: { items: StockListItem[] }): JSX.Element {
+export function StockCards({ items, decimals }: { items: StockListItem[]; decimals: number }): JSX.Element {
   return (
     <div className="grid gap-3 md:hidden">
       {items.map((item) => {
@@ -25,7 +26,7 @@ export function StockCards({ items }: { items: StockListItem[] }): JSX.Element {
                 </div>
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               </div>
-              <p className="text-sm">Остаток: <span className="font-semibold">{item.qtyReport} {item.reportUnit.name}</span></p>
+              <p className="text-sm">Остаток: <span className="font-semibold">{formatQty(item.qtyReport, decimals)} {item.reportUnit.name}</span></p>
               <Link className="text-sm text-accent underline" href={`/items/${item.itemId}`}>Открыть</Link>
             </CardContent>
           </Card>

@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { isDateLocked } from '@/lib/period-locks/service';
+import { getSettings } from '@/lib/settings/service';
 
 const schema = z.object({
   reasonId: z.string().uuid().nullable().optional(),
@@ -17,9 +19,15 @@ export async function POST(request: Request, { params }: { params: { id: string 
   try {
     const body = await request.json().catch(() => ({}));
     const data = schema.parse(body);
-    const line = await prisma.transactionLine.findUnique({ where: { id: params.id }, select: { id: true, status: true, transactionId: true } });
+    const settings = await getSettings(prisma);
+    if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
+    const line = await prisma.transactionLine.findUnique({ where: { id: params.id }, select: { id: true, status: true, transactionId: true, transaction: { select: { occurredAt: true } } } });
     if (!line) return NextResponse.json({ error: 'Строка не найдена' }, { status: 404 });
     if (line.status === RecordStatus.CANCELLED) return NextResponse.json({ ok: true });
+    const locked = await isDateLocked(line.transaction.occurredAt, prisma);
+    if (locked && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Период закрыт. Отмена строки недоступна, обратитесь к администратору.' }, { status: 403 });
+    }
     const now = new Date();
 
     await prisma.$transaction(async (tx) => {

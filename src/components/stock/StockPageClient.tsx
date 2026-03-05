@@ -6,6 +6,7 @@ import { StockCards } from '@/components/stock/StockCards';
 import { StockFilters } from '@/components/stock/StockFilters';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StockTable } from '@/components/stock/StockTable';
+import { fetchPolicies } from '@/lib/operation/api';
 import { fetchStockList } from '@/lib/stock/api';
 import { ActiveFilter, StockListItem, StockStatusFilter } from '@/lib/stock/types';
 
@@ -42,6 +43,7 @@ export function StockPageClient(): JSX.Element {
   const [categories, setCategories] = useState<RefOption[]>([]);
   const [expenseArticles, setExpenseArticles] = useState<RefOption[]>([]);
   const [purposes, setPurposes] = useState<RefOption[]>([]);
+  const [decimals, setDecimals] = useState(2);
 
   useEffect(() => {
     void Promise.all([
@@ -53,6 +55,7 @@ export function StockPageClient(): JSX.Element {
       setExpenseArticles(articleItems);
       setPurposes(purposeItems);
     });
+    void fetchPolicies().then((p) => setDecimals(p.displayDecimals)).catch(() => null);
   }, []);
 
   useEffect(() => {
@@ -79,7 +82,7 @@ export function StockPageClient(): JSX.Element {
       </header>
       <StockFilters value={filters} categories={categories} expenseArticles={expenseArticles} purposes={purposes} onChange={setFilters} />
       <p className="text-sm text-muted">Найдено позиций: {total}</p>
-      {items.length === 0 ? <EmptyState title="Позиции не найдены" description="Измените фильтры или добавьте операции по позициям." /> : <><StockTable items={items} /><StockCards items={items} /></>}
+      {items.length === 0 ? <EmptyState title="Позиции не найдены" description="Измените фильтры или добавьте операции по позициям." /> : <><StockTable items={items} decimals={decimals} /><StockCards items={items} decimals={decimals} /></>}
     </section>
   );
 }

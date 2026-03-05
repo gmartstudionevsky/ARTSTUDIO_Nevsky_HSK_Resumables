@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 import { applyInventorySchema } from '@/lib/inventory/validators';
+import { isDateLocked } from '@/lib/period-locks/service';
 
 function makeBatchId(): string {
   const date = new Date();
@@ -37,6 +38,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
       if (!session) throw new Error('NOT_FOUND');
       if (session.status !== InventoryStatus.DRAFT) throw new Error('WRONG_STATUS');
+      const locked = await isDateLocked(new Date(session.occurredAt), prisma);
+      if (locked && user.role !== Role.ADMIN) throw new Error('LOCKED');
 
       const plusLines: Array<{ itemId: string; unitId: string; qty: Prisma.Decimal; expenseArticleId: string; purposeId: string; comment: string | null }> = [];
       const minusLines: Array<{ itemId: string; unitId: string; qty: Prisma.Decimal; expenseArticleId: string; purposeId: string; comment: string | null }> = [];
@@ -150,6 +153,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
     if (error instanceof Error && error.message === 'NOT_FOUND') return NextResponse.json({ error: 'Инвентаризация не найдена' }, { status: 404 });
     if (error instanceof Error && error.message === 'WRONG_STATUS') return NextResponse.json({ error: 'Применение доступно только для черновика' }, { status: 409 });
+    if (error instanceof Error && error.message === 'LOCKED') return NextResponse.json({ error: 'Период закрыт. Применение инвентаризации недоступно, обратитесь к администратору.' }, { status: 403 });
     if (error instanceof Error && error.message === 'NEGATIVE_OPENING') return NextResponse.json({ error: 'Для открытия склада факт не может быть отрицательным' }, { status: 400 });
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }

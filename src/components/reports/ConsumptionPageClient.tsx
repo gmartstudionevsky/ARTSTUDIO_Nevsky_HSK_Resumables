@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ConsumptionFilters } from '@/components/reports/ConsumptionFilters';
 import { ConsumptionGroups } from '@/components/reports/ConsumptionGroups';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { fetchPolicies } from '@/lib/operation/api';
 import { buildConsumptionExportUrl, fetchConsumptionReport } from '@/lib/reports/api';
 import { ConsumptionGroupBy, ConsumptionReportResponse } from '@/lib/reports/types';
 
@@ -40,6 +41,11 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
   const [filters, setFilters] = useState<FilterState>(getInitialFilters);
   const [data, setData] = useState<ConsumptionReportResponse | null>(null);
   const [error, setError] = useState('');
+  const [decimals, setDecimals] = useState(2);
+
+  useEffect(() => {
+    void fetchPolicies().then((p) => setDecimals(p.displayDecimals)).catch(() => null);
+  }, []);
 
   useEffect(() => {
     setError('');
@@ -116,7 +122,7 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
       {data && data.groups.length === 0 ? (
         <EmptyState title="Нет данных" description="За выбранный период расход не найден." />
       ) : null}
-      {data && data.groups.length > 0 ? <ConsumptionGroups groups={data.groups} /> : null}
+      {data && data.groups.length > 0 ? <ConsumptionGroups groups={data.groups} decimals={decimals} /> : null}
     </section>
   );
 }

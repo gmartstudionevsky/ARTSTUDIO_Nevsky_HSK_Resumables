@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Toast } from '@/components/ui/Toast';
 import { fetchHistoryDetail, fetchItemUnits, fetchLookup } from '@/lib/history/api';
 import { HistoryLine, HistoryTransactionDetail, RefOption } from '@/lib/history/types';
+import { fetchPolicies } from '@/lib/operation/api';
 
 function txTypeLabel(type: HistoryTransactionDetail['transaction']['type']): string {
   if (type === 'IN') return 'Приход';
@@ -48,6 +49,9 @@ export function HistoryDetailPageClient(): JSX.Element {
   const [cancelLine, setCancelLine] = useState<HistoryLine | null>(null);
   const [correctLine, setCorrectLine] = useState<HistoryLine | null>(null);
   const [toast, setToast] = useState('');
+  const [error, setError] = useState('');
+  const [requireReason, setRequireReason] = useState(true);
+  const [decimals, setDecimals] = useState(2);
 
   const load = useCallback(async (): Promise<void> => {
     const payload = await fetchHistoryDetail(id);
@@ -60,6 +64,7 @@ export function HistoryDetailPageClient(): JSX.Element {
       setArticles(articleRows);
       setPurposes(purposeRows);
     });
+    void fetchPolicies().then((policies) => { setRequireReason(policies.requireReasonOnCancel); setDecimals(policies.displayDecimals); });
     void load();
   }, [id, load]);
 
@@ -94,6 +99,7 @@ export function HistoryDetailPageClient(): JSX.Element {
       <p className="text-xs text-muted">Исправление создаёт новую запись, история сохраняется.</p>
       <TransactionLinesTable
         lines={detail.lines}
+        decimals={decimals}
         onCancel={(line) => { setCancelLine(line); setCancelOpen(true); }}
         onCorrect={(line) => {
           setCorrectLine(line);
@@ -102,18 +108,26 @@ export function HistoryDetailPageClient(): JSX.Element {
       />
 
       <Link href="/history" className="text-sm text-accent underline">← К истории</Link>
+      {error ? <div className="rounded border border-critical p-3 text-sm text-critical">{error}</div> : null}
 
       <CancelModal
         open={cancelOpen}
         reasons={reasons.map((item) => ({ ...item, isActive: true }))}
+        requireReason={requireReason}
         onClose={() => { setCancelOpen(false); setCancelLine(null); }}
         onSubmit={(payload) => {
           void (async () => {
-            await postJson(cancelLine ? `/api/transaction-lines/${cancelLine.id}/cancel` : `/api/transactions/${id}/cancel`, payload);
-            setCancelOpen(false);
-            setCancelLine(null);
-            await load();
-            setToast('Данные обновлены');
+            try {
+              setError('');
+              await postJson(cancelLine ? `/api/transaction-lines/${cancelLine.id}/cancel` : `/api/transactions/${id}/cancel`, payload);
+              setCancelOpen(false);
+              setCancelLine(null);
+              await load();
+              setToast('Данные обновлены');
+            } catch (e) {
+              const message = e instanceof Error ? e.message : 'Ошибка';
+              setError(message.includes('Период закрыт') ? 'Период закрыт, обратитесь к администратору.' : message);
+            }
           })();
         }}
       />
@@ -125,15 +139,22 @@ export function HistoryDetailPageClient(): JSX.Element {
         articles={articles.map((item) => ({ ...item, isActive: true }))}
         purposes={purposes.map((item) => ({ ...item, isActive: true }))}
         reasons={reasons.map((item) => ({ ...item, isActive: true }))}
+        requireReason={requireReason}
         initial={correctLine ? { qtyInput: correctLine.qtyInput, unitId: correctLine.unit.id, expenseArticleId: correctLine.expenseArticle.id, purposeId: correctLine.purpose.id, comment: correctLine.comment ?? '' } : {}}
         onClose={() => setCorrectLine(null)}
         onSubmit={(payload) => {
           if (!correctLine) return;
           void (async () => {
-            await postJson(`/api/transaction-lines/${correctLine.id}/correct`, payload);
-            setCorrectLine(null);
-            await load();
-            setToast('Строка исправлена');
+            try {
+              setError('');
+              await postJson(`/api/transaction-lines/${correctLine.id}/correct`, payload);
+              setCorrectLine(null);
+              await load();
+              setToast('Строка исправлена');
+            } catch (e) {
+              const message = e instanceof Error ? e.message : 'Ошибка';
+              setError(message.includes('Период закрыт') ? 'Период закрыт, обратитесь к администратору.' : message);
+            }
           })();
         }}
       />

@@ -62,7 +62,18 @@ export interface TxLineView {
 export interface TxResult {
   transaction: { id: string; batchId: string; type: OperationType; occurredAt: string };
   lines: TxLineView[];
+  warnings?: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string }>;
 }
+
+export type PoliciesResponse = {
+  policies: {
+    supervisorBackdateDays: number;
+    requireReasonOnCancel: boolean;
+    allowNegativeStock: boolean;
+    displayDecimals: number;
+    enablePeriodLocks: boolean;
+  };
+};
 
 export interface CorrectLineResult {
   transaction: { id: string; batchId: string; type: OperationType; occurredAt: string };
