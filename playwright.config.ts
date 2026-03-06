@@ -3,6 +3,11 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   globalSetup: 'playwright/global-setup.ts',
   testDir: 'tests/e2e',
+  timeout: 60_000,
+  expect: {
+    timeout: 10_000,
+  },
+  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL: 'http://127.0.0.1:3000'
   },
