@@ -3,9 +3,14 @@ import { execSync } from 'node:child_process';
 import { PrismaClient } from '@prisma/client';
 
 async function main(): Promise<void> {
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is required for staging reset');
+  const databaseUrl = process.env.DATABASE_URL ?? process.env.STAGING_DATABASE_URL;
+
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL or STAGING_DATABASE_URL is required for staging reset');
   }
+
+  process.env.DATABASE_URL = databaseUrl;
+  process.env.DIRECT_URL = process.env.DIRECT_URL ?? process.env.STAGING_DIRECT_URL ?? databaseUrl;
 
   const prisma = new PrismaClient();
 

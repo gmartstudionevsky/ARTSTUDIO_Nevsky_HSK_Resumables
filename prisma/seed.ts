@@ -103,6 +103,32 @@ export async function seedStaging(): Promise<void> {
   await seedAdmin();
   await seedDefaults();
 
+
+  const e2eLogin = 'e2e_admin';
+  const existingE2EAdmin = await prisma.user.findUnique({ where: { login: e2eLogin } });
+
+  if (!existingE2EAdmin) {
+    const e2ePasswordHash = await hash('E2EPass12345!');
+    await prisma.user.create({
+      data: {
+        login: e2eLogin,
+        passwordHash: e2ePasswordHash,
+        role: Role.ADMIN,
+        isActive: true,
+        forcePasswordChange: false,
+      },
+    });
+  } else {
+    await prisma.user.update({
+      where: { id: existingE2EAdmin.id },
+      data: {
+        role: Role.ADMIN,
+        isActive: true,
+        forcePasswordChange: false,
+      },
+    });
+  }
+
   const category = await prisma.category.upsert({
     where: { name: 'Химия' },
     create: { name: 'Химия', isActive: true },

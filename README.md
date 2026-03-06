@@ -125,12 +125,25 @@ npm run dev
 Используется staging Supabase БД, без `docker-compose`.
 
 ```bash
+# вариант 1: напрямую
 export DATABASE_URL=<STAGING_DATABASE_URL>
 export SESSION_SECRET=<STAGING_SESSION_SECRET>
+
+# вариант 2: через STAGING_* (скрипт сам подхватит)
+# export STAGING_DATABASE_URL=<...>
+# export STAGING_SESSION_SECRET=<...>
+# export STAGING_DIRECT_URL=<...>
+
 npm run test:e2e:staging
 ```
 
 Для подготовки staging БД сначала запустите workflow `Staging Migrate`, затем `Staging E2E`.
+
+### Блок 2 — учётная модель (OPENING + INVENTORY_APPLY)
+
+- Режим `OPENING` при применении инвентаризации создаёт отдельную транзакцию типа `OPENING`.
+- Режим `REGULAR` при применении инвентаризации создаёт транзакцию типа `INVENTORY_APPLY` с signed `qtyBase/qtyInput` в строках.
+- Для staging e2e используется стабильный логин `e2e_admin / E2EPass12345!` (seed:staging).
 
 ## Тесты и CI
 

@@ -36,6 +36,8 @@ type DigestTemplateData = {
 function txTypeLabel(type: TxType): string {
   if (type === TxType.IN) return 'Приход';
   if (type === TxType.OUT) return 'Расход';
+  if (type === TxType.OPENING) return 'Открытие склада';
+  if (type === TxType.INVENTORY_APPLY) return 'Инвентаризация';
   return 'Коррекция';
 }
 
