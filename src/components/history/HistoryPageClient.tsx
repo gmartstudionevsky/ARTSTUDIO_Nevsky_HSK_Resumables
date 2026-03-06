@@ -56,6 +56,7 @@ export function HistoryPageClient(): JSX.Element {
   const [selectedSavedId, setSelectedSavedId] = useState('');
   const [saveOpen, setSaveOpen] = useState(false);
   const [defaultApplied, setDefaultApplied] = useState(false);
+  const [savedLoaded, setSavedLoaded] = useState(false);
   const [cancelTxId, setCancelTxId] = useState<string | null>(null);
   const [quickFixId, setQuickFixId] = useState<string | null>(null);
   const [requireReason, setRequireReason] = useState(true);
@@ -94,12 +95,13 @@ export function HistoryPageClient(): JSX.Element {
       setItemOptions(itemRows);
       setUsers(userRows.map((item) => ({ id: item.id, login: item.login })));
       setSaved(savedRows.items);
+      setSavedLoaded(true);
       setRequireReason(policies.requireReasonOnCancel);
     });
   }, []);
 
   useEffect(() => {
-    if (defaultApplied) return;
+    if (!savedLoaded || defaultApplied) return;
     const defaultFilter = saved.find((item) => item.isDefault);
     if (!defaultFilter) {
       setDefaultApplied(true);
@@ -109,7 +111,7 @@ export function HistoryPageClient(): JSX.Element {
     setFilters((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(payload).map(([k, v]) => [k, String(v)])) }));
     setSelectedSavedId(defaultFilter.id);
     setDefaultApplied(true);
-  }, [saved, defaultApplied]);
+  }, [saved, savedLoaded, defaultApplied]);
 
   useEffect(() => {
     reloadList();

@@ -54,6 +54,7 @@ export function StockPageClient(): JSX.Element {
   const [selectedSavedId, setSelectedSavedId] = useState('');
   const [saveOpen, setSaveOpen] = useState(false);
   const [defaultApplied, setDefaultApplied] = useState(false);
+  const [savedLoaded, setSavedLoaded] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(filters.q), 300);
@@ -71,12 +72,13 @@ export function StockPageClient(): JSX.Element {
       setExpenseArticles(articleItems);
       setPurposes(purposeItems);
       setSaved(savedRows.items);
+      setSavedLoaded(true);
     });
     void fetchPolicies().then((p) => setDecimals(p.displayDecimals)).catch(() => null);
   }, []);
 
   useEffect(() => {
-    if (defaultApplied) return;
+    if (!savedLoaded || defaultApplied) return;
     const defaultFilter = saved.find((item) => item.isDefault);
     if (!defaultFilter) {
       setDefaultApplied(true);
@@ -85,7 +87,7 @@ export function StockPageClient(): JSX.Element {
     setFilters((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(defaultFilter.payload).map(([k, v]) => [k, String(v)])) }));
     setSelectedSavedId(defaultFilter.id);
     setDefaultApplied(true);
-  }, [saved, defaultApplied]);
+  }, [saved, savedLoaded, defaultApplied]);
 
   useEffect(() => {
     setLoading(true);
