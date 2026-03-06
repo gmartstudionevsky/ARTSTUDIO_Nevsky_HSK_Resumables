@@ -52,9 +52,11 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   await page.getByTestId('saved-filter-name').fill('Только расход');
   await page.getByTestId('saved-filter-default').check();
   await page.getByTestId('saved-filter-submit').click();
+  await expect(page.getByTestId('saved-filter-name')).toBeHidden();
+  await expect(page.getByTestId('history-saved-dropdown').locator('option', { hasText: 'Только расход' })).toHaveCount(1);
 
   await page.reload();
-  await expect(page.getByLabel('Тип')).toHaveValue('OUT');
+  await expect.poll(async () => page.getByLabel('Тип').inputValue(), { timeout: 15_000 }).toBe('OUT');
 
   const rowMenu = page.locator('[data-testid^="history-row-menu-"]').first();
   const rowMenuId = await rowMenu.getAttribute('data-testid');
@@ -81,7 +83,9 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   await expect(page.getByTestId('saved-filter-name')).toBeVisible();
   await page.getByTestId('saved-filter-name').fill('Все активные');
   await page.getByTestId('saved-filter-submit').click();
+  await expect(page.getByTestId('saved-filter-name')).toBeHidden();
   const stockDropdown = page.getByTestId('stock-saved-dropdown');
+  await expect(stockDropdown.locator('option', { hasText: 'Все активные' })).toHaveCount(1);
   const optionValue = await stockDropdown.locator('option', { hasText: 'Все активные' }).getAttribute('value');
   expect(optionValue).toBeTruthy();
   await stockDropdown.selectOption(optionValue!);
