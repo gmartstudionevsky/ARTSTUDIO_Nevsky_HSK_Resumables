@@ -41,6 +41,8 @@ const listSchema = z.object({
   itemId: z.string().uuid().optional(),
   expenseArticleId: z.string().uuid().optional(),
   purposeId: z.string().uuid().optional(),
+  createdById: z.string().uuid().optional(),
+  categoryId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(30),
   offset: z.coerce.number().int().min(0).optional().default(0),
 });
@@ -89,6 +91,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     if (query.itemId) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "TransactionLine" tl WHERE tl."transactionId" = tx.id AND tl."itemId" = ${query.itemId}::uuid)`);
     if (query.expenseArticleId) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "TransactionLine" tl WHERE tl."transactionId" = tx.id AND tl."expenseArticleId" = ${query.expenseArticleId}::uuid)`);
     if (query.purposeId) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "TransactionLine" tl WHERE tl."transactionId" = tx.id AND tl."purposeId" = ${query.purposeId}::uuid)`);
+    if (query.createdById) filters.push(Prisma.sql`tx."createdById" = ${query.createdById}::uuid`);
+    if (query.categoryId) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "TransactionLine" tl JOIN "Item" it ON it.id = tl."itemId" WHERE tl."transactionId" = tx.id AND it."categoryId" = ${query.categoryId}::uuid)`);
     if (query.q) {
       const pattern = `%${query.q}%`;
       filters.push(Prisma.sql`(

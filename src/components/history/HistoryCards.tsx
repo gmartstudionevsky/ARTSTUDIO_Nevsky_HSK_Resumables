@@ -1,9 +1,8 @@
-import Link from 'next/link';
-
 import { formatRuDateTime } from '@/lib/datetime/ru';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
 import { HistoryListItem } from '@/lib/history/types';
+import { HistoryRowMenu } from '@/components/history/HistoryRowMenu';
 
 function txTypeLabel(type: HistoryListItem['type']): string {
   if (type === 'IN') return 'Приход';
@@ -19,7 +18,7 @@ function statusBadge(status: HistoryListItem['uiStatus']): { label: string; vari
   return { label: 'Активно', variant: 'ok' };
 }
 
-export function HistoryCards({ items }: { items: HistoryListItem[] }): JSX.Element {
+export function HistoryCards({ items, onCancel, onFix }: { items: HistoryListItem[]; onCancel: (item: HistoryListItem) => void; onFix: (item: HistoryListItem) => void }): JSX.Element {
   return (
     <div className="grid gap-3 md:hidden">
       {items.map((item) => {
@@ -36,7 +35,7 @@ export function HistoryCards({ items }: { items: HistoryListItem[] }): JSX.Eleme
               </div>
               <p className="text-sm">{txTypeLabel(item.type)} · {item.createdBy.login}</p>
               <p className="text-sm text-muted">Строки: {item.linesActive}/{item.linesTotal}</p>
-              <Link className="text-sm text-accent underline" href={`/history/${item.id}`}>Открыть</Link>
+              <HistoryRowMenu item={item} onCancel={() => onCancel(item)} onFix={() => onFix(item)} />
             </CardContent>
           </Card>
         );

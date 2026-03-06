@@ -1,5 +1,7 @@
 'use client';
 
+import { ReactNode } from 'react';
+
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -14,9 +16,11 @@ interface HistoryFiltersState {
   itemId: string;
   expenseArticleId: string;
   purposeId: string;
+  createdById: string;
+  categoryId: string;
 }
 
-export function HistoryFilters({ value, onChange, onPreset, items, expenseArticles, purposes }: { value: HistoryFiltersState; onChange: (patch: Partial<HistoryFiltersState>) => void; onPreset: (days: number) => void; items: Array<{ id: string; code: string; name: string }>; expenseArticles: RefOption[]; purposes: RefOption[] }): JSX.Element {
+export function HistoryFilters({ value, onChange, onPreset, items, expenseArticles, purposes, users, categories, savedActions }: { value: HistoryFiltersState; onChange: (patch: Partial<HistoryFiltersState>) => void; onPreset: (days: number) => void; items: Array<{ id: string; code: string; name: string }>; expenseArticles: RefOption[]; purposes: RefOption[]; users: Array<{ id: string; login: string }>; categories: Array<{ id: string; name: string }>; savedActions: ReactNode }): JSX.Element {
   return (
     <div className="space-y-3 rounded-lg border border-border p-4">
       <div className="grid gap-3 md:grid-cols-5">
@@ -42,9 +46,18 @@ export function HistoryFilters({ value, onChange, onPreset, items, expenseArticl
         <Button type="button" variant="secondary" size="sm" onClick={() => onPreset(7)}>7 дней</Button>
         <Button type="button" variant="secondary" size="sm" onClick={() => onPreset(30)}>30 дней</Button>
       </div>
+      {savedActions}
       <details>
         <summary className="cursor-pointer text-sm font-medium">Дополнительно</summary>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <Select label="Пользователь" value={value.createdById} onChange={(event) => onChange({ createdById: event.target.value })}>
+            <option value="">Все</option>
+            {users.map((item) => <option key={item.id} value={item.id}>{item.login}</option>)}
+          </Select>
+          <Select label="Раздел" value={value.categoryId} onChange={(event) => onChange({ categoryId: event.target.value })}>
+            <option value="">Все</option>
+            {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+          </Select>
           <Select label="Позиция" value={value.itemId} onChange={(event) => onChange({ itemId: event.target.value })}>
             <option value="">Все</option>
             {items.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}

@@ -24,6 +24,12 @@ export async function fetchLookup(type: 'expense-articles' | 'purposes' | 'reaso
   return payload.items;
 }
 
+export async function fetchCategoriesLookup(): Promise<Array<{ id: string; name: string }>> {
+  const response = await fetch('/api/lookup/categories?active=true', { cache: 'no-store' });
+  const payload = await parseResponse<{ items: Array<{ id: string; name: string }> }>(response);
+  return payload.items;
+}
+
 export async function searchItems(q: string): Promise<Array<{ id: string; code: string; name: string }>> {
   const params = new URLSearchParams({ q, limit: '20', active: 'true' });
   const payload = await httpGet<{ items: Array<{ id: string; code: string; name: string }> }>(`/api/items?${params.toString()}`);
@@ -34,4 +40,9 @@ export async function fetchItemUnits(itemId: string): Promise<Array<{ id: string
   const response = await fetch(`/api/items/${itemId}/units`, { cache: 'no-store' });
   const payload = await parseResponse<{ units: Array<{ id: string; unitId: string; unit: { id: string; name: string } }> }>(response);
   return payload.units;
+}
+
+export async function fetchUsersLookup(): Promise<Array<{ id: string; login: string; role: string; isActive: boolean }>> {
+  const payload = await httpGet<{ items: Array<{ id: string; login: string; role: string; isActive: boolean }> }>('/api/lookup/users?active=all');
+  return payload.items;
 }

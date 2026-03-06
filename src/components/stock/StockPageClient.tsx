@@ -9,6 +9,10 @@ import { fetchPolicies } from '@/lib/operation/api';
 import { fetchStockList } from '@/lib/stock/api';
 import { StockTable } from '@/components/stock/StockTable';
 import { ActiveFilter, StockListItem, StockStatusFilter } from '@/lib/stock/types';
+import { SaveFilterModal } from '@/components/saved-filters/SaveFilterModal';
+import { SavedFiltersDropdown } from '@/components/saved-filters/SavedFiltersDropdown';
+import { createSavedFilter, deleteSavedFilter, fetchSavedFilters, serializeStockFilters, updateSavedFilter } from '@/lib/saved-filters/api';
+import { SavedFilterItem } from '@/lib/saved-filters/types';
 
 type RefOption = { id: string; name: string; code?: string };
 
@@ -46,6 +50,10 @@ export function StockPageClient(): JSX.Element {
   const [purposes, setPurposes] = useState<RefOption[]>([]);
   const [decimals, setDecimals] = useState(2);
   const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState<SavedFilterItem[]>([]);
+  const [selectedSavedId, setSelectedSavedId] = useState('');
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [defaultApplied, setDefaultApplied] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQ(filters.q), 300);
@@ -57,13 +65,27 @@ export function StockPageClient(): JSX.Element {
       fetchLookup('/api/lookup/categories?active=all'),
       fetchLookup('/api/lookup/expense-articles?active=all'),
       fetchLookup('/api/lookup/purposes?active=all'),
-    ]).then(([categoryItems, articleItems, purposeItems]) => {
+      fetchSavedFilters('STOCK'),
+    ]).then(([categoryItems, articleItems, purposeItems, savedRows]) => {
       setCategories(categoryItems);
       setExpenseArticles(articleItems);
       setPurposes(purposeItems);
+      setSaved(savedRows.items);
     });
     void fetchPolicies().then((p) => setDecimals(p.displayDecimals)).catch(() => null);
   }, []);
+
+  useEffect(() => {
+    if (defaultApplied) return;
+    const defaultFilter = saved.find((item) => item.isDefault);
+    if (!defaultFilter) {
+      setDefaultApplied(true);
+      return;
+    }
+    setFilters((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(defaultFilter.payload).map(([k, v]) => [k, String(v)])) }));
+    setSelectedSavedId(defaultFilter.id);
+    setDefaultApplied(true);
+  }, [saved, defaultApplied]);
 
   useEffect(() => {
     setLoading(true);
@@ -89,10 +111,34 @@ export function StockPageClient(): JSX.Element {
         <h1 className="text-2xl font-semibold">Склад</h1>
         <p className="text-sm text-muted">Актуальные остатки считаются автоматически по операциям.</p>
       </header>
-      <StockFilters value={filters} categories={categories} expenseArticles={expenseArticles} purposes={purposes} onChange={setFilters} />
+      <StockFilters value={filters} categories={categories} expenseArticles={expenseArticles} purposes={purposes} onChange={setFilters} savedActions={<div className="flex flex-wrap items-end gap-2"><button data-testid="stock-save-filter" type="button" className="rounded-md border border-border px-3 py-2 text-sm" onClick={() => setSaveOpen(true)}>Сохранить</button><SavedFiltersDropdown items={saved} value={selectedSavedId} testId="stock-saved-dropdown" onChange={setSelectedSavedId} onApply={() => {
+        const selected = saved.find((item) => item.id === selectedSavedId);
+        if (!selected) return;
+        setFilters((prev) => ({ ...prev, ...Object.fromEntries(Object.entries(selected.payload).map(([k, v]) => [k, String(v)])) }));
+      }} onRename={() => {
+        const selected = saved.find((item) => item.id === selectedSavedId);
+        if (!selected) return;
+        const name = window.prompt('Новое имя фильтра', selected.name);
+        if (!name) return;
+        void updateSavedFilter(selected.id, { name }).then(async () => { const rows = await fetchSavedFilters('STOCK'); setSaved(rows.items); });
+      }} onDelete={() => {
+        if (!selectedSavedId) return;
+        void deleteSavedFilter(selectedSavedId).then(async () => { const rows = await fetchSavedFilters('STOCK'); setSaved(rows.items); setSelectedSavedId(''); });
+      }} onMakeDefault={() => {
+        if (!selectedSavedId) return;
+        void updateSavedFilter(selectedSavedId, { isDefault: true }).then(async () => { const rows = await fetchSavedFilters('STOCK'); setSaved(rows.items); });
+      }} /></div>} />
       {loading ? <p className="text-sm text-muted">Загрузка данных...</p> : <p className="text-sm text-muted">Найдено позиций: {total}</p>}
       {!loading && items.length === 0 ? <EmptyState title="Позиции не найдены" description="Измените фильтры или добавьте операции по позициям." /> : null}
       {!loading && items.length > 0 ? <><StockTable items={items} decimals={decimals} /><StockCards items={items} decimals={decimals} /></> : null}
+
+      <SaveFilterModal open={saveOpen} onClose={() => setSaveOpen(false)} onSubmit={(payload) => {
+        void createSavedFilter({ kind: 'STOCK', name: payload.name, isDefault: payload.isDefault, payload: serializeStockFilters(filters as unknown as Record<string, string>) }).then(async () => {
+          setSaveOpen(false);
+          const rows = await fetchSavedFilters('STOCK');
+          setSaved(rows.items);
+        });
+      }} />
     </section>
   );
 }

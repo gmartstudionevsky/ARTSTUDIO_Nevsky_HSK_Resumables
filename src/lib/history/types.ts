@@ -31,6 +31,8 @@ export interface HistoryQuery {
   itemId?: string;
   expenseArticleId?: string;
   purposeId?: string;
+  createdById?: string;
+  categoryId?: string;
   limit?: number;
   offset?: number;
 }

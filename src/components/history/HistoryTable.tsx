@@ -1,8 +1,7 @@
-import Link from 'next/link';
-
 import { formatRuDateTime } from '@/lib/datetime/ru';
 import { Badge } from '@/components/ui/Badge';
 import { HistoryListItem } from '@/lib/history/types';
+import { HistoryRowMenu } from '@/components/history/HistoryRowMenu';
 
 function txTypeLabel(type: HistoryListItem['type']): string {
   if (type === 'IN') return 'Приход';
@@ -18,7 +17,7 @@ function statusBadge(status: HistoryListItem['uiStatus']): { label: string; vari
   return { label: 'Активно', variant: 'ok' };
 }
 
-export function HistoryTable({ items }: { items: HistoryListItem[] }): JSX.Element {
+export function HistoryTable({ items, onCancel, onFix }: { items: HistoryListItem[]; onCancel: (item: HistoryListItem) => void; onFix: (item: HistoryListItem) => void }): JSX.Element {
   return (
     <div className="hidden overflow-x-auto rounded-lg border border-border md:block">
       <table className="min-w-full text-sm">
@@ -44,7 +43,7 @@ export function HistoryTable({ items }: { items: HistoryListItem[] }): JSX.Eleme
                 <td className="px-4 py-3">{item.createdBy.login}</td>
                 <td className="px-4 py-3"><Badge variant={badge.variant}>{badge.label}</Badge></td>
                 <td className="px-4 py-3">{item.linesActive}/{item.linesTotal}</td>
-                <td className="px-4 py-3 text-right"><Link className="text-accent underline" href={`/history/${item.id}`}>Открыть</Link></td>
+                <td className="px-4 py-3 text-right"><HistoryRowMenu item={item} onCancel={() => onCancel(item)} onFix={() => onFix(item)} /></td>
               </tr>
             );
           })}
