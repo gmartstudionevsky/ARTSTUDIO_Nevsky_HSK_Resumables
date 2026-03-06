@@ -48,9 +48,10 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   await page.goto('/history');
   await page.getByLabel('Тип').selectOption('OUT');
   await page.getByTestId('history-save-filter').click();
-  await page.getByLabel('Название').fill('Только расход');
-  await page.getByLabel('По умолчанию').check();
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await expect(page.getByTestId('saved-filter-name')).toBeVisible();
+  await page.getByTestId('saved-filter-name').fill('Только расход');
+  await page.getByTestId('saved-filter-default').check();
+  await page.getByTestId('saved-filter-submit').click();
 
   await page.reload();
   await expect(page.getByLabel('Тип')).toHaveValue('OUT');
@@ -61,7 +62,7 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   const txId = rowMenuId!.replace('history-row-menu-', '');
   await page.getByTestId(`history-row-cancel-${txId}`).click();
   await page.getByLabel('Комментарий').fill('TEST');
-  await page.getByRole('button', { name: 'Подтвердить' }).click();
+  await page.locator('button:has-text("Подтвердить")').first().click();
   await expect(page.getByText('Отменено').first()).toBeVisible();
 
   await page.goto('/stock');
@@ -72,8 +73,9 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   await expect(page.getByTestId(`stock-qty-${item!.id}`)).toHaveText(/10/);
 
   await page.getByTestId('stock-save-filter').click();
-  await page.getByLabel('Название').fill('Все активные');
-  await page.getByRole('button', { name: 'Сохранить' }).click();
+  await expect(page.getByTestId('saved-filter-name')).toBeVisible();
+  await page.getByTestId('saved-filter-name').fill('Все активные');
+  await page.getByTestId('saved-filter-submit').click();
   const stockDropdown = page.getByTestId('stock-saved-dropdown');
   const optionValue = await stockDropdown.locator('option', { hasText: 'Все активные' }).getAttribute('value');
   expect(optionValue).toBeTruthy();
