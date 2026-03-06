@@ -1,15 +1,12 @@
-# Release checklist (Vercel + Supabase)
+# Release checklist
 
-- [ ] Сначала запущен GitHub Actions workflow `migrate-prod` (`workflow_dispatch`) для production БД.
-- [ ] `npm run seed:admin` выполнен один раз.
-- [ ] После успешного `migrate-prod` выполнен redeploy/recheck Vercel runtime.
-- [ ] Пароль администратора изменён после первого входа.
-- [ ] `npm run seed:defaults` выполнен один раз (ui_texts + settings + optional TG channel).
-- [ ] Импорт XLSX wizard проверен в production (`Админка → Импорт`).
-- [ ] Telegram test message отправляется успешно.
-- [ ] Digest endpoint защищён `JOB_SECRET` и отрабатывает по workflow.
-- [ ] Проверен `/api/health` и `/api/health/extended`.
-- [ ] Настроена backup-политика: минимум ручной экспорт БД 1 раз в неделю.
-- [ ] Rollback-план:
-  - [ ] Vercel: открыть deployment history и сделать Promote/Restore предыдущего успешного deployment.
-  - [ ] БД: восстановить из последнего доступного backup/экспорта (если требуется откат данных).
+- [ ] Production migrate workflow выполнен (`migrate-prod.yml`).
+- [ ] В production migrate используются только `DIRECT_URL` + `prisma migrate deploy`.
+- [ ] В production не выполняется скрытый seed admin с fallback-паролем.
+- [ ] При необходимости bootstrap admin выполнялся явно через `seed:bootstrap-admin` и `SEED_ADMIN_PASSWORD`.
+- [ ] Vercel Production использует production `DATABASE_URL`.
+- [ ] Vercel Preview использует staging `DATABASE_URL`.
+- [ ] Staging не используется для destructive E2E reset.
+- [ ] E2E workflow использует PostgreSQL service container.
+- [ ] Digest workflow использует только `APP_URL` + `JOB_SECRET` и бьёт в production endpoint.
+- [ ] `APP_URL` задан без trailing slash.

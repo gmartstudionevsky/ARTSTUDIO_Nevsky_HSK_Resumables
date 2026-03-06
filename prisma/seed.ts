@@ -3,7 +3,10 @@ import { PrismaClient, Role, SettingKey, UiTextScope } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-type SeedMode = 'all' | 'admin' | 'defaults' | 'staging';
+const E2E_USER_LOGIN = process.env.E2E_USER_LOGIN ?? 'e2e_admin';
+const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'E2EPass12345!';
+
+type SeedMode = 'defaults' | 'staging' | 'test-e2e' | 'bootstrap-admin';
 
 const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }> = [
   { key: 'nav.stock', ruText: 'Склад' },
@@ -32,103 +35,7 @@ const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [
   { key: SettingKey.ENABLE_PERIOD_LOCKS, value: false },
 ];
 
-export async function seedAdmin(): Promise<void> {
-  const login = 'admin';
-  const password = process.env.SEED_ADMIN_PASSWORD || 'ChangeMe123!';
-
-  const existingAdmin = await prisma.user.findUnique({ where: { login } });
-
-  if (existingAdmin) {
-    console.log(`Seed admin skipped: user '${login}' already exists.`);
-    return;
-  }
-
-  const passwordHash = await hash(password);
-
-  await prisma.user.create({
-    data: {
-      login,
-      passwordHash,
-      role: Role.ADMIN,
-      isActive: true,
-      forcePasswordChange: true,
-    },
-  });
-
-  console.log(`Seed admin complete: user '${login}' created.`);
-}
-
-export async function seedDefaults(): Promise<void> {
-  for (const item of defaultUiTexts) {
-    await prisma.uiText.upsert({
-      where: { key: item.key },
-      create: {
-        key: item.key,
-        ruText: item.ruText,
-        scope: item.scope ?? UiTextScope.BOTH,
-      },
-      update: {},
-    });
-  }
-
-  for (const setting of defaultSettings) {
-    await prisma.appSetting.upsert({
-      where: { key: setting.key },
-      create: { key: setting.key, valueJson: setting.value },
-      update: {},
-    });
-  }
-
-  const defaultChatId = process.env.TELEGRAM_DEFAULT_CHAT_ID?.trim();
-
-  if (defaultChatId) {
-    await prisma.telegramChannel.upsert({
-      where: { chatId: defaultChatId },
-      create: {
-        name: 'Основной',
-        chatId: defaultChatId,
-        isActive: true,
-      },
-      update: {
-        name: 'Основной',
-        isActive: true,
-      },
-    });
-  }
-
-  console.log('Seed defaults complete: ui_texts and settings are ready.');
-}
-
-export async function seedStaging(): Promise<void> {
-  await seedAdmin();
-  await seedDefaults();
-
-
-  const e2eLogin = 'e2e_admin';
-  const existingE2EAdmin = await prisma.user.findUnique({ where: { login: e2eLogin } });
-
-  if (!existingE2EAdmin) {
-    const e2ePasswordHash = await hash('E2EPass12345!');
-    await prisma.user.create({
-      data: {
-        login: e2eLogin,
-        passwordHash: e2ePasswordHash,
-        role: Role.ADMIN,
-        isActive: true,
-        forcePasswordChange: false,
-      },
-    });
-  } else {
-    await prisma.user.update({
-      where: { id: existingE2EAdmin.id },
-      data: {
-        role: Role.ADMIN,
-        isActive: true,
-        forcePasswordChange: false,
-      },
-    });
-  }
-
+async function seedReferenceData(): Promise<void> {
   const category = await prisma.category.upsert({
     where: { name: 'Химия' },
     create: { name: 'Химия', isActive: true },
@@ -201,17 +108,112 @@ export async function seedStaging(): Promise<void> {
       isDefaultReport: true,
     },
   });
+}
 
-  console.log('Seed staging complete.');
+export async function seedDefaults(): Promise<void> {
+  for (const item of defaultUiTexts) {
+    await prisma.uiText.upsert({
+      where: { key: item.key },
+      create: {
+        key: item.key,
+        ruText: item.ruText,
+        scope: item.scope ?? UiTextScope.BOTH,
+      },
+      update: {},
+    });
+  }
+
+  for (const setting of defaultSettings) {
+    await prisma.appSetting.upsert({
+      where: { key: setting.key },
+      create: { key: setting.key, valueJson: setting.value },
+      update: {},
+    });
+  }
+
+  const defaultChatId = process.env.TELEGRAM_DEFAULT_CHAT_ID?.trim();
+
+  if (defaultChatId) {
+    await prisma.telegramChannel.upsert({
+      where: { chatId: defaultChatId },
+      create: {
+        name: 'Основной',
+        chatId: defaultChatId,
+        isActive: true,
+      },
+      update: {
+        name: 'Основной',
+        isActive: true,
+      },
+    });
+  }
+
+  console.log('Seed defaults complete: ui_texts and settings are ready.');
+}
+
+export async function seedBootstrapAdmin(): Promise<void> {
+  const login = process.env.SEED_ADMIN_LOGIN ?? 'admin';
+  const password = process.env.SEED_ADMIN_PASSWORD;
+
+  if (!password) {
+    throw new Error('SEED_ADMIN_PASSWORD is required for bootstrap-admin mode. Refusing insecure fallback.');
+  }
+
+  const existingAdmin = await prisma.user.findUnique({ where: { login } });
+
+  if (existingAdmin) {
+    console.log(`Bootstrap admin skipped: user '${login}' already exists.`);
+    return;
+  }
+
+  const passwordHash = await hash(password);
+
+  await prisma.user.create({
+    data: {
+      login,
+      passwordHash,
+      role: Role.ADMIN,
+      isActive: true,
+      forcePasswordChange: true,
+    },
+  });
+
+  console.log(`Bootstrap admin complete: user '${login}' created.`);
+}
+
+export async function seedStaging(): Promise<void> {
+  await seedDefaults();
+  await seedReferenceData();
+  console.log('Seed staging complete: no test credentials created.');
+}
+
+export async function seedTestE2E(): Promise<void> {
+  await seedDefaults();
+  await seedReferenceData();
+
+  const passwordHash = await hash(E2E_USER_PASSWORD);
+  await prisma.user.upsert({
+    where: { login: E2E_USER_LOGIN },
+    create: {
+      login: E2E_USER_LOGIN,
+      passwordHash,
+      role: Role.ADMIN,
+      isActive: true,
+      forcePasswordChange: false,
+    },
+    update: {
+      passwordHash,
+      role: Role.ADMIN,
+      isActive: true,
+      forcePasswordChange: false,
+    },
+  });
+
+  console.log(`Seed test-e2e complete for '${E2E_USER_LOGIN}'.`);
 }
 
 async function main(): Promise<void> {
-  const mode = (process.argv[2] as SeedMode | undefined) ?? 'all';
-
-  if (mode === 'admin') {
-    await seedAdmin();
-    return;
-  }
+  const mode = (process.argv[2] as SeedMode | undefined) ?? 'defaults';
 
   if (mode === 'defaults') {
     await seedDefaults();
@@ -223,9 +225,17 @@ async function main(): Promise<void> {
     return;
   }
 
-  await seedAdmin();
-  await seedDefaults();
-  console.log('Seed complete.');
+  if (mode === 'test-e2e') {
+    await seedTestE2E();
+    return;
+  }
+
+  if (mode === 'bootstrap-admin') {
+    await seedBootstrapAdmin();
+    return;
+  }
+
+  throw new Error(`Unknown seed mode: ${mode}`);
 }
 
 main()

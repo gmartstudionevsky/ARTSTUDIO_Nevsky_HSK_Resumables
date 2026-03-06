@@ -1,42 +1,38 @@
-# Staging runbook
+# Runbook: Staging (pre-prod)
 
-## Контур staging
+## Назначение
 
-- Staging-проект Supabase используется как единая БД для Preview/Development и e2e.
-- В Vercel для `Preview` и `Development` уже заданы:
-  - `DATABASE_URL` (staging runtime/pooler)
-  - `SESSION_SECRET`
+Staging = preview/pre-prod runtime + ручная pre-prod проверка.
 
-## Secrets в GitHub Actions
+Staging **не** используется для destructive E2E reset.
 
-Используются только эти секреты:
+## Runtime env (Vercel Preview)
 
-- `STAGING_DATABASE_URL` — runtime/pooler URL staging (`:6543`).
-- `STAGING_SESSION_SECRET` — session secret для e2e/runtime.
-- `STAGING_DIRECT_URL` — direct URL staging для migrate/seed (`:5432`).
+- `DATABASE_URL` = staging runtime URL
+- `SESSION_SECRET`
 
-## Применение миграций в staging
+`APP_URL` и `JOB_SECRET` не обязательны для Preview runtime.
 
-1. Откройте `Actions` → `Staging Migrate`.
-2. Нажмите `Run workflow`.
-3. Workflow запускает:
-   - `npx prisma migrate deploy`
-   - `npm run seed:staging`
+## GitHub Secrets для staging migrate
 
-## Прогон e2e в staging
+- `STAGING_DATABASE_URL` — staging runtime/pooler URL
+- `STAGING_DIRECT_URL` — staging direct/session URL для Prisma migrate deploy
 
-1. Откройте `Actions` → `Staging E2E`.
-2. Нажмите `Run workflow`.
-3. Workflow запускает Playwright без Docker:
-   - `npx playwright install --with-deps chromium`
-   - `npm run test:e2e:staging`
+## Применение миграций
 
-## Локальный e2e без Docker
+Запустить workflow `Staging Migrate`:
 
-```bash
-export DATABASE_URL=<STAGING_DATABASE_URL>
-export SESSION_SECRET=<STAGING_SESSION_SECRET>
-npm run test:e2e:staging
-```
+1. `npm ci`
+2. `npm run prisma:migrate:deploy`
+3. `npm run seed:staging`
 
-Если миграции ещё не применены в staging, сначала запустите workflow `Staging Migrate`, потом `Staging E2E`.
+## Проверка staging после migrate
+
+- открыть Preview deployment;
+- проверить auth/основные экраны;
+- при необходимости выполнить ручной smoke по pre-prod сценариям.
+
+## E2E
+
+E2E запускается отдельно в workflow `Staging E2E` на ephemeral PostgreSQL service container в GitHub Actions.
+Supabase staging в E2E не участвует.

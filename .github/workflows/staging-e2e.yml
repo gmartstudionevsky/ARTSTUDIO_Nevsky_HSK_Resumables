@@ -9,12 +9,28 @@ on:
 jobs:
   staging-e2e:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: artstudio_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d artstudio_e2e"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     env:
-      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
-      SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET || secrets.STAGING_SESSION_SECRET }}
-      DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
-      APP_URL: http://127.0.0.1:3000
-      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/artstudio_e2e?schema=public&connection_limit=5
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/artstudio_e2e?schema=public&connection_limit=5
+      SESSION_SECRET: ci-e2e-session-secret-32-characters-min
+      NODE_ENV: test
+      E2E_USER_LOGIN: e2e_admin
+      E2E_USER_PASSWORD: E2EPass12345!
+      E2E_ALLOW_INSECURE_COOKIE: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,9 +38,11 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run prisma:generate
+      - run: npm run prisma:migrate:deploy
+      - run: npm run seed:test:e2e
       - run: npx playwright install --with-deps chromium
-      - run: node -e "const u=new URL(process.env.DATABASE_URL); console.log('DATABASE host',u.hostname,'port',u.port)"
-      - run: npm run test:e2e:staging
+      - run: npm run test:e2e
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4

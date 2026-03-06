@@ -1,40 +1,27 @@
 import { expect, test } from '@playwright/test';
 
-import { ensureAdminCredentials, setupTestData, type TestData } from './setupTestData';
+import { setupTestData, type TestData } from './setupTestData';
 
 let testData: TestData;
 
 test.beforeAll(async () => {
-  const adminLogin = process.env.E2E_ADMIN_LOGIN ?? 'admin';
-  const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'ChangeMe123!';
-
-  await ensureAdminCredentials(adminLogin, adminPassword);
   testData = await setupTestData();
 });
 
-test('core flow: login -> change password -> intake operation -> stock check', async ({ page }) => {
+test('core flow: intake operation -> stock check', async ({ page }) => {
   await page.goto('/stock');
-  await expect(page.getByTestId('login-login')).toBeVisible();
+  await expect(page).toHaveURL(/\/(stock|operation)$/);
 
-  const adminLogin = process.env.E2E_ADMIN_LOGIN ?? 'admin';
-  const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'ChangeMe123!';
-  const adminNewPassword = process.env.E2E_ADMIN_NEW_PASSWORD ?? 'NewPass12345!';
+  const initialStockPayload = await page.evaluate(async (name) => {
+    const response = await fetch(`/api/stock?q=${encodeURIComponent(name)}`);
+    if (!response.ok) {
+      throw new Error(`stock bootstrap failed: ${response.status}`);
+    }
 
-  await page.getByTestId('login-login').fill(adminLogin);
-  await page.getByTestId('login-password').fill(adminPassword);
-  await page.getByTestId('login-submit').click();
-
-  await page.waitForURL(/\/(change-password|stock|operation)$/, { timeout: 20_000 });
-
-  if (/\/change-password$/.test(page.url())) {
-    const response = await page.request.post('/api/auth/change-password', {
-      data: { currentPassword: adminPassword, newPassword: adminNewPassword },
-    });
-    expect(response.ok()).toBeTruthy();
-    await page.goto('/stock');
-  }
-
-  await expect.poll(async () => page.url(), { timeout: 20000 }).toMatch(/\/(stock|operation)$/);
+    return (await response.json()) as { items: Array<{ itemId: string; qtyReport: string }> };
+  }, testData.itemName);
+  const initialQtyRaw = initialStockPayload.items.find((entry) => entry.itemId === testData.itemId)?.qtyReport ?? '0';
+  const initialQty = Number(initialQtyRaw.replace(',', '.'));
 
   await page.goto('/operation');
 
@@ -57,5 +44,14 @@ test('core flow: login -> change password -> intake operation -> stock check', a
 
   await page.goto('/stock');
   await expect(page.getByTestId(`stock-item-${testData.itemId}`)).toBeVisible({ timeout: 30000 });
-  await expect(page.getByTestId(`stock-qty-${testData.itemId}`)).toHaveText(/10/, { timeout: 30000 });
+  await expect.poll(async () => {
+    const payload = await page.evaluate(async (name) => {
+      const response = await fetch(`/api/stock?q=${encodeURIComponent(name)}`);
+      if (!response.ok) return null;
+      return (await response.json()) as { items: Array<{ itemId: string; qtyReport: string }> };
+    }, testData.itemName);
+    if (!payload) return Number.NaN;
+    const qtyRaw = payload.items.find((entry) => entry.itemId === testData.itemId)?.qtyReport ?? '0';
+    return Number(qtyRaw.replace(',', '.'));
+  }, { timeout: 30000 }).toBeCloseTo(initialQty + 10, 6);
 });

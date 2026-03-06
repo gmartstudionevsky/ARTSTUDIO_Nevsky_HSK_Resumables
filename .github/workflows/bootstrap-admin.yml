@@ -1,14 +1,16 @@
-name: Migrate Production
+name: Bootstrap Admin (one-time)
 
 on:
   workflow_dispatch:
 
 jobs:
-  migrate-prod:
+  bootstrap-admin:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: ${{ secrets.DIRECT_URL }}
       DIRECT_URL: ${{ secrets.DIRECT_URL }}
+      SEED_ADMIN_LOGIN: ${{ secrets.SEED_ADMIN_LOGIN }}
+      SEED_ADMIN_PASSWORD: ${{ secrets.SEED_ADMIN_PASSWORD }}
       NODE_ENV: production
     steps:
       - uses: actions/checkout@v4
@@ -17,7 +19,4 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Run Prisma migrations on production
-        run: npm run prisma:migrate:deploy
-      - name: Seed immutable defaults (no admin bootstrap)
-        run: npm run seed:defaults
+      - run: npm run seed:bootstrap-admin

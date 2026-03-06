@@ -11,7 +11,7 @@ function createPrismaClient(): PrismaClient {
   requireEnv();
 
   return new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error']
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 }
 
@@ -22,9 +22,7 @@ function getPrismaClient(): PrismaClient {
 
   const client = createPrismaClient();
 
-  if (process.env.NODE_ENV !== 'production') {
-    global.prisma = client;
-  }
+  global.prisma = client;
 
   return client;
 }

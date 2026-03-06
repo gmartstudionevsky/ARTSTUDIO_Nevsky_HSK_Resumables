@@ -10,9 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger digest endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          JOB_SECRET: ${{ secrets.JOB_SECRET }}
         run: |
+          APP_URL_CLEAN="${APP_URL%/}"
           curl --fail --show-error --silent \
-            -X POST "${{ secrets.APP_URL }}/api/jobs/digest" \
-            -H "x-job-secret: ${{ secrets.JOB_SECRET }}" \
+            -X POST "${APP_URL_CLEAN}/api/jobs/digest" \
+            -H "x-job-secret: ${JOB_SECRET}" \
             -H "Content-Type: application/json" \
             -d '{}'

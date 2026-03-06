@@ -23,3 +23,6 @@ pnpm-debug.log*
 
 # typescript
 *.tsbuildinfo
+
+# playwright auth state
+playwright/.auth/

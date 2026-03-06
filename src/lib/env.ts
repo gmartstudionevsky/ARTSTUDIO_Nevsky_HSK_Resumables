@@ -2,9 +2,9 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL обязателен'),
-  SESSION_SECRET: z.string().min(1, 'SESSION_SECRET обязателен'),
-  NEXT_PUBLIC_APP_URL: z.string().url().default('http://localhost:3000'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL обязателен для runtime подключения к БД'),
+  SESSION_SECRET: z.string().min(1, 'SESSION_SECRET обязателен для подписи сессий'),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   NEXT_PUBLIC_ENABLE_DEBUG: z.enum(['true', 'false']).default('false'),
   APP_URL: z.string().url().optional(),
   TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
@@ -50,7 +50,7 @@ export function requireEnv(): RuntimeEnv {
       .map((issue) => `${issue.path.join('.') || 'env'}: ${issue.message}`)
       .join('; ');
 
-    throw new Error(`Ошибка окружения: обязательные переменные не настроены (${details}).`);
+    throw new Error(`Ошибка окружения: проверьте обязательные runtime переменные (${details}).`);
   }
 
   return result.data;
@@ -61,9 +61,5 @@ export function isProd(): boolean {
 }
 
 export function assertRuntimeEnv(): void {
-  if (!isProd()) {
-    return;
-  }
-
   requireEnv();
 }

@@ -10,13 +10,22 @@ function getSessionExpiryDate(): Date {
   return new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
 }
 
+
+function shouldUseSecureSessionCookie(): boolean {
+  if (process.env.E2E_ALLOW_INSECURE_COOKIE === 'true') {
+    return false;
+  }
+
+  return process.env.NODE_ENV === 'production';
+}
+
 function setSessionCookie(token: string): void {
   cookies().set({
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureSessionCookie(),
     path: '/',
     maxAge: SESSION_MAX_AGE_SECONDS,
   });
@@ -28,7 +37,7 @@ function clearSessionCookie(): void {
     value: '',
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: shouldUseSecureSessionCookie(),
     path: '/',
     maxAge: 0,
   });
