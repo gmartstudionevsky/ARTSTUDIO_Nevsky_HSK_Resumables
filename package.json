@@ -26,7 +26,10 @@
     "seed:admin": "tsx prisma/seed.ts admin",
     "seed:defaults": "tsx prisma/seed.ts defaults",
     "seed:prod": "npm run seed:admin && npm run seed:defaults",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "seed:staging": "tsx prisma/seed.ts staging",
+    "testdb:reset:staging": "tsx scripts/testdb/reset-staging.ts",
+    "test:e2e:staging": "npm run testdb:reset:staging && playwright test"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",

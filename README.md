@@ -118,6 +118,19 @@ npm run dev
   - закрытие/открытие месяца,
   - блокировка изменений в закрытом периоде.
 
+
+## Staging testing (no Docker)
+
+Используется staging Supabase БД, без `docker-compose`.
+
+```bash
+export DATABASE_URL=<STAGING_DATABASE_URL>
+export SESSION_SECRET=<STAGING_SESSION_SECRET>
+npm run test:e2e:staging
+```
+
+Для подготовки staging БД сначала запустите workflow `Staging Migrate`, затем `Staging E2E`.
+
 ## Тесты и CI
 
 ```bash
