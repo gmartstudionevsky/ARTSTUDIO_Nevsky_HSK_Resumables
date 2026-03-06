@@ -61,6 +61,11 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   expect(rowMenuId).toBeTruthy();
   const txId = rowMenuId!.replace('history-row-menu-', '');
   await page.getByTestId(`history-row-cancel-${txId}`).click();
+  const reasonSelect = page.getByLabel('Причина');
+  const reasonValue = await reasonSelect.locator('option').nth(1).getAttribute('value');
+  if (reasonValue) {
+    await reasonSelect.selectOption(reasonValue);
+  }
   await page.getByLabel('Комментарий').fill('TEST');
   await page.locator('button:has-text("Подтвердить")').first().click();
   await expect(page.getByText('Отменено').first()).toBeVisible();

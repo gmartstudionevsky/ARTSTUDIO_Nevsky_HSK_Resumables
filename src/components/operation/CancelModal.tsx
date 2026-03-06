@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,6 +10,13 @@ import { LookupItem } from '@/lib/operation/types';
 export function CancelModal({ open, reasons, onClose, onSubmit, requireReason = false }: { open: boolean; reasons: LookupItem[]; onClose: () => void; onSubmit: (payload: { reasonId?: string; cancelNote?: string }) => void; requireReason?: boolean }): JSX.Element | null {
   const [reasonId, setReasonId] = useState('');
   const [cancelNote, setCancelNote] = useState('');
+
+  useEffect(() => {
+    if (open) return;
+    setReasonId('');
+    setCancelNote('');
+  }, [open]);
+
   if (!open) return null;
 
   return (

@@ -24,6 +24,14 @@ const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }
   { key: 'tooltip.expenseArticle', ruText: 'Статья расходов — финансовый разрез для отчёта.' },
 ];
 
+
+const defaultReasons: Array<{ code: string; name: string }> = [
+  { code: 'ERR_INPUT', name: 'Ошибка ввода' },
+  { code: 'DOC_FIX', name: 'Исправление документа' },
+  { code: 'DAMAGED', name: 'Порча/брак' },
+  { code: 'RETURN', name: 'Возврат/сторно' },
+];
+
 const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [
   { key: SettingKey.SUPERVISOR_BACKDATE_DAYS, value: 3 },
   { key: SettingKey.REQUIRE_REASON_ON_CANCEL, value: true },
@@ -68,6 +76,14 @@ export async function seedDefaults(): Promise<void> {
         scope: item.scope ?? UiTextScope.BOTH,
       },
       update: {},
+    });
+  }
+
+  for (const reason of defaultReasons) {
+    await prisma.reason.upsert({
+      where: { code: reason.code },
+      create: { code: reason.code, name: reason.name, isActive: true },
+      update: { name: reason.name, isActive: true },
     });
   }
 
