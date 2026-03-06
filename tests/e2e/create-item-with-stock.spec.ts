@@ -27,12 +27,6 @@ test('catalog: create item with initial stock creates IN transaction and affects
   const purposeId = purposes.items.find((entry) => entry.code === '2.1.4')?.id;
   expect(purposeId).toBeTruthy();
 
-  const unitsRes = await page.request.get('/api/lookup/units?q=шт');
-  expect(unitsRes.ok()).toBeTruthy();
-  const units = (await unitsRes.json()) as { items: Array<{ id: string; name: string }> };
-  const unitId = units.items.find((entry) => entry.name === 'шт')?.id;
-  expect(unitId).toBeTruthy();
-
   await page.goto('/catalog');
   await page.getByTestId('catalog-add-item').click();
 
@@ -40,13 +34,23 @@ test('catalog: create item with initial stock creates IN transaction and affects
   await page.getByTestId('item-category').selectOption(categoryId!);
   await page.getByTestId('item-expense-article').selectOption(expenseArticleId!);
   await page.getByTestId('item-purpose').selectOption(purposeId!);
-  await page.getByTestId('item-base-unit').selectOption(unitId!);
-  await page.getByTestId('item-default-input-unit').selectOption(unitId!);
-  await page.getByTestId('item-report-unit').selectOption(unitId!);
+
+  const baseUnitSelect = page.getByTestId('item-base-unit');
+  await expect(baseUnitSelect).toBeVisible();
+  const unitId = await baseUnitSelect.evaluate((el) => {
+    const select = el as HTMLSelectElement;
+    const option = Array.from(select.options).find((entry) => entry.textContent?.trim() === 'шт');
+    return option?.value ?? '';
+  });
+  expect(unitId).toBeTruthy();
+
+  await page.getByTestId('item-base-unit').selectOption(unitId);
+  await page.getByTestId('item-default-input-unit').selectOption(unitId);
+  await page.getByTestId('item-report-unit').selectOption(unitId);
 
   await page.getByTestId('item-initial-toggle').check();
   await page.getByTestId('item-initial-qty').fill('7');
-  await page.getByTestId('item-initial-unit').selectOption(unitId!);
+  await page.getByTestId('item-initial-unit').selectOption(unitId);
 
   await page.getByTestId('item-save').click();
   await page.waitForURL(/\/catalog\/[0-9a-f-]+\?transactionId=[0-9a-f-]+/);
