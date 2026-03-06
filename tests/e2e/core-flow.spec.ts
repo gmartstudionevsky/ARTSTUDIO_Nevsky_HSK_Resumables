@@ -42,7 +42,7 @@ test('core flow: login -> change password -> intake operation -> stock check', a
   await page.getByTestId('op-intake-single').click();
   await page.getByTestId('op-header-purpose').selectOption(testData.purposeId);
 
-  await page.getByTestId('op-item-search').fill('Тестовая позиция');
+  await page.getByTestId('op-item-search').fill(testData.itemName);
   await page.getByTestId('op-search-item').click();
   await page.getByTestId(`op-item-option-${testData.itemId}`).waitFor({ state: 'attached' });
   await page.getByTestId('op-item-select').selectOption(testData.itemId);
@@ -53,7 +53,7 @@ test('core flow: login -> change password -> intake operation -> stock check', a
   await page.getByTestId('op-save').click();
 
   await expect(page.getByTestId('op-result')).toBeVisible({ timeout: 20000 });
-  await expect(page.getByTestId('op-result-lines')).toContainText('Тестовая позиция');
+  await expect(page.getByTestId('op-result-lines')).toContainText(testData.itemName);
 
   await page.goto('/stock');
   await expect(page.getByTestId(`stock-item-${testData.itemId}`)).toBeVisible({ timeout: 30000 });

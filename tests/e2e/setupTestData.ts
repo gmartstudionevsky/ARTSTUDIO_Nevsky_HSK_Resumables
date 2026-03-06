@@ -3,6 +3,7 @@ import { hash } from '@node-rs/argon2';
 
 export type TestData = {
   itemId: string;
+  itemName: string;
   purposeId: string;
 };
 
@@ -40,11 +41,12 @@ export async function setupTestData(): Promise<TestData> {
       update: { name: 'Тест', isActive: true },
     });
 
+    const itemName = 'Тестовая позиция CORE';
     const item = await prisma.item.upsert({
-      where: { code: 'ITM-TEST' },
+      where: { code: 'ITM-CORE' },
       create: {
-        code: 'ITM-TEST',
-        name: 'Тестовая позиция',
+        code: 'ITM-CORE',
+        name: itemName,
         categoryId: category.id,
         defaultExpenseArticleId: expenseArticle.id,
         defaultPurposeId: purpose.id,
@@ -54,7 +56,7 @@ export async function setupTestData(): Promise<TestData> {
         isActive: true,
       },
       update: {
-        name: 'Тестовая позиция',
+        name: itemName,
         categoryId: category.id,
         defaultExpenseArticleId: expenseArticle.id,
         defaultPurposeId: purpose.id,
@@ -83,7 +85,7 @@ export async function setupTestData(): Promise<TestData> {
       },
     });
 
-    return { itemId: item.id, purposeId: purpose.id };
+    return { itemId: item.id, itemName, purposeId: purpose.id };
   } finally {
     await prisma.$disconnect();
   }

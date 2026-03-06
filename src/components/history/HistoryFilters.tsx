@@ -27,7 +27,7 @@ export function HistoryFilters({ value, onChange, onPreset, items, expenseArticl
           <option value="IN">Приход</option>
           <option value="OUT">Расход</option>
           <option value="ADJUST">Коррекция</option>
-          <option value="OPENING">Открытие</option>
+          <option value="OPENING">Открытие склада</option>
           <option value="INVENTORY_APPLY">Инвентаризация</option>
         </Select>
         <Select label="Статус" value={value.status} onChange={(event) => onChange({ status: event.target.value as HistoryFiltersState['status'] })}>

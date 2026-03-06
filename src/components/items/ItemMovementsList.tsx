@@ -5,7 +5,7 @@ function mapTxType(type: ItemMovement['tx']['type']): string {
   if (type === 'IN') return 'Приход';
   if (type === 'OUT') return 'Расход';
   if (type === 'ADJUST') return 'Коррекция';
-  if (type === 'OPENING') return 'Открытие';
+  if (type === 'OPENING') return 'Открытие склада';
   return 'Инвентаризация';
 }
 
