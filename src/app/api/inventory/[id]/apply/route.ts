@@ -41,8 +41,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       const locked = await isDateLocked(new Date(session.occurredAt), prisma);
       if (locked && user.role !== Role.ADMIN) throw new Error('LOCKED');
 
-      const plusLines: Array<{ itemId: string; unitId: string; qty: Prisma.Decimal; expenseArticleId: string; purposeId: string; comment: string | null }> = [];
-      const minusLines: Array<{ itemId: string; unitId: string; qty: Prisma.Decimal; expenseArticleId: string; purposeId: string; comment: string | null }> = [];
+      const txType = session.mode === 'OPENING' ? TxType.OPENING : TxType.INVENTORY_APPLY;
+      const applyLines: Array<{ itemId: string; unitId: string; qtyInput: Prisma.Decimal; qtyBase: Prisma.Decimal; expenseArticleId: string; purposeId: string; comment: string | null }> = [];
 
       for (const line of session.lines) {
         const systemBase = session.mode === 'OPENING' ? new Prisma.Decimal(0) : line.qtySystemBase;
@@ -52,13 +52,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
         if (session.mode === 'OPENING') {
           if (factBase.lt(0)) throw new Error('NEGATIVE_OPENING');
           if (factBase.eq(0)) continue;
-          plusLines.push({
+          applyLines.push({
             itemId: line.itemId,
-            unitId: line.item.baseUnitId,
-            qty: factBase,
+            unitId: line.unitId,
+            qtyInput: line.qtyFactInput ?? factBase,
+            qtyBase: factBase,
             expenseArticleId: line.item.defaultExpenseArticleId,
             purposeId: line.item.defaultPurposeId,
-            comment: line.comment ?? null,
+            comment: line.comment ?? 'Инвентаризация',
           });
           continue;
         }
@@ -66,73 +67,44 @@ export async function POST(request: Request, { params }: { params: { id: string 
         const delta = factBase.sub(systemBase);
         if (delta.eq(0)) continue;
 
-        if (delta.gt(0)) {
-          plusLines.push({ itemId: line.itemId, unitId: line.item.baseUnitId, qty: delta, expenseArticleId: line.item.defaultExpenseArticleId, purposeId: line.item.defaultPurposeId, comment: line.comment ?? null });
-        } else {
-          minusLines.push({ itemId: line.itemId, unitId: line.item.baseUnitId, qty: delta.abs(), expenseArticleId: line.item.defaultExpenseArticleId, purposeId: line.item.defaultPurposeId, comment: line.comment ?? null });
-        }
-      }
-
-      let plusTxId: string | undefined;
-      let minusTxId: string | undefined;
-
-      if (plusLines.length > 0) {
-        const plusTx = await tx.transaction.create({
-          data: {
-            batchId: makeBatchId(),
-            type: TxType.IN,
-            occurredAt: new Date(session.occurredAt),
-            createdById: user.id,
-            note: session.mode === 'OPENING' ? 'Открытие склада 01.03.2026' : `Инвентаризация ${session.id} (пополнение). ${data.note ?? ''}`.trim(),
-            reasonId: data.reasonId ?? null,
-            status: RecordStatus.ACTIVE,
-          },
-        });
-        plusTxId = plusTx.id;
-
-        await tx.transactionLine.createMany({
-          data: plusLines.map((line) => ({
-            transactionId: plusTx.id,
-            itemId: line.itemId,
-            qtyInput: line.qty,
-            unitId: line.unitId,
-            qtyBase: line.qty,
-            expenseArticleId: line.expenseArticleId,
-            purposeId: line.purposeId,
-            comment: line.comment,
-            status: RecordStatus.ACTIVE,
-          })),
+        applyLines.push({
+          itemId: line.itemId,
+          unitId: line.item.baseUnitId,
+          qtyInput: delta,
+          qtyBase: delta,
+          expenseArticleId: line.item.defaultExpenseArticleId,
+          purposeId: line.item.defaultPurposeId,
+          comment: line.comment ?? 'Инвентаризация',
         });
       }
 
-      if (minusLines.length > 0 && session.mode !== 'OPENING') {
-        const minusTx = await tx.transaction.create({
-          data: {
-            batchId: makeBatchId(),
-            type: TxType.OUT,
-            occurredAt: new Date(session.occurredAt),
-            createdById: user.id,
-            note: `Инвентаризация ${session.id} (списание). ${data.note ?? ''}`.trim(),
-            reasonId: data.reasonId ?? null,
-            status: RecordStatus.ACTIVE,
-          },
-        });
-        minusTxId = minusTx.id;
+      if (applyLines.length === 0) throw new Error('NO_LINES_TO_APPLY');
 
-        await tx.transactionLine.createMany({
-          data: minusLines.map((line) => ({
-            transactionId: minusTx.id,
-            itemId: line.itemId,
-            qtyInput: line.qty,
-            unitId: line.unitId,
-            qtyBase: line.qty,
-            expenseArticleId: line.expenseArticleId,
-            purposeId: line.purposeId,
-            comment: line.comment,
-            status: RecordStatus.ACTIVE,
-          })),
-        });
-      }
+      const createdTx = await tx.transaction.create({
+        data: {
+          batchId: makeBatchId(),
+          type: txType,
+          occurredAt: new Date(session.occurredAt),
+          createdById: user.id,
+          note: `${session.mode === 'OPENING' ? 'Открытие склада' : `Инвентаризация ${session.id}`}${data.note ? `. ${data.note}` : ''}`,
+          reasonId: data.reasonId ?? null,
+          status: RecordStatus.ACTIVE,
+        },
+      });
+
+      await tx.transactionLine.createMany({
+        data: applyLines.map((line) => ({
+          transactionId: createdTx.id,
+          itemId: line.itemId,
+          qtyInput: line.qtyInput,
+          unitId: line.unitId,
+          qtyBase: line.qtyBase,
+          expenseArticleId: line.expenseArticleId,
+          purposeId: line.purposeId,
+          comment: line.comment,
+          status: RecordStatus.ACTIVE,
+        })),
+      });
 
       await tx.inventorySession.update({ where: { id: session.id }, data: { status: InventoryStatus.APPLIED, appliedAt: new Date(), appliedById: user.id } });
       await tx.auditLog.create({
@@ -141,20 +113,21 @@ export async function POST(request: Request, { params }: { params: { id: string 
           action: 'APPLY_INVENTORY',
           entity: 'InventorySession',
           entityId: session.id,
-          payload: { plusTxId, minusTxId, appliedLines: plusLines.length + minusLines.length },
+          payload: { transactionId: createdTx.id, transactionType: txType, appliedLines: applyLines.length },
         },
       });
 
-      return { plusTxId, minusTxId, appliedLines: plusLines.length + minusLines.length };
+      return { transactionId: createdTx.id, transactionType: txType, appliedLines: applyLines.length };
     });
 
-    return NextResponse.json({ ok: true, applied: result });
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
     if (error instanceof Error && error.message === 'NOT_FOUND') return NextResponse.json({ error: 'Инвентаризация не найдена' }, { status: 404 });
     if (error instanceof Error && error.message === 'WRONG_STATUS') return NextResponse.json({ error: 'Применение доступно только для черновика' }, { status: 409 });
     if (error instanceof Error && error.message === 'LOCKED') return NextResponse.json({ error: 'Период закрыт. Применение инвентаризации недоступно, обратитесь к администратору.' }, { status: 403 });
     if (error instanceof Error && error.message === 'NEGATIVE_OPENING') return NextResponse.json({ error: 'Для открытия склада факт не может быть отрицательным' }, { status: 400 });
+    if (error instanceof Error && error.message === 'NO_LINES_TO_APPLY') return NextResponse.json({ error: 'Нет строк для применения' }, { status: 409 });
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });
   }
 }

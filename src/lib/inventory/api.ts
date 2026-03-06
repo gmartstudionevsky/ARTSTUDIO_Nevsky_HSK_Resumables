@@ -36,9 +36,9 @@ export async function patchInventoryLines(id: string, updates: Array<{ lineId: s
   return handle<{ ok: true }>(response);
 }
 
-export async function applyInventory(id: string, payload: { reasonId?: string | null; note?: string | null }): Promise<{ ok: true; applied: { plusTxId?: string; minusTxId?: string; appliedLines: number } }> {
+export async function applyInventory(id: string, payload: { reasonId?: string | null; note?: string | null }): Promise<{ ok: true; transactionId: string; transactionType: 'OPENING' | 'INVENTORY_APPLY'; appliedLines: number }> {
   const response = await fetch(`/api/inventory/${id}/apply`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-  return handle<{ ok: true; applied: { plusTxId?: string; minusTxId?: string; appliedLines: number } }>(response);
+  return handle<{ ok: true; transactionId: string; transactionType: 'OPENING' | 'INVENTORY_APPLY'; appliedLines: number }>(response);
 }
 
 export async function searchItems(q: string): Promise<Array<{ id: string; code: string; name: string }>> {
