@@ -17,9 +17,24 @@ async function createOperation(page: import('@playwright/test').Page, type: 'IN'
   const itemsPayload = (await itemsRes.json()) as { items: Array<{ id: string; code: string }> };
   const item = itemsPayload.items.find((entry) => entry.code === 'ITM-TEST');
   expect(item).toBeTruthy();
+  await page.getByTestId('op-item-option-' + item!.id).waitFor({ state: 'attached' });
   await page.getByTestId('op-item-select').selectOption(item!.id);
+  await expect.poll(async () => {
+    const unitSelect = page.getByTestId('op-unit');
+    return await unitSelect.locator('option').count();
+  }).toBeGreaterThan(0);
+
+  const unitValue = await page.getByTestId('op-unit').inputValue();
+  if (!unitValue) {
+    const firstUnitValue = await page.getByTestId('op-unit').locator('option').first().getAttribute('value');
+    if (firstUnitValue) {
+      await page.getByTestId('op-unit').selectOption(firstUnitValue);
+    }
+  }
+
   await page.getByTestId('op-qty').fill(qty);
   await page.getByTestId('op-add-line').click();
+  await expect(page.getByTestId('op-save')).toBeEnabled();
   await page.getByTestId('op-save').click();
   await expect(page.getByTestId('op-result')).toBeVisible();
 }
