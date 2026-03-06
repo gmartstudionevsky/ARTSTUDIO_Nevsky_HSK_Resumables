@@ -1,14 +1,17 @@
 name: Staging E2E
 
 on:
+  push:
+    branches:
+      - develop
   workflow_dispatch:
 
 jobs:
   staging-e2e:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
-      SESSION_SECRET: ${{ secrets.STAGING_SESSION_SECRET }}
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL || secrets.STAGING_DATABASE_URL }}
+      SESSION_SECRET: ${{ secrets.E2E_SESSION_SECRET || secrets.STAGING_SESSION_SECRET }}
       DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
       APP_URL: http://127.0.0.1:3000
       NODE_ENV: development
@@ -20,6 +23,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      - run: node -e "const u=new URL(process.env.DATABASE_URL); console.log('DATABASE host',u.hostname,'port',u.port)"
       - run: npm run test:e2e:staging
       - name: Upload Playwright report
         if: failure()

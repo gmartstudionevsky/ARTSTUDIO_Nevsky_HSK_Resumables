@@ -125,17 +125,14 @@ npm run dev
 Используется staging Supabase БД, без `docker-compose`.
 
 ```bash
-# вариант 1: напрямую
 export DATABASE_URL=<STAGING_DATABASE_URL>
 export SESSION_SECRET=<STAGING_SESSION_SECRET>
-
-# вариант 2: через STAGING_* (скрипт сам подхватит)
-# export STAGING_DATABASE_URL=<...>
-# export STAGING_SESSION_SECRET=<...>
-# export STAGING_DIRECT_URL=<...>
+export DIRECT_URL=<STAGING_DIRECT_URL>
 
 npm run test:e2e:staging
 ```
+
+Важно: пароли внутри URL в secrets должны быть URL-encoded (особенно символы `#` и `?`).
 
 Для подготовки staging БД сначала запустите workflow `Staging Migrate`, затем `Staging E2E`.
 

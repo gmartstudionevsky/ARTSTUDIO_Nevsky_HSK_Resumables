@@ -29,7 +29,7 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "seed:staging": "tsx prisma/seed.ts staging",
     "testdb:reset:staging": "tsx scripts/testdb/reset-staging.ts",
-    "test:e2e:staging": "DATABASE_URL=${DATABASE_URL:-$STAGING_DATABASE_URL} DIRECT_URL=${DIRECT_URL:-$STAGING_DIRECT_URL} SESSION_SECRET=${SESSION_SECRET:-$STAGING_SESSION_SECRET} npm run testdb:reset:staging && playwright test"
+    "test:e2e:staging": "npm run testdb:reset:staging && playwright test"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
