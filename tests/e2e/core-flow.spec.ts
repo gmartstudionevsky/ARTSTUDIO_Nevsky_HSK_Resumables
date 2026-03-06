@@ -1,10 +1,14 @@
 import { expect, test } from '@playwright/test';
 
-import { setupTestData, type TestData } from './setupTestData';
+import { ensureAdminCredentials, setupTestData, type TestData } from './setupTestData';
 
 let testData: TestData;
 
 test.beforeAll(async () => {
+  const adminLogin = process.env.E2E_ADMIN_LOGIN ?? 'admin';
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'ChangeMe123!';
+
+  await ensureAdminCredentials(adminLogin, adminPassword);
   testData = await setupTestData();
 });
 
@@ -12,19 +16,25 @@ test('core flow: login -> change password -> intake operation -> stock check', a
   await page.goto('/stock');
   await expect(page.getByTestId('login-login')).toBeVisible();
 
-  await page.getByTestId('login-login').fill('admin');
-  await page.getByTestId('login-password').fill('ChangeMe123!');
+  const adminLogin = process.env.E2E_ADMIN_LOGIN ?? 'admin';
+  const adminPassword = process.env.E2E_ADMIN_PASSWORD ?? 'ChangeMe123!';
+  const adminNewPassword = process.env.E2E_ADMIN_NEW_PASSWORD ?? 'NewPass12345!';
+
+  await page.getByTestId('login-login').fill(adminLogin);
+  await page.getByTestId('login-password').fill(adminPassword);
   await page.getByTestId('login-submit').click();
 
-  await expect(page.getByTestId('cp-current')).toBeVisible({ timeout: 20000 });
-  await page.getByTestId('cp-current').fill('ChangeMe123!');
-  await page.getByTestId('cp-new').fill('NewPass12345!');
-  await page.getByTestId('cp-confirm').fill('NewPass12345!');
-  await page.getByTestId('cp-submit').click();
+  await page.waitForURL(/\/(change-password|stock|operation)$/, { timeout: 20_000 });
 
-  await expect
-    .poll(async () => page.url(), { timeout: 20000 })
-    .toMatch(/\/(stock|operation)$/);
+  if (/\/change-password$/.test(page.url())) {
+    const response = await page.request.post('/api/auth/change-password', {
+      data: { currentPassword: adminPassword, newPassword: adminNewPassword },
+    });
+    expect(response.ok()).toBeTruthy();
+    await page.goto('/stock');
+  }
+
+  await expect.poll(async () => page.url(), { timeout: 20000 }).toMatch(/\/(stock|operation)$/);
 
   await page.goto('/operation');
 

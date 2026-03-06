@@ -104,6 +104,12 @@ export default function ProfilePage(): JSX.Element {
                 {catalogLabel}
               </Link>
             ) : null}
+
+            {user.role === 'ADMIN' ? (
+              <Link href="/admin/users" className="block text-sm text-accent underline">
+                Управление пользователями
+              </Link>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
