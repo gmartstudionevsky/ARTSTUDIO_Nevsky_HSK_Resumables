@@ -70,7 +70,12 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   }
   await page.getByLabel('Комментарий').fill('TEST');
   await page.locator('button:has-text("Подтвердить")').first().click();
-  await expect(page.getByText('Отменено').first()).toBeVisible();
+  await expect.poll(async () => {
+    const txRes = await page.request.get(`/api/transactions/${txId}`);
+    if (!txRes.ok()) return 'ERR';
+    const payload = (await txRes.json()) as { transaction: { status: string }; uiStatus: string };
+    return payload.uiStatus;
+  }, { timeout: 15_000 }).toBe('CANCELLED');
 
   await page.goto('/stock');
   const itemsRes = await page.request.get('/api/items?q=ITM-TEST&active=true');
