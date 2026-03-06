@@ -1,0 +1,22 @@
+name: Staging Migrate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  staging-migrate:
+    runs-on: ubuntu-latest
+    env:
+      DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+      DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      SESSION_SECRET: dummy-for-build
+      NODE_ENV: development
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma migrate deploy
+      - run: npm run seed:staging

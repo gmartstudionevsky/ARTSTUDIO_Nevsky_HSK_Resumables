@@ -20,6 +20,7 @@ npm run dev
 ### Обязательные
 
 - `DATABASE_URL` — подключение к PostgreSQL.
+- `DIRECT_URL` — direct URL для Prisma migrate/seed (если не задан, npm-скрипты используют `DATABASE_URL`).
 - `SESSION_SECRET` — секрет подписи сессии.
 - `NEXT_PUBLIC_APP_URL` — публичный базовый URL приложения.
 
@@ -117,6 +118,19 @@ npm run dev
 - Закрытие периодов: `Админка → Закрытие периодов`.
   - закрытие/открытие месяца,
   - блокировка изменений в закрытом периоде.
+
+
+## Staging testing (no Docker)
+
+Используется staging Supabase БД, без `docker-compose`.
+
+```bash
+export DATABASE_URL=<STAGING_DATABASE_URL>
+export SESSION_SECRET=<STAGING_SESSION_SECRET>
+npm run test:e2e:staging
+```
+
+Для подготовки staging БД сначала запустите workflow `Staging Migrate`, затем `Staging E2E`.
 
 ## Тесты и CI
 

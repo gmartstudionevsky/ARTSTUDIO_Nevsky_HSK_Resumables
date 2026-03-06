@@ -38,6 +38,7 @@ jobs:
           --health-retries=10
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/postgres?schema=public
       SESSION_SECRET: ci-session-secret-32-chars-minimum
       NODE_ENV: development
       APP_URL: http://127.0.0.1:3000
