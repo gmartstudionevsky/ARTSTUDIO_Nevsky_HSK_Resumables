@@ -217,6 +217,9 @@ export async function commitImportJob(params: {
       await tx.importJob.update({ where: { id: params.jobId }, data: { status: ImportJobStatus.COMMITTED, error: null } });
 
       return { openingCreated };
+    }, {
+      maxWait: 10_000,
+      timeout: 120_000,
     });
 
     return { created, openingCreated: result.openingCreated };
@@ -225,4 +228,3 @@ export async function commitImportJob(params: {
     throw error;
   }
 }
-
