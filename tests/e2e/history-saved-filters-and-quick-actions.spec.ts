@@ -58,10 +58,15 @@ test('history quick actions and saved filters for history/stock', async ({ page 
   await page.reload();
   await expect.poll(async () => page.getByLabel('Тип').inputValue(), { timeout: 15_000 }).toBe('OUT');
 
-  const rowMenu = page.locator('[data-testid^="history-row-menu-"]:visible').first();
-  const rowMenuId = await rowMenu.getAttribute('data-testid');
-  expect(rowMenuId).toBeTruthy();
-  const txId = rowMenuId!.replace('history-row-menu-', '');
+  const historyOutRes = await page.request.get('/api/transactions?type=OUT&status=active&limit=10&offset=0');
+  expect(historyOutRes.ok()).toBeTruthy();
+  const historyOutPayload = (await historyOutRes.json()) as { items: Array<{ id: string; type: string }> };
+  const outTx = historyOutPayload.items.find((entry) => entry.type === 'OUT');
+  expect(outTx).toBeTruthy();
+  const txId = outTx!.id;
+
+  const rowMenu = page.getByTestId(`history-row-menu-${txId}`).locator(':visible').first();
+  await expect(rowMenu).toBeVisible();
   await rowMenu.getByTestId(`history-row-cancel-${txId}`).click();
   const reasonSelect = page.getByLabel('Причина');
   const reasonValue = await reasonSelect.locator('option').nth(1).getAttribute('value');
