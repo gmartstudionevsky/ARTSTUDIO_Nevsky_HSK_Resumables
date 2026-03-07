@@ -239,3 +239,12 @@
 - Семантика `OPENING` и `INVENTORY_APPLY` закреплена отдельными сценариями, а не выводится из знака количества.
 - Обычные движения (`IN/OUT/ADJUST`) живут в отдельном use-case контракте `createMovement`.
 - Результат write-flow содержит формальный projection/recovery outcome, чтобы read-model и recovery контуры подключались без переписывания write-side.
+
+
+## 6. R3.3: базовый read-side
+
+В коде добавлен отдельный слой `src/lib/read-models/*`, который строит проекции напрямую из канонического ядра (`Item`, `Transaction`, `TransactionLine`) и доменных мапперов (`mapItemRecordToAccountingPosition`, invariants/eligibility).
+
+Это фиксирует границу между:
+- write-flow (application/use-case);
+- state/history/analytics/admin read-model.

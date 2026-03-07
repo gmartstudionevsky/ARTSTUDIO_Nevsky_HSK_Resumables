@@ -67,3 +67,12 @@
 - `correlationId` (сквозной контекст запроса).
 
 Контракт не реализует rollback/reset/re-sync полностью, но фиксирует идентичность и трассировку события, требуемую для следующей волны recovery.
+
+
+## 5. R3.3 foundation: read-side rebuild/validation contract
+
+В `src/lib/read-models/projections/update-registry.ts` зафиксированы:
+- `projection receipts` (последний обработанный transaction/event по виду проекции);
+- `read model recovery contract` (какие виды проекций rebuildable/validateable).
+
+Это не полный re-sync engine, но явная стартовая точка для R3.4/R8 consistency enforcement.

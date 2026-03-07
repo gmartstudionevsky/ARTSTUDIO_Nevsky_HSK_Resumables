@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
-import { prisma } from '@/lib/db/prisma';
-import { getSettings } from '@/lib/settings/service';
+import { getAdminControlProjection } from '@/lib/read-models';
 
 export async function GET(): Promise<NextResponse> {
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
-  const policies = await getSettings(prisma);
-  return NextResponse.json({ policies });
+  const payload = await getAdminControlProjection();
+  return NextResponse.json(payload);
 }
