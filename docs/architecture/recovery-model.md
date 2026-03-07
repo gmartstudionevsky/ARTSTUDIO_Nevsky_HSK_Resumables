@@ -93,3 +93,15 @@
 4. **consistency check:** детекция blocking mismatch + выделение допустимого reduced eligibility как неблокирующего состояния.
 
 Ограничение текущего шага: rollback `OPENING` / `INVENTORY_APPLY` отложен на следующую recovery-волну без изменения канона R3.4.
+
+## R4 update: recovery для import touched flow
+
+Для Import v2 реализован вызываемый rollback-path на touched scope:
+
+- удаление import-created opening transaction;
+- удаление item, созданных импортом (если по ним нет новых движений);
+- восстановление snapshot для item, обновлённых импортом;
+- фиксация `rolledBackAt` в rollback metadata import job;
+- обновление projection receipts после rollback.
+
+Ограничение локализовано: это scoped rollback import consequences, а не universal rollback всех возможных последующих цепочек.

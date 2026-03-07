@@ -248,3 +248,12 @@
 Это фиксирует границу между:
 - write-flow (application/use-case);
 - state/history/analytics/admin read-model.
+
+## R4 update: Import v2 и каноническая модель пространства
+
+Import v2 закреплён как частный sync-сценарий канонической модели:
+
+- в ядре остаются `Позиция учёта` + `Движение`;
+- импорт создаёт/обновляет позиции и справочники через единый write-flow;
+- стартовые количества интерпретируются не как «всегда IN», а через explicit mode (`OPENING` default, `IN` по policy);
+- preview/apply разделены, чтобы не допускать скрытого partial success.

@@ -6,7 +6,8 @@
 
 - `accounting-position/*` — **формирование/изменение сущностей** (R3.1).
 - `accounting-event/*` — **учётные события** (R3.2: movement/opening/inventory apply).
-- `sync-scenarios/*` — **синхронизационные сценарии** (импорт/re-sync, следующая волна).
+- `import/*` — **синхронизационные сценарии** (Import v2 preview/apply/rollback, R4).
+- `sync-scenarios/*` — зарезервировано для следующих sync-кейсов.
 - `control-plane/*` — **управляющие сценарии**.
 - `recovery/*` — **канонические сценарии rollback / reset / re-sync / consistency check** (R3.4).
 

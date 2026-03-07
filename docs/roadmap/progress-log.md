@@ -205,3 +205,21 @@
   - На шаге R3.4 rollback ограничен movement-сценариями; rollback `OPENING` и `INVENTORY_APPLY` сознательно отложены как отдельные recovery сценарии следующей волны.
 - Следующий шаг:
   - Либо product block R4 (движения-хаб), либо import v2 как частный сценарий синхронности на базе введённого recovery контракта.
+
+### 2026-03-08 / R4
+
+- Статус: done.
+- Что сделано:
+  - Введён канонический sync/use-case слой импорта: `src/lib/application/import/*`.
+  - Явно разделены фазы Preview и Apply:
+    - preview (`previewFromWorkbook`) парсит/валидирует пакет, строит sync-план, фиксирует draft import job;
+    - apply (`apply`) использует зафиксированный preview payload, применяет изменения атомарно в транзакции и формирует outcome contract.
+  - Import entrypoints переведены на новый application слой: `POST /api/admin/import/xlsx/preview`, `POST /api/admin/import/xlsx/commit`, `POST /api/admin/import/xlsx/rollback`.
+  - В apply добавлена управляемая семантика opening (`openingEventMode: OPENING | IN`) без молчаливой догадки; default — `OPENING`.
+  - Усилен outcome contract импорта: preview summary + apply summary + blocking/warnings + opening mode + projections + recovery strategy.
+  - Добавлена связка import apply/rollback с read-model projection receipts (`registerProjectionUpdate`, `setProjectionReceipt`).
+  - Сохранён compatibility bridge для legacy вызовов `src/lib/import/commit.ts` через делегирование в новый use-case слой.
+- Тесты:
+  - Добавлены unit-тесты нового import sync use-case: `tests/application/import-sync.use-case.test.ts`.
+- Локализация ограничений:
+  - rollback остаётся scoped-реализацией на touched area (созданные/обновлённые item + opening tx import job) и не претендует на universal rollback engine.

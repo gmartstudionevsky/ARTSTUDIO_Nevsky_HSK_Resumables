@@ -119,3 +119,25 @@ R3.4 добавляет отдельный application recovery слой, кот
 - consistency check возвращает structured report для control plane/admin entrypoints.
 
 Это закрепляет полный минимальный контур: `write -> projection handoff -> read -> recovery/check` для already-touched area.
+
+## R4 update: Import v2 как канонический sync write-flow
+
+В touched scope импорт переведён из ad hoc route-логики в application/use-case слой `src/lib/application/import/*`.
+
+Канонический шаблон для Import v2:
+
+1. **Preview / analysis**
+   - parse workbook;
+   - validate domain-eligible rows;
+   - build sync plan (`MATCHED/CREATE/NEEDS_REVIEW/SKIP`);
+   - фиксировать draft payload как source для Apply.
+2. **Apply / commit**
+   - загружает зафиксированный draft payload;
+   - блокирует commit при preview errors;
+   - выполняет атомарное применение в одной транзакции touched scope;
+   - создаёт opening event в режиме `OPENING` (default) или `IN` по явной policy `openingEventMode`;
+   - формирует application-level outcome contract.
+3. **Recovery bridge**
+   - rollback сценарий доступен через use-case (`rollback`) и связан с projection receipts.
+
+Route handlers `/api/admin/import/xlsx/*` являются адаптерами и не содержат предметной import-логики.

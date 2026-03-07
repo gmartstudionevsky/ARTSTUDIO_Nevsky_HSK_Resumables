@@ -1,10 +1,10 @@
-import { ImportJobStatus, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
+import { createImportSyncUseCase } from '@/lib/application/import';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
-import { prisma } from '@/lib/db/prisma';
-import { parseImportWorkbook } from '@/lib/import/xlsx/parse';
-import { validateImportData } from '@/lib/import/xlsx/validate';
+
+const importSyncUseCase = createImportSyncUseCase();
 
 async function requireAdmin(): Promise<{ id: string } | NextResponse> {
   const session = await getSessionFromRequestCookies();
@@ -24,34 +24,11 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const arrayBuffer = await file.arrayBuffer();
-  const parsed = await parseImportWorkbook(arrayBuffer);
-  const existingItems = await prisma.item.findMany({
-    select: {
-      id: true,
-      code: true,
-      name: true,
-      synonyms: true,
-      categoryId: true,
-      category: { select: { name: true } },
-    },
-  });
-  const payload = validateImportData(parsed, existingItems);
-
-  const job = await prisma.importJob.create({
-    data: {
-      createdById: admin.id,
-      status: ImportJobStatus.DRAFT,
-      sourceFilename: file.name || 'import.xlsx',
-      payload,
-    },
-    select: { id: true },
+  const preview = await importSyncUseCase.previewFromWorkbook({
+    userId: admin.id,
+    filename: file.name || 'import.xlsx',
+    buffer: arrayBuffer,
   });
 
-  return NextResponse.json({
-    jobId: job.id,
-    summary: payload.summary,
-    errors: payload.errors,
-    warnings: payload.warnings,
-    syncRows: payload.syncPlan.rows,
-  });
+  return NextResponse.json(preview);
 }

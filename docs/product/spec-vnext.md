@@ -310,3 +310,18 @@ UX-приоритет: сотрудник должен выполнять дей
 - Обычные движения (`IN/OUT/ADJUST`), opening-сценарии (`OPENING`) и применение инвентаризации (`INVENTORY_APPLY`) разведены по отдельным use-case контрактам.
 - Route handlers (`/api/transactions`, `/api/inventory/[id]/apply`) выполняют роль адаптеров, а не носителей предметной семантики событий.
 - Apply инвентаризации имеет явный режим интерпретации (`AFFECT_ANALYTICS`/`STOCK_ONLY`) в application-контракте; UI-переключатель может быть добавлен позже без ломки write-side.
+
+## R4 / Import v2 (sync-flow)
+
+Import v2 — не отдельная предметная логика, а канонический sync write-flow пространства.
+
+Контракт:
+
+- `preview`: анализ пакета, sync-план, errors/warnings, opening-semantics assumption;
+- `apply`: commit по зафиксированному preview payload, apply summary, projection/recovery outcomes;
+- `rollback`: controlled recovery для touched import scope.
+
+Семантика стартовых количеств:
+
+- default: opening-init (`TxType.OPENING`);
+- fallback policy: operational intake (`TxType.IN`) через явный import mode (`openingEventMode`).

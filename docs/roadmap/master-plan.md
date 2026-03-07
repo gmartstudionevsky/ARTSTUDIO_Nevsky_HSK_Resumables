@@ -23,7 +23,7 @@
 | R1   | done        | Формализовать архитектурный каркас vNext и границы домена.                                | Выполнено в `docs/architecture/*`.         |
 | R2   | done        | Зафиксировать доменную модель и инварианты учётного ядра.                                 | R2.1/R2.2/R2.3 завершены.                  |
 | R3   | done        | Спроектировать и закрепить канонические write-flow/read-model контракты.                  | R3.1/R3.2/R3.3/R3.4 завершены: recovery/use-case слой + consistency protection для touched area. |
-| R4   | not started | Формализовать хаб «Движения» как главный рабочий контекст и UX-режимы.                    | Требует идейной проработки до кода.        |
+| R4   | done        | Пересобрать Import v2 как канонический sync write-flow пространства (preview/apply/outcome). | Выполнено compatibility-first, без wholesale-рефактора UI. |
 | R5   | not started | Сформировать контур административной панели как control plane.                            | Требует идейной проработки до кода.        |
 | R6   | not started | Зафиксировать аналитические проекции, отчётность и управленческие сигналы.                | Можно декомпозировать на подэтапы.         |
 | R7   | not started | Подготовить расширения (Telegram, стоимость/себестоимость, операционные метрики, модули). | Выполняется после стабилизации ядра.       |
@@ -70,3 +70,10 @@
 | R3.2 | done | Реализовать канонический событийный write-side ядра учёта (движения, OPENING, INVENTORY_APPLY) через application/use-case слой и перевести touched routes. |
 | R3.3 | done | Реализовать базовые read-model и обязательные проекции (каталог, склад, история, базовая аналитика, admin-control) и перевести touched read routes на read-side слой. |
 | R3.4 | done | Реализовать rollback / reset / re-sync и consistency protection для touched area без разрушительного рефактора. |
+
+
+## Декомпозиция R4
+
+| Подэтап | Статус | Цель |
+| ------- | ------ | ---- |
+| R4      | done   | Встроить Import v2 в канонический application/write-flow слой как sync-сценарий с preview/apply/outcome/recovery bridge. |

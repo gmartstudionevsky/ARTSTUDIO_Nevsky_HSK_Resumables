@@ -127,3 +127,11 @@ R3.2 добавляет в результат write-flow событийного 
 - `consistency checker`: верификация receipts против канона + сигнализация reduced eligibility как допустимого informational состояния.
 
 Таким образом read-side получил не только контракты handoff из write-side, но и управляемый путь repair/rebuild.
+
+## R4 update: связь Import Apply с read-model
+
+Import apply/rollback больше не является отдельной «вселенной»: после коммита и отката use-case обновляет projection receipts через канонический registry (`registerProjectionUpdate` / `setProjectionReceipt`).
+
+- `catalog` и `admin` маркируются receipt-обновлением после sync структур.
+- `stock/history/reports/signals` получают receipt от import opening transaction (если создана).
+- outcome контракты import API возвращают список затронутых projections.
