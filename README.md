@@ -1,5 +1,15 @@
 # ARTSTUDIO Consumables
 
+## Каноническая продуктовая документация
+
+Для продуктового канона и roadmap используйте документы репозитория:
+
+- `docs/roadmap/master-plan.md`
+- `docs/roadmap/progress-log.md`
+- `docs/product/spec-vnext.md`
+- `docs/product/glossary.md`
+- `docs/adr/`
+
 ## Архитектурный контракт (source of truth)
 
 - Production runtime работает только с **production Supabase DATABASE_URL**.
@@ -27,6 +37,7 @@ npm run test:e2e:local
 ```
 
 Что делает команда:
+
 1. `testdb:reset:local-e2e` — безопасный destructive reset только локальной БД (с guard checks).
 2. `seed:test:e2e` — детерминированный тестовый пользователь + справочники.
 3. `playwright test` — setup-проект логинится реальным auth-механизмом и сохраняет `storageState` в `playwright/.auth/user.json`.
@@ -34,6 +45,7 @@ npm run test:e2e:local
 Для локального HTTP e2e используется `E2E_ALLOW_INSECURE_COOKIE=true`, чтобы session cookie корректно работала на `127.0.0.1`.
 
 Тестовый пользователь по умолчанию:
+
 - login: `e2e_admin`
 - password: `E2EPass12345!`
 - `isActive=true`, `forcePasswordChange=false`, роль `ADMIN`.
