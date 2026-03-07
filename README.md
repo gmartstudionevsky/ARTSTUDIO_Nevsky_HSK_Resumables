@@ -9,6 +9,7 @@
 - `docs/product/spec-vnext.md`
 - `docs/product/glossary.md`
 - `docs/adr/`
+- `docs/architecture/`
 
 ## Архитектурный контракт (source of truth)
 
@@ -79,3 +80,9 @@ npm run test:e2e
 # или полный локальный цикл с reset
 npm run test:e2e:local
 ```
+
+## Статус master-plan
+
+- `R0 = done` (канон зафиксирован в документации).
+- `R1 = done` (архитектурная формализация ядра зафиксирована в `docs/architecture`).
+- Следующий шаг: переход к кодовой волне предметной модели по блокам `R2+`.

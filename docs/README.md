@@ -9,6 +9,7 @@
 - Каноническая спецификация vNext: [docs/product/spec-vnext.md](./product/spec-vnext.md)
 - Глоссарий: [docs/product/glossary.md](./product/glossary.md)
 - Архитектурные решения: [docs/adr](./adr)
+- Архитектурная формализация ядра (R1): [docs/architecture](./architecture)
 
 ## Техническая документация
 
