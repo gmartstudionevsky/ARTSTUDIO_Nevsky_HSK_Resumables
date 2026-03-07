@@ -3,7 +3,7 @@ import { ZodError } from 'zod';
 
 import { requireManagerOrAdminApi, requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
-import { mapItemRecordToAccountingPosition } from '@/lib/domain/accounting-position';
+import { mapItemRecordToAccountingPosition, validateAccountingPositionWriteDraft } from '@/lib/domain/accounting-position';
 import { patchItemSchema } from '@/lib/items/validators';
 
 export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
@@ -50,6 +50,20 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = patchItemSchema.parse(body);
+
+    const currentItem = await prisma.item.findUnique({
+      where: { id: params.id },
+      select: { defaultExpenseArticleId: true, defaultPurposeId: true },
+    });
+    if (!currentItem) return NextResponse.json({ error: 'Позиция не найдена' }, { status: 404 });
+
+    const writeGuard = validateAccountingPositionWriteDraft({
+      defaultExpenseArticleId: data.defaultExpenseArticleId ?? currentItem.defaultExpenseArticleId,
+      defaultPurposeId: data.defaultPurposeId ?? currentItem.defaultPurposeId,
+    });
+    if (!writeGuard.valid) {
+      return NextResponse.json({ error: writeGuard.errors[0] }, { status: 400 });
+    }
 
     const existingUnits = await prisma.itemUnit.findMany({ where: { itemId: params.id }, select: { unitId: true } });
     if (data.baseUnitId && !existingUnits.some((unit) => unit.unitId === data.baseUnitId)) {

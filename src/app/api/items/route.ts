@@ -4,7 +4,11 @@ import { ZodError } from 'zod';
 
 import { requireAuthenticatedApiUser, requireManagerOrAdminApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
-import { mapAccountingPositionDraftToItemDraft, mapItemRecordToAccountingPosition } from '@/lib/domain/accounting-position';
+import {
+  mapAccountingPositionDraftToItemDraft,
+  mapItemRecordToAccountingPosition,
+  validateAccountingPositionWriteDraft,
+} from '@/lib/domain/accounting-position';
 import { toPositionCatalogEntry } from '@/lib/domain/position-catalog';
 import { generateNextItemCode } from '@/lib/items/codeGen';
 import { createItemSchema, listItemsQuerySchema } from '@/lib/items/validators';
@@ -77,7 +81,7 @@ export async function GET(request: Request): Promise<NextResponse> {
       prisma.item.count({ where }),
     ]);
 
-    const accountingPositions = items.map(mapItemRecordToAccountingPosition);
+    const accountingPositions = items.map((item) => mapItemRecordToAccountingPosition(item));
     const catalogEntries = accountingPositions.map(toPositionCatalogEntry);
 
     return NextResponse.json({
@@ -101,6 +105,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = createItemSchema.parse(body);
+    const writeGuard = validateAccountingPositionWriteDraft(data);
+    if (!writeGuard.valid) {
+      return NextResponse.json({ error: writeGuard.errors[0] }, { status: 400 });
+    }
+
     const itemDraft = mapAccountingPositionDraftToItemDraft(data);
 
     const result = await prisma.$transaction(async (tx) => {

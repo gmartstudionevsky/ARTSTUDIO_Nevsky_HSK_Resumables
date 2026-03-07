@@ -1,4 +1,9 @@
-import { AccountingPosition } from '@/lib/domain/accounting-position/types';
+import {
+  assertAccountingPositionInvariants,
+  evaluateAccountingPositionInvariants,
+  type AccountingPositionInvariantResult,
+} from '@/lib/domain/accounting-position/invariants';
+import { AccountingAxisMode, AccountingPosition } from '@/lib/domain/accounting-position/types';
 
 interface ItemLegacyRecord {
   id: string;
@@ -16,13 +21,32 @@ interface ItemLegacyRecord {
   reportUnit: { id: string; name: string };
 }
 
-export function mapItemRecordToAccountingPosition(item: ItemLegacyRecord): AccountingPosition {
-  /**
-   * R2.2 compatibility mapping:
-   * - legacy `defaultExpenseArticle` -> каноническая ось `analytics.expenseArticle`;
-   * - legacy `defaultPurpose` -> каноническая рабочая ось `analytics.section`.
-   */
+export interface AccountingAnalyticsAvailabilityDraft {
+  expenseArticle?: AccountingAxisMode;
+  section?: AccountingAxisMode;
+  controlledParameters?: AccountingAxisMode;
+}
+
+export interface AccountingPositionMapOptions {
+  availability?: AccountingAnalyticsAvailabilityDraft;
+  strict?: boolean;
+}
+
+function resolveAvailabilityModes(options?: AccountingPositionMapOptions): Required<AccountingAnalyticsAvailabilityDraft> {
   return {
+    expenseArticle: options?.availability?.expenseArticle ?? 'required',
+    section: options?.availability?.section ?? 'required',
+    controlledParameters: options?.availability?.controlledParameters ?? 'disabled',
+  };
+}
+
+export function mapItemRecordToAccountingPosition(
+  item: ItemLegacyRecord,
+  options?: AccountingPositionMapOptions,
+): AccountingPosition {
+  const availability = resolveAvailabilityModes(options);
+
+  const position: AccountingPosition = {
     id: item.id,
     code: item.code,
     name: item.name,
@@ -37,36 +61,55 @@ export function mapItemRecordToAccountingPosition(item: ItemLegacyRecord): Accou
     synonyms: item.synonyms,
     note: item.note,
     analytics: {
-      expenseArticle: {
-        id: item.defaultExpenseArticle.id,
-        code: item.defaultExpenseArticle.code,
-        name: item.defaultExpenseArticle.name,
-        workspaceNaming: {
-          level1: null,
-          level2: null,
-        },
-        source: 'legacy.defaultExpenseArticle',
-      },
-      section: {
-        id: item.defaultPurpose.id,
-        code: item.defaultPurpose.code,
-        name: item.defaultPurpose.name,
-        source: 'legacy.defaultPurpose',
-      },
+      expenseArticle:
+        availability.expenseArticle === 'disabled'
+          ? null
+          : {
+              id: item.defaultExpenseArticle.id,
+              code: item.defaultExpenseArticle.code,
+              name: item.defaultExpenseArticle.name,
+              workspaceNaming: {
+                level1: null,
+                level2: null,
+              },
+              source: 'legacy.defaultExpenseArticle',
+            },
+      section:
+        availability.section === 'disabled'
+          ? null
+          : {
+              id: item.defaultPurpose.id,
+              code: item.defaultPurpose.code,
+              name: item.defaultPurpose.name,
+              source: 'legacy.defaultPurpose',
+            },
       controlledParameters: {
-        mode: 'disabled',
+        mode: availability.controlledParameters,
         values: [],
       },
-      availability: {
-        expenseArticle: 'required',
-        section: 'required',
-        controlledParameters: 'disabled',
-      },
+      availability,
       compatibility: {
-        expenseArticleId: item.defaultExpenseArticle.id,
-        purposeId: item.defaultPurpose.id,
+        expenseArticleId: availability.expenseArticle === 'disabled' ? null : item.defaultExpenseArticle.id,
+        purposeId: availability.section === 'disabled' ? null : item.defaultPurpose.id,
       },
     },
+  };
+
+  if (options?.strict ?? true) {
+    assertAccountingPositionInvariants(position);
+  }
+
+  return position;
+}
+
+export function mapItemRecordToAccountingPositionWithValidation(
+  item: ItemLegacyRecord,
+  options?: AccountingPositionMapOptions,
+): { position: AccountingPosition; invariants: AccountingPositionInvariantResult } {
+  const position = mapItemRecordToAccountingPosition(item, { ...options, strict: false });
+  return {
+    position,
+    invariants: evaluateAccountingPositionInvariants(position),
   };
 }
 

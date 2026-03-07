@@ -97,3 +97,19 @@
   - Полный control plane управляемых параметров и продуктовая адаптация отключаемости аналитик по всем экранам сознательно отложены на R2.3+.
 - **Следующий шаг:**
   - R2.3: закрепить жёсткие инварианты и правила допустимости состояний write/read контуров с опорой на введённые канонические оси.
+
+### 2026-03-07 / R2.3
+
+- **Статус этапа:** `done`
+- **Что сделано:**
+  - Добавлен исполняемый слой инвариантов `accounting-position/invariants.ts` с `valid`, списком причин (`issues`) и уровнями проблем (`blocking`/`informational`).
+  - Введён policy-контракт участия в расширенных проекциях `projectionEligibility.expandedMetrics`.
+  - Усилен compatibility mapping (`mappers.ts`): strict-режим теперь assert-ит канонические инварианты и не пропускает внутренне противоречивую модель.
+  - Добавлена write-side защита `accounting-position/write-guards.ts`, подключена в `POST /api/items` и `PATCH /api/items/[id]`.
+  - Добавлены unit-тесты `tests/domain/accounting-position.invariants.test.ts` по сценариям допустимости/недопустимости и compatibility mapping.
+- **Что обновлено в docs:**
+  - `master-plan`, `spec-vnext`, `domain-model`, `invariants`, `read-model-map`.
+- **Отклонения:**
+  - Полная интеграция eligibility-контракта во все read-model/отчёты отложена на R3 (pipeline-проекций), но базовый контракт зафиксирован в коде.
+- **Следующий шаг:**
+  - R3: формализация write-flow/read-model pipeline и расширение покрываемого периметра enforce-инвариантов.
