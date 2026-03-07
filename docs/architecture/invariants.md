@@ -44,6 +44,17 @@
 
 Таким образом, минимальный защитный контур write/read ядра уже enforce-ится в коде, а не только в документации.
 
+
+## 3.2 Встраивание в application write-flow (R3.1)
+
+На этапе R3.1 проверки допустимости перенесены из route-level touched area в канонический use-case слой:
+
+- `POST /api/items`, `PATCH /api/items/[id]`, `POST /api/items/[id]/toggle-active` вызывают `src/lib/application/accounting-position/service.ts`;
+- use-case сценарии применяют `validateAccountingPositionWriteDraft` до commit и формируют структурированный результат (`kind = invariant|validation|...`);
+- успешный commit возвращает каноническое представление `accountingPosition`, собранное через compatibility mapping (`mapItemRecordToAccountingPosition`).
+
+Таким образом, enforce-инвариантов для touched write-путей зафиксирован в application-ядре, а не в точках входа.
+
 ## 4. Где защищаются инварианты и что является нарушением
 
 ### 4.1 Сущностные инварианты

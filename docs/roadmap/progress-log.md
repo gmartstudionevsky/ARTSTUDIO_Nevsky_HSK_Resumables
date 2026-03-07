@@ -113,3 +113,25 @@
   - Полная интеграция eligibility-контракта во все read-model/отчёты отложена на R3 (pipeline-проекций), но базовый контракт зафиксирован в коде.
 - **Следующий шаг:**
   - R3: формализация write-flow/read-model pipeline и расширение покрываемого периметра enforce-инвариантов.
+
+### 2026-03-07 / R3.1
+
+- **Статус этапа:** `done`
+- **Что сделано:**
+  - Введён явный application/use-case слой write-flow `src/lib/application/*` с command/result контрактами и базовым action-context (`actorId`, `correlationId`, `entryPoint`).
+  - Реализованы реальные канонические write-flow в `src/lib/application/accounting-position/service.ts`:
+    - `accounting-position.create`;
+    - `accounting-position.update`;
+    - `accounting-position.set-active-state`.
+  - В сценариях create/update встроены проверки допустимости через канонические инварианты R2.3 (`validateAccountingPositionWriteDraft`) и compatibility mapping (`mapAccountingPositionDraftToItemDraft` + `mapItemRecordToAccountingPosition`).
+  - Переведены route handlers touched area на use-case слой:
+    - `POST /api/items`;
+    - `PATCH /api/items/[id]`;
+    - `POST /api/items/[id]/toggle-active`.
+  - Добавлены unit-тесты application write-flow (`tests/application/accounting-position.write-flow.test.ts`).
+- **Что обновлено в docs:**
+  - `master-plan`, `write-flow-map`, `domain-model`, `invariants`.
+- **Отклонения:**
+  - Legacy API и persistence (`Item`, `/api/items`) сознательно сохранены для compatibility-first модели; изменён только слой исполнения write-flow.
+- **Следующий шаг:**
+  - R3.2: расширить application write-side на класс «учётные события» (движения/OPENING/INVENTORY_APPLY) и формализовать pipeline перестроения read-model.

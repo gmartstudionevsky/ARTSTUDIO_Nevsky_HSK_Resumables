@@ -1,34 +1,25 @@
-import { Prisma, RecordStatus, TxType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
+import { createAccountingPositionWriteService } from '@/lib/application/accounting-position';
 import { requireAuthenticatedApiUser, requireManagerOrAdminApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
-import {
-  mapAccountingPositionDraftToItemDraft,
-  mapItemRecordToAccountingPosition,
-  validateAccountingPositionWriteDraft,
-} from '@/lib/domain/accounting-position';
+import { mapItemRecordToAccountingPosition } from '@/lib/domain/accounting-position';
 import { toPositionCatalogEntry } from '@/lib/domain/position-catalog';
-import { generateNextItemCode } from '@/lib/items/codeGen';
 import { createItemSchema, listItemsQuerySchema } from '@/lib/items/validators';
 
 function isUniqueCodeError(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
+const accountingPositionWriteService = createAccountingPositionWriteService();
 
-function makeBatchId(): string {
-  const date = new Date();
-  const y = String(date.getFullYear());
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `BAT-${y}${m}${d}-${rand}`;
-}
-
-function toDecimal(value: number): Prisma.Decimal {
-  return new Prisma.Decimal(value.toFixed(6));
+function toHttpStatus(kind: 'validation' | 'invariant' | 'not_found' | 'conflict' | 'unexpected'): number {
+  if (kind === 'validation' || kind === 'invariant') return 400;
+  if (kind === 'not_found') return 404;
+  if (kind === 'conflict') return 409;
+  return 500;
 }
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -105,123 +96,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = createItemSchema.parse(body);
-    const writeGuard = validateAccountingPositionWriteDraft(data);
-    if (!writeGuard.valid) {
-      return NextResponse.json({ error: writeGuard.errors[0] }, { status: 400 });
-    }
-
-    const itemDraft = mapAccountingPositionDraftToItemDraft(data);
-
-    const result = await prisma.$transaction(async (tx) => {
-      const code = data.code ?? (await generateNextItemCode(tx));
-      const created = await tx.item.create({
-        data: {
-          code,
-          name: itemDraft.name,
-          categoryId: itemDraft.categoryId,
-          defaultExpenseArticleId: itemDraft.defaultExpenseArticleId,
-          defaultPurposeId: itemDraft.defaultPurposeId,
-          baseUnitId: itemDraft.baseUnitId,
-          defaultInputUnitId: itemDraft.defaultInputUnitId,
-          reportUnitId: itemDraft.reportUnitId,
-          minQtyBase: itemDraft.minQtyBase,
-          synonyms: itemDraft.synonyms,
-          note: itemDraft.note,
-          isActive: itemDraft.isActive,
-        },
-      });
-
-      await tx.itemUnit.create({
-        data: {
-          itemId: created.id,
-          unitId: data.baseUnitId,
-          factorToBase: 1,
-          isAllowed: true,
-          isDefaultInput: data.defaultInputUnitId === data.baseUnitId,
-          isDefaultReport: data.reportUnitId === data.baseUnitId,
-        },
-      });
-
-      await tx.auditLog.create({
-        data: {
-          actorId: user.id,
-          action: 'CREATE_ITEM',
-          entity: 'Item',
-          entityId: created.id,
-          payload: { code: created.code, name: created.name },
-        },
-      });
-
-      let transactionId: string | undefined;
-      if (data.initialStock?.enabled) {
-        if (!data.initialStock.unitId || data.initialStock.qty === undefined || Number.isNaN(data.initialStock.qty) || data.initialStock.qty <= 0) {
-          throw new Error('Некорректные данные первичного прихода');
-        }
-
-        const itemUnit = await tx.itemUnit.findUnique({
-          where: { itemId_unitId: { itemId: created.id, unitId: data.initialStock.unitId } },
-          select: { factorToBase: true, isAllowed: true },
-        });
-        if (!itemUnit?.isAllowed) {
-          throw new Error('Единица первичного прихода не разрешена для позиции');
-        }
-
-        const occurredAt = data.initialStock.occurredAt ? new Date(data.initialStock.occurredAt) : new Date();
-        if (Number.isNaN(occurredAt.getTime())) {
-          throw new Error('Некорректная дата первичного прихода');
-        }
-
-        const qtyInput = toDecimal(data.initialStock.qty);
-        const qtyBase = toDecimal(new Prisma.Decimal(data.initialStock.qty).mul(itemUnit.factorToBase).toNumber());
-
-        const createdTx = await tx.transaction.create({
-          data: {
-            batchId: makeBatchId(),
-            type: TxType.IN,
-            occurredAt,
-            createdById: user.id,
-            note: data.initialStock.comment ?? 'Первичное поступление при создании позиции',
-            status: RecordStatus.ACTIVE,
-          },
-        });
-
-        await tx.transactionLine.create({
-          data: {
-            transactionId: createdTx.id,
-            itemId: created.id,
-            qtyInput,
-            unitId: data.initialStock.unitId,
-            qtyBase,
-            expenseArticleId: created.defaultExpenseArticleId,
-            purposeId: created.defaultPurposeId,
-            comment: data.initialStock.comment ?? null,
-            status: RecordStatus.ACTIVE,
-          },
-        });
-
-        await tx.auditLog.create({
-          data: {
-            actorId: user.id,
-            action: 'CREATE_TX',
-            entity: 'Transaction',
-            entityId: createdTx.id,
-            payload: { type: TxType.IN, source: 'ITEM_CREATE', itemId: created.id },
-          },
-        });
-
-        transactionId = createdTx.id;
-      }
-
-      return { item: created, transactionId };
+    const result = await accountingPositionWriteService.create({
+      ...data,
+      context: {
+        actorId: user.id,
+        entryPoint: 'api',
+        correlationId: request.headers.get('x-correlation-id') ?? undefined,
+      },
     });
 
-    return NextResponse.json(result);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.message, scenario: result.scenario }, { status: toHttpStatus(result.kind) });
+    }
+
+    return NextResponse.json({
+      item: result.data.item,
+      transactionId: result.data.transactionId,
+      accountingPosition: result.data.accountingPosition,
+    });
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: error.issues[0]?.message ?? 'Некорректные данные' }, { status: 400 });
     if (isUniqueCodeError(error)) return NextResponse.json({ error: 'Позиция с таким кодом уже существует' }, { status: 409 });
-    if (error instanceof Error && (error.message.includes('первичного прихода') || error.message.includes('разрешена') || error.message.includes('дата'))) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
   }
 }

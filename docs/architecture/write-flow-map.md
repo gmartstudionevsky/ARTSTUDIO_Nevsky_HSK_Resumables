@@ -66,3 +66,23 @@
 2. Разрешать частично заполненные события «на потом».
 3. Выполнять админ-изменения, которые обходят проверки допустимости.
 4. Вручную чинить проекции вместо запуска регламентированного recovery-сценария.
+
+
+## 6. Кодовая привязка R3.1 (application/use-case write-side)
+
+На этапе R3.1 канонический write-flow перестал быть только документальной схемой и закреплён в исполняемом application-слое:
+
+- `src/lib/application/write-flow/types.ts` — общий command/result контракт write-flow (`success`/`validation|invariant|not_found|conflict|unexpected`).
+- `src/lib/application/accounting-position/contracts.ts` — команды и результаты write-flow для «Позиции учёта».
+- `src/lib/application/accounting-position/service.ts` — use-case сценарии:
+  - `accounting-position.create`;
+  - `accounting-position.update`;
+  - `accounting-position.set-active-state`.
+
+Переведённые точки входа (адаптеры):
+
+- `POST /api/items`;
+- `PATCH /api/items/[id]`;
+- `POST /api/items/[id]/toggle-active`.
+
+Route handlers в touched area теперь выполняют только приём/парсинг запроса, вызов use-case и возврат HTTP-ответа; каноническая write-логика вынесена в application-слой.

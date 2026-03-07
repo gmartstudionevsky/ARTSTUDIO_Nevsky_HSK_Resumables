@@ -55,6 +55,17 @@
 
 Это compatibility-first усиление: persistence-модель не переписывается, но канонический domain/application слой уже защищает пространство от неканонических состояний.
 
+
+## 1.4 Кодовая привязка R3.1 (канонический application/use-case слой)
+
+Этап R3.1 добавляет явный слой прикладных write-сценариев:
+
+- `src/lib/application/*` — application/use-case слой write-flow;
+- `src/lib/application/accounting-position/*` — канонические сценарии изменения `Позиции учёта`;
+- route handlers `src/app/api/items/*` в touched area работают как адаптеры и вызывают use-case сервисы.
+
+Это закрепляет целевую границу: UI/API/импорт/админ-панель — точки входа, а предметная логика write-side живёт в application/domain слоях.
+
 ## 2. Канонические сущности
 
 ### 2.1 Позиция учёта
