@@ -31,7 +31,7 @@ export interface AccountingPositionAnalytics {
       level2: string | null;
     };
     source: 'legacy.defaultExpenseArticle';
-  };
+  } | null;
 
   /**
    * Базовая рабочая ось (не финансовая аналитика).
@@ -44,13 +44,10 @@ export interface AccountingPositionAnalytics {
     code?: string;
     name: string;
     source: 'legacy.defaultPurpose';
-  };
+  } | null;
 
   /**
    * Extension point управляемых параметров (control-plane слой).
-   *
-   * На этапе R2.2 структура уже канонизирована, но не навязывает обязательность
-   * и не реализует полный жизненный цикл администрирования параметров.
    */
   controlledParameters: {
     mode: AccountingAxisMode;
@@ -58,9 +55,10 @@ export interface AccountingPositionAnalytics {
   };
 
   /**
-   * Контракт доступности аналитических осей для следующего шага R2.3.
-   * Позволяет безопасно двигаться к более строгим инвариантам без ложной догмы
-   * "все аналитики всегда обязательны".
+   * Контракт допустимости аналитических осей.
+   * required — слой обязателен;
+   * optional — слой допустим, но может отсутствовать;
+   * disabled — слой выключен и не должен участвовать в расширенных метриках.
    */
   availability: {
     expenseArticle: AccountingAxisMode;
@@ -72,8 +70,8 @@ export interface AccountingPositionAnalytics {
    * Compatibility aliases для безопасного перехода с R2.1.
    */
   compatibility: {
-    expenseArticleId: string;
-    purposeId: string;
+    expenseArticleId: string | null;
+    purposeId: string | null;
   };
 }
 

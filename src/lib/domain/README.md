@@ -1,4 +1,4 @@
-# Канонический domain-layer (R2.2)
+# Канонический domain-layer (R2.3)
 
 Этот слой вводит канонический язык предметной области без разрушительного переименования persistence-моделей.
 
@@ -26,3 +26,10 @@
 - `analytics.compatibility` — переходные alias к legacy-ключам (`expenseArticleId`/`purposeId`).
 
 Это compatibility-first слой: persistence-модель `Item` и связи `defaultExpenseArticle/defaultPurpose` сохраняются, но в каноническом domain-языке разведены по разным смысловым осям.
+
+
+## Enforce-слой R2.3
+
+В `accounting-position/invariants.ts` добавлена исполняемая проверка инвариантов с уровнями проблем (`blocking`/`informational`) и policy-признаком `projectionEligibility.expandedMetrics`.
+
+В `accounting-position/write-guards.ts` добавлена write-side защита от полусобранных draft-состояний для required-базовых осей.

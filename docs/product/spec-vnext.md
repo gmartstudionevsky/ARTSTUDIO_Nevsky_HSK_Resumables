@@ -1,6 +1,6 @@
 # Каноническая спецификация продукта vNext
 
-> Версия: R2.2 foundation (базовые аналитические оси в коде)
+> Версия: R2.3 foundation (enforce-инварианты допустимости состояний)
 >
 > Этот документ является внутренним source of truth по продуктовой модели vNext. Он используется как базис для последующих этапов master-plan и не заменяется перепиской вне репозитория.
 
@@ -86,6 +86,7 @@ ARTSTUDIO Consumables vNext — это система управляемого, 
 - `analytics.section` — базовая рабочая ось «Раздел»;
 - `analytics.controlledParameters` — подготовленный extension point для управляемых параметров control-plane;
 - `analytics.availability` — контракт доступности осей (`required`/`optional`/`disabled`) для режима поэтапной адаптации пространства;
+- R2.3 enforce: проверка допустимости осей и eligibility для расширенных метрик выполняются в domain/application слое (`accounting-position/invariants.ts`).
 - `analytics.compatibility` — переходные alias к legacy-структуре (`expenseArticleId`/`purposeId`).
 
 Ключевой принцип R2.2: оси «Статья затрат» и «Раздел» разведены по смыслу и не трактуются как дублирующие селекты.
