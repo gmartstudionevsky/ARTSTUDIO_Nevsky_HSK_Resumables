@@ -17,6 +17,11 @@ interface ItemLegacyRecord {
 }
 
 export function mapItemRecordToAccountingPosition(item: ItemLegacyRecord): AccountingPosition {
+  /**
+   * R2.2 compatibility mapping:
+   * - legacy `defaultExpenseArticle` -> каноническая ось `analytics.expenseArticle`;
+   * - legacy `defaultPurpose` -> каноническая рабочая ось `analytics.section`.
+   */
   return {
     id: item.id,
     code: item.code,
@@ -32,8 +37,35 @@ export function mapItemRecordToAccountingPosition(item: ItemLegacyRecord): Accou
     synonyms: item.synonyms,
     note: item.note,
     analytics: {
-      expenseArticleId: item.defaultExpenseArticle.id,
-      purposeId: item.defaultPurpose.id,
+      expenseArticle: {
+        id: item.defaultExpenseArticle.id,
+        code: item.defaultExpenseArticle.code,
+        name: item.defaultExpenseArticle.name,
+        workspaceNaming: {
+          level1: null,
+          level2: null,
+        },
+        source: 'legacy.defaultExpenseArticle',
+      },
+      section: {
+        id: item.defaultPurpose.id,
+        code: item.defaultPurpose.code,
+        name: item.defaultPurpose.name,
+        source: 'legacy.defaultPurpose',
+      },
+      controlledParameters: {
+        mode: 'disabled',
+        values: [],
+      },
+      availability: {
+        expenseArticle: 'required',
+        section: 'required',
+        controlledParameters: 'disabled',
+      },
+      compatibility: {
+        expenseArticleId: item.defaultExpenseArticle.id,
+        purposeId: item.defaultPurpose.id,
+      },
     },
   };
 }
