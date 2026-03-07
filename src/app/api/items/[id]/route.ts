@@ -3,6 +3,7 @@ import { ZodError } from 'zod';
 
 import { requireManagerOrAdminApi, requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { mapItemRecordToAccountingPosition } from '@/lib/domain/accounting-position';
 import { patchItemSchema } from '@/lib/items/validators';
 
 export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
@@ -30,11 +31,14 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
 
   if (!item) return NextResponse.json({ error: 'Позиция не найдена' }, { status: 404 });
 
+  const accountingPosition = mapItemRecordToAccountingPosition(item);
+
   return NextResponse.json({
     item: {
       ...item,
       minQtyBase: item.minQtyBase?.toString() ?? null,
     },
+    accountingPosition,
   });
 }
 

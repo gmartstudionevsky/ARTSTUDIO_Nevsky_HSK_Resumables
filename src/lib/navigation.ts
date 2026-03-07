@@ -53,7 +53,7 @@ export function getMobileNavItems(role?: UserRole): NavItem[] {
   ];
 
   if (role === 'MANAGER' || role === 'ADMIN') {
-    base.push({ href: '/catalog', label: { key: 'nav.catalog', fallback: 'Номенклатура' }, icon: PackageSearch });
+    base.push({ href: '/catalog', label: { key: 'nav.catalog', fallback: 'Каталог позиций' }, icon: PackageSearch });
     base.push({ href: '/reports/consumption', label: { key: 'nav.reports', fallback: 'Отчёты' }, icon: BarChart3 });
   }
 
@@ -67,7 +67,7 @@ export function getMobileNavItems(role?: UserRole): NavItem[] {
 
 export const desktopNavItems: NavItem[] = [
   { href: '/stock', label: { key: 'nav.stock', fallback: 'Склад' }, icon: Boxes },
-  { href: '/catalog', label: { key: 'nav.catalog', fallback: 'Номенклатура' }, icon: PackageSearch },
+  { href: '/catalog', label: { key: 'nav.catalog', fallback: 'Каталог позиций' }, icon: PackageSearch },
   { href: '/operation', label: { key: 'nav.operation', fallback: 'Операция' }, icon: Wrench },
   { href: '/inventory', label: { key: 'nav.inventory', fallback: 'Инвентаризация' }, icon: ClipboardCheck },
   { href: '/history', label: { key: 'nav.history', fallback: 'История' }, icon: History },

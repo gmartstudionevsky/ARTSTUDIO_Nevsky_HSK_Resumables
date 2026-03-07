@@ -40,14 +40,14 @@ export function CatalogPageClient({ categories, expenseArticles, purposes, units
   return (
     <section className="space-y-4">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">Номенклатура</h1>
+        <h1 className="text-2xl font-semibold">Каталог позиций</h1>
         <p className="text-sm text-muted">Позиции, единицы учёта и привязки к статьям/назначениям.</p>
       </header>
 
       <CatalogFilters {...filters} categories={categories} expenseArticles={expenseArticles} onChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))} />
       <ItemHeaderActions canManage={canManage} onOpenCreate={() => setOpen(true)} />
 
-      {items.length === 0 ? <EmptyState title="Список пуст" description="Создайте первую позицию номенклатуры." /> : null}
+      {items.length === 0 ? <EmptyState title="Список пуст" description="Создайте первую позицию учёта." /> : null}
       {items.length > 0 ? <ItemsTable items={items} canManage={canManage} onToggle={toggle} /> : null}
       {items.length > 0 ? <ItemCards items={items} canManage={canManage} onToggle={toggle} /> : null}
 

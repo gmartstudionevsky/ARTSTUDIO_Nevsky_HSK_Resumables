@@ -4,6 +4,8 @@ import { ZodError } from 'zod';
 
 import { requireAuthenticatedApiUser, requireManagerOrAdminApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
+import { mapAccountingPositionDraftToItemDraft, mapItemRecordToAccountingPosition } from '@/lib/domain/accounting-position';
+import { toPositionCatalogEntry } from '@/lib/domain/position-catalog';
 import { generateNextItemCode } from '@/lib/items/codeGen';
 import { createItemSchema, listItemsQuerySchema } from '@/lib/items/validators';
 
@@ -58,8 +60,15 @@ export async function GET(request: Request): Promise<NextResponse> {
           code: true,
           name: true,
           isActive: true,
+          minQtyBase: true,
+          synonyms: true,
+          note: true,
+          category: { select: { id: true, name: true } },
           defaultExpenseArticle: { select: { id: true, code: true, name: true } },
           defaultPurpose: { select: { id: true, code: true, name: true } },
+          baseUnit: { select: { id: true, name: true } },
+          defaultInputUnit: { select: { id: true, name: true } },
+          reportUnit: { select: { id: true, name: true } },
         },
         orderBy: [{ updatedAt: 'desc' }],
         take: query.limit,
@@ -68,7 +77,14 @@ export async function GET(request: Request): Promise<NextResponse> {
       prisma.item.count({ where }),
     ]);
 
-    return NextResponse.json({ items, total });
+    const accountingPositions = items.map(mapItemRecordToAccountingPosition);
+    const catalogEntries = accountingPositions.map(toPositionCatalogEntry);
+
+    return NextResponse.json({
+      items: catalogEntries,
+      total,
+      catalogPositions: catalogEntries,
+    });
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: 'Некорректные параметры запроса' }, { status: 400 });
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
@@ -85,23 +101,24 @@ export async function POST(request: Request): Promise<NextResponse> {
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = createItemSchema.parse(body);
+    const itemDraft = mapAccountingPositionDraftToItemDraft(data);
 
     const result = await prisma.$transaction(async (tx) => {
       const code = data.code ?? (await generateNextItemCode(tx));
       const created = await tx.item.create({
         data: {
           code,
-          name: data.name,
-          categoryId: data.categoryId,
-          defaultExpenseArticleId: data.defaultExpenseArticleId,
-          defaultPurposeId: data.defaultPurposeId,
-          baseUnitId: data.baseUnitId,
-          defaultInputUnitId: data.defaultInputUnitId,
-          reportUnitId: data.reportUnitId,
-          minQtyBase: data.minQtyBase,
-          synonyms: data.synonyms,
-          note: data.note,
-          isActive: data.isActive,
+          name: itemDraft.name,
+          categoryId: itemDraft.categoryId,
+          defaultExpenseArticleId: itemDraft.defaultExpenseArticleId,
+          defaultPurposeId: itemDraft.defaultPurposeId,
+          baseUnitId: itemDraft.baseUnitId,
+          defaultInputUnitId: itemDraft.defaultInputUnitId,
+          reportUnitId: itemDraft.reportUnitId,
+          minQtyBase: itemDraft.minQtyBase,
+          synonyms: itemDraft.synonyms,
+          note: itemDraft.note,
+          isActive: itemDraft.isActive,
         },
       });
 
