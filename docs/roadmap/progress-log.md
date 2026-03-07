@@ -169,3 +169,17 @@
   - установлен Chromium и system deps: `npx playwright install --with-deps chromium`;
   - поднят локальный PostgreSQL (без docker), применены миграции и `seed:test:e2e`;
   - подтверждён зелёный прогон failing spec `tests/e2e/core-flow.spec.ts`.
+
+
+### 2026-03-08 / R3.3
+
+- Статус: done.
+- Что сделано:
+  - Введён явный read-side слой `src/lib/read-models/*` с проекциями: каталог позиций, склад, история, базовый отчёт consumption, admin-control.
+  - Переведены touched read routes на новый слой: `GET /api/items`, `GET /api/stock`, `GET /api/transactions`, `GET /api/reports/consumption`, `GET /api/settings`.
+  - Связь с R3.2 projection contracts закреплена через `registerProjectionUpdate(...)` в write routes `POST /api/transactions` и `POST /api/inventory/[id]/apply`.
+  - В каталог/склад/аналитику встроены availability+eligibility признаки (`projectionEligibility.expandedMetrics`) без второй правды.
+  - Добавлены unit-тесты read-model/projections: `tests/read-models.projections.test.ts`.
+- Что оставлено на следующий шаг:
+  - Фоновый async projection engine и persistent re-sync orchestration (пока только contracts/receipts foundation).
+  - Расширение coverage на полный набор legacy read endpoints и richer report projections.

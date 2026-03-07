@@ -102,3 +102,10 @@ R3.2 переводит учётные события в реальный applic
 - `createMovement` принимает только `IN|OUT|ADJUST` и блокирует попытку провести `OPENING` как обычное движение.
 - `createOpening` формирует отдельный класс события `OPENING`.
 - `applyInventoryResult` формирует `INVENTORY_APPLY` (или `OPENING` для opening-сессии) и несёт явный `interpretationMode`.
+
+
+## 8. R3.3 read-side handoff
+
+- Write routes `POST /api/transactions` и `POST /api/inventory/[id]/apply` вызывают `registerProjectionUpdate(...)` с payload из application write-result (`projection`).
+- Это фиксирует детерминированный handoff в read-side без внедрения premature async bus.
+- Контракт готовит последующую волну recovery/re-sync и проверок консистентности проекций.

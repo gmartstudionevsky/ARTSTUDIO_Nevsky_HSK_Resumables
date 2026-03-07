@@ -4,9 +4,7 @@ import { ZodError } from 'zod';
 
 import { createAccountingPositionWriteService } from '@/lib/application/accounting-position';
 import { requireAuthenticatedApiUser, requireManagerOrAdminApi } from '@/lib/auth/guards';
-import { prisma } from '@/lib/db/prisma';
-import { mapItemRecordToAccountingPosition } from '@/lib/domain/accounting-position';
-import { toPositionCatalogEntry } from '@/lib/domain/position-catalog';
+import { getPositionCatalogProjection } from '@/lib/read-models';
 import { createItemSchema, listItemsQuerySchema } from '@/lib/items/validators';
 
 function isUniqueCodeError(error: unknown): boolean {
@@ -28,57 +26,12 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   try {
     const query = listItemsQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
-    const activeFilter = query.active === 'all' ? undefined : query.active === 'true';
-    const q = query.q?.trim();
-
-    const where: Prisma.ItemWhereInput = {
-      ...(activeFilter === undefined ? {} : { isActive: activeFilter }),
-      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-      ...(query.expenseArticleId ? { defaultExpenseArticleId: query.expenseArticleId } : {}),
-      ...(query.purposeId ? { defaultPurposeId: query.purposeId } : {}),
-      ...(q
-        ? {
-            OR: [
-              { code: { contains: q, mode: 'insensitive' } },
-              { name: { contains: q, mode: 'insensitive' } },
-              { synonyms: { contains: q, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    };
-
-    const [items, total] = await Promise.all([
-      prisma.item.findMany({
-        where,
-        select: {
-          id: true,
-          code: true,
-          name: true,
-          isActive: true,
-          minQtyBase: true,
-          synonyms: true,
-          note: true,
-          category: { select: { id: true, name: true } },
-          defaultExpenseArticle: { select: { id: true, code: true, name: true } },
-          defaultPurpose: { select: { id: true, code: true, name: true } },
-          baseUnit: { select: { id: true, name: true } },
-          defaultInputUnit: { select: { id: true, name: true } },
-          reportUnit: { select: { id: true, name: true } },
-        },
-        orderBy: [{ updatedAt: 'desc' }],
-        take: query.limit,
-        skip: query.offset,
-      }),
-      prisma.item.count({ where }),
-    ]);
-
-    const accountingPositions = items.map((item) => mapItemRecordToAccountingPosition(item));
-    const catalogEntries = accountingPositions.map(toPositionCatalogEntry);
+    const projection = await getPositionCatalogProjection(query);
 
     return NextResponse.json({
-      items: catalogEntries,
-      total,
-      catalogPositions: catalogEntries,
+      items: projection.entries,
+      total: projection.total,
+      catalogPositions: projection.entries,
     });
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: 'Некорректные параметры запроса' }, { status: 400 });

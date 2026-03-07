@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
-import { getStockList } from '@/lib/stock/query';
+import { getStockProjection } from '@/lib/read-models';
 
 const querySchema = z.object({
   q: z.string().trim().optional(),
@@ -21,7 +21,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   try {
     const query = querySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
-    const payload = await getStockList(query);
+    const payload = await getStockProjection(query);
     return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof ZodError) return NextResponse.json({ error: 'Некорректные параметры запроса' }, { status: 400 });

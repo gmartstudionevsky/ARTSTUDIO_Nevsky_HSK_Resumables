@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { createAccountingEventWriteService } from '@/lib/application/accounting-event';
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { applyInventorySchema } from '@/lib/inventory/validators';
+import { registerProjectionUpdate } from '@/lib/read-models';
 
 const accountingEventWriteService = createAccountingEventWriteService();
 
@@ -33,6 +34,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       const status = result.kind === 'not_found' ? 404 : result.kind === 'unexpected' ? 500 : result.kind === 'conflict' ? 409 : 400;
       return NextResponse.json({ error: result.message, scenario: result.scenario, details: result.details }, { status });
     }
+
+    registerProjectionUpdate(result.data.projection);
 
     return NextResponse.json({
       ok: true,

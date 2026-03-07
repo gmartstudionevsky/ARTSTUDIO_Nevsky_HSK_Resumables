@@ -104,3 +104,16 @@ R3.2 добавляет в результат write-flow событийного 
 - `itemIds`, `transactionId` для downstream-проекций.
 
 Это не полный движок проекций, а формальный контракт handoff из write-side в read-side (основа для R3.3/R3.4).
+
+
+## 7. Кодовая привязка R3.3 (базовый read-side слой)
+
+В R3.3 введён явный слой `src/lib/read-models/*` и обязательные базовые проекции:
+
+- `catalog-projection` — канонический каталог позиций с analytics availability/compatibility/eligibility.
+- `stock-projection` — state-проекция текущего склада (без самостоятельной истины).
+- `history-projection` — историческая проекция ядра событий с различением `movement/opening/inventory_apply`.
+- `consumption-report-projection` — базовый аналитический срез отчётности с фильтрацией по `projectionEligibility.expandedMetrics`.
+- `admin-control-projection` — управляющее представление control plane + read-model receipts/recovery contract.
+
+Связка write→read закреплена через `registerProjectionUpdate(...)` на основе payload `projection` из R3.2 use-case результата.
