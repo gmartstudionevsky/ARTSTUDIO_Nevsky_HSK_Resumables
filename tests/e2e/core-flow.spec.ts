@@ -10,7 +10,7 @@ test.beforeAll(async () => {
 
 test('core flow: intake operation -> stock check', async ({ page }) => {
   await page.goto('/stock');
-  await expect(page).toHaveURL(/\/(stock|operation)$/);
+  await expect(page).toHaveURL(/\/(stock|operation|movements)$/);
 
   const initialStockPayload = await page.evaluate(async (name) => {
     const response = await fetch(`/api/stock?q=${encodeURIComponent(name)}`);
@@ -23,7 +23,7 @@ test('core flow: intake operation -> stock check', async ({ page }) => {
   const initialQtyRaw = initialStockPayload.items.find((entry) => entry.itemId === testData.itemId)?.qtyReport ?? '0';
   const initialQty = Number(initialQtyRaw.replace(',', '.'));
 
-  await page.goto('/operation');
+  await page.goto('/movements');
 
   await page.getByTestId('op-tab-in').click();
   await page.getByTestId('op-intake-single').click();
@@ -31,8 +31,7 @@ test('core flow: intake operation -> stock check', async ({ page }) => {
 
   await page.getByTestId('op-item-search').fill(testData.itemName);
   await page.getByTestId('op-search-item').click();
-  await page.getByTestId(`op-item-option-${testData.itemId}`).waitFor({ state: 'attached' });
-  await page.getByTestId('op-item-select').selectOption(testData.itemId);
+  await page.getByTestId(`movements-item-${testData.itemId}`).click();
 
   await page.getByTestId('op-qty').fill('10');
   await page.getByTestId('op-unit').selectOption({ label: 'шт' });

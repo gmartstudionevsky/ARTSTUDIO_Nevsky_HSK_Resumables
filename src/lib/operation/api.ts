@@ -11,10 +11,20 @@ export async function fetchLookup(type: 'expense-articles' | 'purposes' | 'reaso
   return payload.items;
 }
 
-export async function searchItems(q: string): Promise<ItemOption[]> {
-  const params = new URLSearchParams({ q, limit: '20', active: 'true' });
-  const payload = await httpGet<{ items: ItemOption[] }>(`/api/items?${params.toString()}`);
+function buildItemsQuery(params: { q?: string; purposeId?: string; limit?: number }): string {
+  const search = new URLSearchParams({ active: 'true', limit: String(params.limit ?? 50) });
+  if (params.q?.trim()) search.set('q', params.q.trim());
+  if (params.purposeId) search.set('purposeId', params.purposeId);
+  return search.toString();
+}
+
+export async function fetchMovementWorkspace(params: { sectionId?: string; q?: string; limit?: number }): Promise<ItemOption[]> {
+  const payload = await httpGet<{ items: ItemOption[] }>(`/api/items?${buildItemsQuery({ q: params.q, purposeId: params.sectionId, limit: params.limit })}`);
   return payload.items;
+}
+
+export async function searchItems(q: string): Promise<ItemOption[]> {
+  return fetchMovementWorkspace({ q, limit: 20 });
 }
 
 export async function fetchItemUnits(itemId: string): Promise<UnitOption[]> {

@@ -31,7 +31,7 @@ export type UserRole = 'SUPERVISOR' | 'MANAGER' | 'ADMIN';
 
 export const mainNavItems: NavItem[] = [
   { href: '/stock', label: { key: 'nav.stock', fallback: 'Склад' }, icon: Boxes },
-  { href: '/operation', label: { key: 'nav.operation', fallback: 'Операция' }, icon: Wrench },
+  { href: '/movements', label: { key: 'nav.movements', fallback: 'Движения' }, icon: Wrench },
   { href: '/inventory', label: { key: 'nav.inventory', fallback: 'Инвентаризация' }, icon: ClipboardCheck },
   { href: '/history', label: { key: 'nav.history', fallback: 'История' }, icon: History },
   { href: '/profile', label: { key: 'nav.profile', fallback: 'Профиль' }, icon: User },
@@ -46,7 +46,7 @@ export const mobileMoreItem: NavItem = {
 export function getMobileNavItems(role?: UserRole): NavItem[] {
   const base: NavItem[] = [
     { href: '/stock', label: { key: 'nav.stock', fallback: 'Склад' }, icon: Boxes },
-    { href: '/operation', label: { key: 'nav.operation', fallback: 'Операция' }, icon: Wrench },
+    { href: '/movements', label: { key: 'nav.movements', fallback: 'Движения' }, icon: Wrench },
     { href: '/inventory', label: { key: 'nav.inventory', fallback: 'Инвентаризация' }, icon: ClipboardCheck },
     { href: '/history', label: { key: 'nav.history', fallback: 'История' }, icon: History },
     { href: '/profile', label: { key: 'nav.profile', fallback: 'Профиль' }, icon: User },
@@ -68,7 +68,7 @@ export function getMobileNavItems(role?: UserRole): NavItem[] {
 export const desktopNavItems: NavItem[] = [
   { href: '/stock', label: { key: 'nav.stock', fallback: 'Склад' }, icon: Boxes },
   { href: '/catalog', label: { key: 'nav.catalog', fallback: 'Каталог позиций' }, icon: PackageSearch },
-  { href: '/operation', label: { key: 'nav.operation', fallback: 'Операция' }, icon: Wrench },
+  { href: '/movements', label: { key: 'nav.movements', fallback: 'Движения' }, icon: Wrench },
   { href: '/inventory', label: { key: 'nav.inventory', fallback: 'Инвентаризация' }, icon: ClipboardCheck },
   { href: '/history', label: { key: 'nav.history', fallback: 'История' }, icon: History },
   { href: '/reports/consumption', label: { key: 'nav.reports', fallback: 'Отчёты' }, icon: BarChart3 },

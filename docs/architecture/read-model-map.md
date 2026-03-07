@@ -135,3 +135,11 @@ Import apply/rollback больше не является отдельной «в
 - `catalog` и `admin` маркируются receipt-обновлением после sync структур.
 - `stock/history/reports/signals` получают receipt от import opening transaction (если создана).
 - outcome контракты import API возвращают список затронутых projections.
+
+## R5.1 update: привязка хаба «Движения» к read-model
+
+Первая живая версия UI-хаба (`/movements`) использует read-model слой напрямую, без ad hoc выборок:
+
+- рабочий контекст «раздел» транслируется в `purposeId` запроса `/api/items`;
+- рабочее поле позиций строится из `catalog-projection` (`getPositionCatalogProjection`);
+- поиск работает как narrowing текущего read-context (`q` + `purposeId`), а не как альтернативный сценарий навигации.

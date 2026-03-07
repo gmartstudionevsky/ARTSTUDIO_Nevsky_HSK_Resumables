@@ -162,3 +162,24 @@ test('projection contracts: register update from write-side handoff', () => {
   assert.ok(receipts.some((row) => row.kind === 'stock' && row.lastTransactionId === 'tx-10'));
   assert.ok(receipts.some((row) => row.kind === 'history' && row.lastEventType === TxType.OUT));
 });
+
+test('catalog projection: section filter is passed through canonical read-model query', async () => {
+  let seenPurposeId: string | undefined;
+  await getPositionCatalogProjection(
+    {
+      purposeId: '00000000-0000-0000-0000-000000000777',
+      active: 'true',
+    },
+    {
+      itemReader: {
+        findMany: async (args: any) => {
+          seenPurposeId = args.where.defaultPurposeId;
+          return [];
+        },
+        count: async () => 0,
+      } as never,
+    },
+  );
+
+  assert.equal(seenPurposeId, '00000000-0000-0000-0000-000000000777');
+});

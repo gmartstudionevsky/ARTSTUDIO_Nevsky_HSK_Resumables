@@ -15,6 +15,9 @@ export interface ItemOption {
   isActive: boolean;
   defaultExpenseArticle: { id: string; code: string; name: string };
   defaultPurpose: { id: string; code: string; name: string };
+  analytics?: {
+    section?: { id: string; code?: string; name: string } | null;
+  };
 }
 
 export interface UnitOption {

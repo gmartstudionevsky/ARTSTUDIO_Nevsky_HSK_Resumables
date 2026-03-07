@@ -1,7 +1,5 @@
-import { OperationForm } from '@/components/operation/OperationForm';
-import { requireSupervisorOrAbove } from '@/lib/auth/guards';
+import { redirect } from 'next/navigation';
 
-export default async function OperationPage(): Promise<JSX.Element> {
-  await requireSupervisorOrAbove();
-  return <OperationForm />;
+export default function OperationLegacyPage(): never {
+  redirect('/movements');
 }

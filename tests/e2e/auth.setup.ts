@@ -13,8 +13,8 @@ test('authenticate via real login and store storageState', async ({ page }) => {
   await page.getByTestId('login-password').fill(password);
   await page.getByTestId('login-submit').click();
 
-  await page.waitForURL(/\/(stock|operation)$/);
-  await expect(page).toHaveURL(/\/(stock|operation)$/);
+  await page.waitForURL(/\/(stock|operation|movements)$/);
+  await expect(page).toHaveURL(/\/(stock|operation|movements)$/);
 
   await fs.mkdir(path.dirname(storageStatePath), { recursive: true });
   await page.context().storageState({ path: storageStatePath });
