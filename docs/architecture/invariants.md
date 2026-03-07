@@ -101,3 +101,13 @@
 1. Любой write-flow обязан проваливаться до commit при нарушении инвариантов.
 2. Любое обнаруженное нарушение после commit должно переводить систему в управляемый recovery-сценарий.
 3. Инварианты проверяются на всех уровнях: данные, логика, контрольный контур и диагностика.
+
+## 6. R3.4 consistency enforcement (touched area)
+
+На шаге R3.4 введена практическая проверка проекционных инвариантов через consistency checker:
+
+- `MISSING_RECEIPT`, `STALE_RECEIPT`, `RECEIPT_EVENT_NOT_FOUND`, `RECEIPT_TYPE_MISMATCH` трактуются как **blocking inconsistency**;
+- `REDUCED_ELIGIBILITY` трактуется как **acceptably reduced eligibility**, а не как авария;
+- отчёт checker-а используется как вход для reset/re-sync сценариев.
+
+Тем самым инварианты read-side не только описаны, но и исполняются в recovery/use-case слое.

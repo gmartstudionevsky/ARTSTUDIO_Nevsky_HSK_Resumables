@@ -183,3 +183,25 @@
 - Что оставлено на следующий шаг:
   - Фоновый async projection engine и persistent re-sync orchestration (пока только contracts/receipts foundation).
   - Расширение coverage на полный набор legacy read endpoints и richer report projections.
+
+### 2026-03-08 / R3.4
+
+- Статус: done.
+- Что сделано:
+  - Введён явный recovery/use-case слой `src/lib/application/recovery/*` с контрактами и сервисом для `rollbackMovement`, `resetReadModelState`, `resyncReadModel`, `checkReadModelConsistency`.
+  - Реализован локальный rollback для touched event scenario (movement `IN/OUT/ADJUST`) через каноническую отмену (`RecordStatus.CANCELLED`) + аудит (`ROLLBACK_MOVEMENT`) без удаления истории.
+  - Добавлен reset производного recovery state: управляемый сброс projection receipts (`clearProjectionReceipts`) без влияния на канонический журнал событий.
+  - Добавлен re-sync базовых touched проекций (`catalog`, `stock`, `history`, `reports`, `admin`, `signals`) через пересинхронизацию receipts от актуального канона.
+  - Реализован consistency checker с различением состояний:
+    - blocking inconsistency (`MISSING_RECEIPT`, `STALE_RECEIPT`, `RECEIPT_EVENT_NOT_FOUND`, `RECEIPT_TYPE_MISMATCH`);
+    - acceptable reduced eligibility (`REDUCED_ELIGIBILITY`);
+    - fully consistent.
+  - Введён internal service-level entrypoint через `createRecoveryService(...)`; вызовы покрыты unit-тестами use-case слоя (без публичного маршрута на этом шаге).
+  - Расширен registry-контракт проекций: nullable receipts + точечные операции `set/get/clear`.
+  - Добавлены unit-тесты recovery/use-case и consistency checker: `tests/application/recovery.use-cases.test.ts`.
+- Что обновлено в docs:
+  - `master-plan`, `progress-log`, `recovery-model`, `read-model-map`, `write-flow-map`, `invariants`.
+- Отклонения:
+  - На шаге R3.4 rollback ограничен movement-сценариями; rollback `OPENING` и `INVENTORY_APPLY` сознательно отложены как отдельные recovery сценарии следующей волны.
+- Следующий шаг:
+  - Либо product block R4 (движения-хаб), либо import v2 как частный сценарий синхронности на базе введённого recovery контракта.

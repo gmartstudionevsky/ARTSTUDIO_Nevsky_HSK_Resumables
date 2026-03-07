@@ -8,5 +8,6 @@
 - `accounting-event/*` — **учётные события** (R3.2: movement/opening/inventory apply).
 - `sync-scenarios/*` — **синхронизационные сценарии** (импорт/re-sync, следующая волна).
 - `control-plane/*` — **управляющие сценарии**.
+- `recovery/*` — **канонические сценарии rollback / reset / re-sync / consistency check** (R3.4).
 
 Route handlers должны быть адаптерами и вызывать use-case слой, а не хранить предметную логику.

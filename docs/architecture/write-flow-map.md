@@ -109,3 +109,13 @@ R3.2 переводит учётные события в реальный applic
 - Write routes `POST /api/transactions` и `POST /api/inventory/[id]/apply` вызывают `registerProjectionUpdate(...)` с payload из application write-result (`projection`).
 - Это фиксирует детерминированный handoff в read-side без внедрения premature async bus.
 - Контракт готовит последующую волну recovery/re-sync и проверок консистентности проекций.
+
+## 12. R3.4 recovery use-cases и связь с write-side
+
+R3.4 добавляет отдельный application recovery слой, который использует канонический write-side, но не подменяет его:
+
+- rollback movement выполняется как регламентированная компенсация (cancel), а не удаление событий;
+- reset/re-sync работают с производным projection/recovery state и не стирают историю write-side;
+- consistency check возвращает structured report для control plane/admin entrypoints.
+
+Это закрепляет полный минимальный контур: `write -> projection handoff -> read -> recovery/check` для already-touched area.

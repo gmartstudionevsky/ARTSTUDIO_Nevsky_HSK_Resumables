@@ -17,8 +17,8 @@ export interface ReadModelRecoveryContract {
 
 export interface ProjectionUpdateReceipt {
   kind: ReadProjectionKind;
-  lastEventType: TxType;
-  lastTransactionId: string;
+  lastEventType: TxType | null;
+  lastTransactionId: string | null;
   updatedAt: string;
   stale: boolean;
 }

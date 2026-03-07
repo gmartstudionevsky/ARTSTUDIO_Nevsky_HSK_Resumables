@@ -11,7 +11,7 @@ const projectionKindMap: Record<ProjectionUpdateContract['projectionKinds'][numb
 
 const projectionReceipts = new Map<ReadProjectionKind, ProjectionUpdateReceipt>();
 
-function markProjectionUpdated(kind: ReadProjectionKind, eventType: TxType, transactionId: string): ProjectionUpdateReceipt {
+function markProjectionUpdated(kind: ReadProjectionKind, eventType: TxType | null, transactionId: string | null): ProjectionUpdateReceipt {
   const receipt: ProjectionUpdateReceipt = {
     kind,
     lastEventType: eventType,
@@ -29,10 +29,30 @@ export function registerProjectionUpdate(contract: ProjectionUpdateContract): Pr
   );
 }
 
+export function setProjectionReceipt(kind: ReadProjectionKind, eventType: TxType | null, transactionId: string | null): ProjectionUpdateReceipt {
+  return markProjectionUpdated(kind, eventType, transactionId);
+}
+
 export function markProjectionStale(kind: ReadProjectionKind): void {
   const existing = projectionReceipts.get(kind);
   if (!existing) return;
   projectionReceipts.set(kind, { ...existing, stale: true });
+}
+
+export function clearProjectionReceipt(kind: ReadProjectionKind): boolean {
+  return projectionReceipts.delete(kind);
+}
+
+export function clearProjectionReceipts(kinds: ReadProjectionKind[]): number {
+  let cleared = 0;
+  for (const kind of kinds) {
+    if (clearProjectionReceipt(kind)) cleared += 1;
+  }
+  return cleared;
+}
+
+export function getProjectionReceiptByKind(kind: ReadProjectionKind): ProjectionUpdateReceipt | null {
+  return projectionReceipts.get(kind) ?? null;
 }
 
 export function getProjectionReceipts(): ProjectionUpdateReceipt[] {

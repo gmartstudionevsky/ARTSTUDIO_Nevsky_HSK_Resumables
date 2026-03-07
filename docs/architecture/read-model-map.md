@@ -117,3 +117,13 @@ R3.2 добавляет в результат write-flow событийного 
 - `admin-control-projection` — управляющее представление control plane + read-model receipts/recovery contract.
 
 Связка write→read закреплена через `registerProjectionUpdate(...)` на основе payload `projection` из R3.2 use-case результата.
+
+## 10. R3.4 consistency protection / rebuild execution
+
+Для touched area в R3.4 введён исполняемый recovery-контур поверх R3.3 foundation:
+
+- `reset`: очистка projection receipts как подготовка слоя производных состояний к пересборке;
+- `re-sync`: повторная синхронизация receipts по каноническому ядру (`catalog`, `stock`, `history`, `reports`, `admin`, `signals`);
+- `consistency checker`: верификация receipts против канона + сигнализация reduced eligibility как допустимого informational состояния.
+
+Таким образом read-side получил не только контракты handoff из write-side, но и управляемый путь repair/rebuild.

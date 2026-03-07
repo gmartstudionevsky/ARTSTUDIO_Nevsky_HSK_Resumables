@@ -76,3 +76,20 @@
 - `read model recovery contract` (какие виды проекций rebuildable/validateable).
 
 Это не полный re-sync engine, но явная стартовая точка для R3.4/R8 consistency enforcement.
+
+## 6. R3.4 implementation (touched area)
+
+В R3.4 recovery-процедуры перестали быть только foundation-контрактом и получили кодовый execution-layer:
+
+- `src/lib/application/recovery/contracts.ts` — structured contracts команд/результатов и consistency report.
+- `src/lib/application/recovery/service.ts` — use-case реализация rollback/reset/re-sync/check.
+- recovery use-cases доступны через internal service-level invocation (`createRecoveryService`).
+
+Реализованное покрытие:
+
+1. **rollback (локально):** movement `IN/OUT/ADJUST` через отмену (`CANCELLED`) и аудит без удаления истории;
+2. **reset (модульно):** reset projection receipts/recovery state для выбранных проекций;
+3. **re-sync (модульно):** rebuild markers/receipts по каноническому состоянию;
+4. **consistency check:** детекция blocking mismatch + выделение допустимого reduced eligibility как неблокирующего состояния.
+
+Ограничение текущего шага: rollback `OPENING` / `INVENTORY_APPLY` отложен на следующую recovery-волну без изменения канона R3.4.
