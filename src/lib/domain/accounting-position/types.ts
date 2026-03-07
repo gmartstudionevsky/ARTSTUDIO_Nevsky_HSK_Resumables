@@ -6,6 +6,77 @@ export interface AccountingPositionDirectoryLink {
   name: string;
 }
 
+export type AccountingAxisMode = 'required' | 'optional' | 'disabled';
+
+export interface ControlledAnalyticParameter {
+  key: string;
+  value: string;
+  source: 'control-plane';
+}
+
+export interface AccountingPositionAnalytics {
+  /**
+   * Базовая бухгалтерско-складская ось.
+   *
+   * На уровне совместимости R2.2 берётся из legacy-связи `defaultExpenseArticle`.
+   * В рабочем пространстве допускается двухуровневое именование, но канонически
+   * остаётся строгой бухгалтерской сущностью.
+   */
+  expenseArticle: {
+    id: string;
+    code?: string;
+    name: string;
+    workspaceNaming: {
+      level1: string | null;
+      level2: string | null;
+    };
+    source: 'legacy.defaultExpenseArticle';
+  };
+
+  /**
+   * Базовая рабочая ось (не финансовая аналитика).
+   *
+   * На уровне совместимости R2.2 маппится из legacy-связи `defaultPurpose`.
+   * Это главный операционный контекст сотрудника для работы с позицией.
+   */
+  section: {
+    id: string;
+    code?: string;
+    name: string;
+    source: 'legacy.defaultPurpose';
+  };
+
+  /**
+   * Extension point управляемых параметров (control-plane слой).
+   *
+   * На этапе R2.2 структура уже канонизирована, но не навязывает обязательность
+   * и не реализует полный жизненный цикл администрирования параметров.
+   */
+  controlledParameters: {
+    mode: AccountingAxisMode;
+    values: ControlledAnalyticParameter[];
+  };
+
+  /**
+   * Контракт доступности аналитических осей для следующего шага R2.3.
+   * Позволяет безопасно двигаться к более строгим инвариантам без ложной догмы
+   * "все аналитики всегда обязательны".
+   */
+  availability: {
+    expenseArticle: AccountingAxisMode;
+    section: AccountingAxisMode;
+    controlledParameters: AccountingAxisMode;
+  };
+
+  /**
+   * Compatibility aliases для безопасного перехода с R2.1.
+   */
+  compatibility: {
+    expenseArticleId: string;
+    purposeId: string;
+  };
+}
+
 /**
  * Каноническая сущность предметного ядра R2.1.
  *
@@ -30,13 +101,5 @@ export interface AccountingPosition {
   synonyms: string | null;
   note: string | null;
 
-  /**
-   * Extension-point под R2.2/R2.3:
-   * аналитические оси (статья затрат/раздел/управляемые параметры)
-   * будут обогащать этот блок без пересборки persistence-схемы.
-   */
-  analytics: {
-    expenseArticleId: string;
-    purposeId: string;
-  };
+  analytics: AccountingPositionAnalytics;
 }

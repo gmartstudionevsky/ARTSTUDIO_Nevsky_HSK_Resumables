@@ -16,3 +16,12 @@
 
 - Рабочая навигация и аналитика строятся на стабильных опорных осях.
 - Дополнительные аналитики можно расширять без разрушения ядра.
+
+
+## Реализация в коде (R2.2)
+
+- Канонические оси зафиксированы в `src/lib/domain/accounting-position/types.ts` через блок `analytics`.
+- `Статья затрат` реализована как `analytics.expenseArticle` и маппится из legacy `defaultExpenseArticle`.
+- `Раздел` реализован как `analytics.section` и маппится из legacy `defaultPurpose`.
+- Для управляемых параметров добавлен extension point `analytics.controlledParameters`.
+- Для поэтапной адаптации пространства добавлен контракт доступности `analytics.availability`.
