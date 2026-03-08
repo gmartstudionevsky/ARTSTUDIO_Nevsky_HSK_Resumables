@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
+import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
 import { ItemOption, UnitOption } from '../../src/lib/operation/types';
 
 const item: ItemOption = {
@@ -47,7 +47,7 @@ test('resolveDefaultPurposeId: uses header purpose for IN single purpose mode', 
   assert.equal(purposeId, '00000000-0000-0000-0000-000000000099');
 });
 
-test('buildInitialActionRowDraft: sets default unit and row defaults', () => {
+test('buildInitialActionRowDraft: starts empty and keeps defaults', () => {
   const draft = buildInitialActionRowDraft(item, units, {
     type: 'OUT',
     intakeMode: 'SINGLE_PURPOSE',
@@ -55,15 +55,16 @@ test('buildInitialActionRowDraft: sets default unit and row defaults', () => {
     workspaceSectionId: '00000000-0000-0000-0000-000000000098',
   });
 
-  assert.equal(draft.qtyInput, '1');
+  assert.equal(draft.qtyInput, '');
   assert.equal(draft.unitId, units[1]?.unitId);
   assert.equal(draft.expenseArticleId, item.defaultExpenseArticle.id);
   assert.equal(draft.purposeId, item.defaultPurpose.id);
+  assert.deepEqual(draft.distributions, []);
 });
 
 test('validateActionRowDraft: returns local errors for qty/unit', () => {
-  assert.equal(validateActionRowDraft({ qtyInput: '0', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '' }), 'Введите количество больше нуля');
-  assert.equal(validateActionRowDraft({ qtyInput: '2', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '' }), 'Выберите единицу');
+  assert.equal(validateActionRowDraft({ qtyInput: '0', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }), 'Введите количество больше нуля');
+  assert.equal(validateActionRowDraft({ qtyInput: '2', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }), 'Выберите единицу');
 });
 
 test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hydration', () => {
@@ -78,6 +79,7 @@ test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hy
       loadingUnits: true,
       isSubmitting: false,
       error: 'old',
+      distributions: [{ purposeId: item.defaultPurpose.id, qtyInput: '10' }],
     },
     item,
     unitRows: units,
@@ -93,4 +95,16 @@ test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hy
   assert.equal(hydrated.unitId, units[1]?.unitId);
   assert.equal(hydrated.loadingUnits, false);
   assert.equal(hydrated.error, '');
+  assert.equal(hydrated.distributions.length, 1);
+});
+
+test('filled-row rule: only rows with qty input participate', () => {
+  const rowDrafts = {
+    a: { qtyInput: '', unitId: 'u1', expenseArticleId: 'ea', purposeId: 'p', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] },
+    b: { qtyInput: '2', unitId: 'u2', expenseArticleId: 'ea', purposeId: 'p', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] },
+  };
+
+  assert.equal(isActionRowFilled(rowDrafts.a), false);
+  assert.equal(isActionRowFilled(rowDrafts.b), true);
+  assert.deepEqual(pickParticipatingRowIds(rowDrafts), ['b']);
 });

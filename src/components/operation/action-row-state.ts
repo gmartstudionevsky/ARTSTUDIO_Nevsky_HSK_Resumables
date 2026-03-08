@@ -1,4 +1,4 @@
-import { IntakeMode, ItemOption, OperationType, UnitOption } from '@/lib/operation/types';
+import { DistributionDraft, IntakeMode, ItemOption, OperationType, UnitOption } from '@/lib/operation/types';
 
 export type ActionRowDraft = {
   qtyInput: string;
@@ -10,6 +10,7 @@ export type ActionRowDraft = {
   loadingUnits: boolean;
   isSubmitting: boolean;
   error: string;
+  distributions: DistributionDraft[];
 };
 
 export type ActionRowContext = {
@@ -31,7 +32,7 @@ export function buildInitialActionRowDraft(item: ItemOption, unitRows: UnitOptio
   const defaultUnitId = unitRows.find((unit) => unit.isDefaultInput)?.unitId ?? unitRows[0]?.unitId ?? '';
 
   return {
-    qtyInput: '1',
+    qtyInput: '',
     unitId: defaultUnitId,
     expenseArticleId: item.defaultExpenseArticle.id,
     purposeId: resolveDefaultPurposeId(item, context),
@@ -40,6 +41,7 @@ export function buildInitialActionRowDraft(item: ItemOption, unitRows: UnitOptio
     loadingUnits: false,
     isSubmitting: false,
     error: '',
+    distributions: [],
   };
 }
 
@@ -56,13 +58,24 @@ export function hydrateActionRowDraftWithUnits(params: {
 
   return {
     ...currentDraft,
-    qtyInput: currentDraft.qtyInput || fallback.qtyInput,
+    qtyInput: currentDraft.qtyInput,
     unitId: currentDraft.unitId || fallback.unitId,
     expenseArticleId: currentDraft.expenseArticleId || fallback.expenseArticleId,
     purposeId: currentDraft.purposeId || fallback.purposeId,
+    distributions: currentDraft.distributions ?? [],
     loadingUnits: false,
     error: '',
   };
+}
+
+export function isActionRowFilled(draft: ActionRowDraft): boolean {
+  return draft.qtyInput.trim().length > 0;
+}
+
+export function pickParticipatingRowIds(rowDrafts: Record<string, ActionRowDraft>): string[] {
+  return Object.entries(rowDrafts)
+    .filter(([, draft]) => isActionRowFilled(draft))
+    .map(([itemId]) => itemId);
 }
 
 export function validateActionRowDraft(draft: ActionRowDraft): string {
