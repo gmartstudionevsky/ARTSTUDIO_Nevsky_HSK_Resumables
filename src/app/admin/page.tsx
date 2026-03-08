@@ -10,9 +10,9 @@ import { useUiText } from '@/components/ui-texts/useUiText';
 import { HelpTip } from '@/components/ui/Tooltip';
 
 export default function AdminPage(): JSX.Element {
-  const purposeTooltip = useUiText('tooltip.purpose', 'Назначение — для какого направления/участка учитывается расход.');
+  const purposeTooltip = useUiText('tooltip.purpose', 'Раздел — основной рабочий контекст движения и учёта.');
   const reportUnitTooltip = useUiText('tooltip.reportUnit', 'Единица отчётности — в ней показывается склад и отчёты.');
-  const expenseArticleTooltip = useUiText('tooltip.expenseArticle', 'Статья расходов — финансовый разрез для отчёта.');
+  const expenseArticleTooltip = useUiText('tooltip.expenseArticle', 'Статья затрат — финансово-учётная аналитика для отчётов.');
 
   return (
     <main className="mx-auto max-w-3xl space-y-4 px-4 py-8">
@@ -29,16 +29,16 @@ export default function AdminPage(): JSX.Element {
         </CardHeader>
         <CardContent>
           <p className="flex items-center gap-2">
-            Назначение
-            <HelpTip label="Подсказка к назначению">{purposeTooltip}</HelpTip>
+            Раздел
+            <HelpTip label="Подсказка к разделу">{purposeTooltip}</HelpTip>
           </p>
           <p className="flex items-center gap-2">
             Единица отчётности
             <HelpTip label="Подсказка к единице отчётности">{reportUnitTooltip}</HelpTip>
           </p>
           <p className="flex items-center gap-2">
-            Статья расходов
-            <HelpTip label="Подсказка к статье расходов">{expenseArticleTooltip}</HelpTip>
+            Статья затрат
+            <HelpTip label="Подсказка к статье затрат">{expenseArticleTooltip}</HelpTip>
           </p>
         </CardContent>
         <CardFooter>

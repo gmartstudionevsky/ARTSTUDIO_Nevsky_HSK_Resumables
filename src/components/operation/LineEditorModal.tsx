@@ -21,7 +21,7 @@ export function LineEditorModal({ open, mode, units, articles, purposes, reasons
         <Input label="Количество" value={form.qtyInput ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, qtyInput: event.target.value }))} />
         <Select label="Единица" value={form.unitId ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, unitId: event.target.value }))}>{units.map((unit) => <option key={unit.id} value={unit.unitId}>{unit.unit.name}</option>)}</Select>
         <Select label="Статья" value={form.expenseArticleId ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, expenseArticleId: event.target.value }))}>{articles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
-        <Select label="Назначение" value={form.purposeId ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, purposeId: event.target.value }))}>{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
+        <Select label="Раздел" value={form.purposeId ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, purposeId: event.target.value }))}>{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
         <Input label="Комментарий" value={form.comment ?? ''} onChange={(event) => setForm((prev) => ({ ...prev, comment: event.target.value }))} />
         {mode === 'correct' ? (
           <>

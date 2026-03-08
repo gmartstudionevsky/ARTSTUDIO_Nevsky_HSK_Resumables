@@ -16,7 +16,7 @@ export function ItemsTable({ items, canManage, onToggle }: ItemsTableProps): JSX
       <table className="min-w-full text-sm">
         <thead className="bg-surface text-left text-muted">
           <tr>
-            <th className="px-3 py-2">Название</th><th className="px-3 py-2">Раздел</th><th className="px-3 py-2">Статья</th><th className="px-3 py-2">Назначение</th><th className="px-3 py-2">Статус</th><th className="px-3 py-2">Действия</th>
+            <th className="px-3 py-2">Название</th><th className="px-3 py-2">Раздел</th><th className="px-3 py-2">Статья</th><th className="px-3 py-2">Раздел</th><th className="px-3 py-2">Статус</th><th className="px-3 py-2">Действия</th>
           </tr>
         </thead>
         <tbody>

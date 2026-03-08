@@ -1,22 +1,29 @@
 # Документация репозитория
 
-Этот каталог содержит внутренние документы проекта.
+Этот каталог содержит канонические и вспомогательные документы проекта.
 
-## Канонические документы (source of truth)
+## Главные source-of-truth документы
 
-- Дорожная карта: [docs/roadmap/master-plan.md](./roadmap/master-plan.md)
-- Журнал прогресса: [docs/roadmap/progress-log.md](./roadmap/progress-log.md)
-- Каноническая спецификация vNext: [docs/product/spec-vnext.md](./product/spec-vnext.md)
+- Спецификация: [docs/product/spec-vnext.md](./product/spec-vnext.md)
 - Глоссарий: [docs/product/glossary.md](./product/glossary.md)
+- Вложенные канонические документы: [docs/product/canon](./product/canon)
+- Master-plan: [docs/roadmap/master-plan.md](./roadmap/master-plan.md)
+- Журнал прогресса: [docs/roadmap/progress-log.md](./roadmap/progress-log.md)
+- Аудит репозитория и деплоя: [docs/audit/2026-03-08-repo-audit.md](./audit/2026-03-08-repo-audit.md)
+
+## Архитектурная и техническая документация
+
 - Архитектурные решения: [docs/adr](./adr)
-- Архитектурная формализация ядра (R1): [docs/architecture](./architecture)
-
-## Техническая документация
-
+- Архитектурная формализация ядра: [docs/architecture](./architecture)
 - База данных: [docs/db.md](./db.md)
 - Деплой: [docs/deploy](./deploy)
 - Runbook staging: [docs/runbooks/staging.md](./runbooks/staging.md)
 
-## Примечание по историческим материалам
+## Исторические материалы
 
-Документ [docs/spec-gap-analysis.md](./spec-gap-analysis.md) сохраняется как исторический аудит разрывов реализации. Он не является канонической спецификацией и должен интерпретироваться в контексте `spec-vnext` и `master-plan`.
+Исторические документы и compatibility-first материалы сохраняются в репозитории как контекст, но не являются каноном, если противоречат:
+
+- `docs/product/spec-vnext.md`
+- `docs/product/canon/*`
+- `docs/roadmap/master-plan.md`
+- `docs/audit/2026-03-08-repo-audit.md`

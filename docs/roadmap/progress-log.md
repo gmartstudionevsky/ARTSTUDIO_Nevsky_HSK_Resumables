@@ -336,3 +336,41 @@
   - Добавлены тесты на eligibility hints и payload-guard для второго слоя.
 - Следующий шаг:
   - refinement mobile/desktop поведения второго слоя и richer UX-подсказки (без смены архитектурной модели хаба).
+
+### 2026-03-08 / Re-baseline after concept-repo-deploy audit
+
+- **Статус этапа:** `changed with rationale`
+- **Что сделано:**
+  - Проведён сквозной аудит трёх источников: репозиторий, текстовая концепция, скрининг после деплоя.
+  - Пересобран канонический пакет документации: обновлена спецификация, глоссарий, создан каталог вложенных канонических документов `docs/product/canon/*`.
+  - Master-plan пересобран от фактического состояния, а не от исторических optimistic-статусов.
+  - Зафиксировано, что foundation ядра уже силён, но хаб «Движения», control plane, отчётность, UX/UI и эксплуатационная зрелость ещё не могут считаться завершёнными.
+- **Что обновлено в docs:**
+  - `docs/product/spec-vnext.md`
+  - `docs/product/glossary.md`
+  - `docs/product/canon/*`
+  - `docs/audit/2026-03-08-repo-audit.md`
+  - `docs/roadmap/master-plan.md`
+  - `docs/README.md`
+  - `README.md`
+- **Отклонения:**
+  - Исторический статус `R5 = done` признан завышенным и заменён на более точную декомпозицию в новых блоках 0–9.
+  - Legacy-термины признаны допустимыми только как переходный compatibility-layer и подлежащими устранению.
+- **Следующий шаг:**
+  - Перейти к блоку 1.3 master-plan: устранение legacy-терминов из seed, navigation, UI-copy, импортных шаблонов, тестов и fallback labels.
+
+### 2026-03-08 / Block 0 + Block 1.3 (wave 1)
+
+- **Статус этапа:** `done`
+- **Что сделано:**
+  - Интегрирован re-baseline пакет документации из `temp`: синхронизированы `README`, `docs/README`, `spec-vnext`, `glossary`, `master-plan`, `progress-log`, `spec-gap-analysis`, добавлены `docs/product/canon/*`, `docs/audit/*`, `docs/archive/*`.
+  - Проведена первая волна cleanup пользовательского языка: в UI/seed/fallback обновлены основные термины на канонические (`Каталог позиций`, `Позиция учёта`, `Раздел`, `Статья затрат`).
+  - Обновлён import parser/validation: канонические заголовки стали primary (`Позиция учёта`, `Статья затрат`), legacy-заголовки (`Номенклатура`, `Назначение`) оставлены как transitional aliases для backward compatibility.
+  - Актуализированы e2e/unit ожидания, связанные с user-facing copy.
+- **Что обновлено в docs:**
+  - Уточнён `spec-gap-analysis` по актуальному названию пункта навигации.
+  - Зафиксирован остаточный technical debt: внутренние model/entity поля `purpose*` и related DB/Prisma имена сохранены как transitional слой до отдельной безопасной миграции.
+- **Отклонения:**
+  - Массовый rename внутренних доменных/персистентных идентификаторов (`purpose`, `defaultPurposeId`, таблица `Purpose`) сознательно не выполнялся на этом шаге во избежание рискованной миграции.
+- **Следующий шаг:**
+  - Выполнить вторую волну Block 1.3: вынести transitional aliases импорта в отдельный compatibility policy, подготовить план безопасного переименования внутреннего `purpose`-слоя в канонический `section`.

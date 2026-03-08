@@ -8,7 +8,7 @@ test('mobile nav shows admin links under "Ещё" for admin', async ({ page }) =
   await page.getByRole('button', { name: 'Ещё' }).click();
 
   await expect(page.getByRole('link', { name: 'Профиль' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Номенклатура' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Каталог позиций' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Отчёты' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Админка' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Пользователи' })).toBeVisible();

@@ -73,12 +73,12 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
       .slice(0, 3);
 
     const missingRequired: string[] = [];
-    if (!row.name) missingRequired.push('Номенклатура');
+    if (!row.name) missingRequired.push('Позиция учёта');
     if (!row.category) missingRequired.push('Раздел');
     if (!row.baseUnit) missingRequired.push('Ед. базовая');
     if (!row.defaultInputUnit) missingRequired.push('Ед. учёта (по умолчанию)');
     if (!row.reportUnit) missingRequired.push('Ед. отчёта (по умолчанию)');
-    if (!row.purposeCode) missingRequired.push('Назначение');
+    if (!row.purposeCode) missingRequired.push('Статья затрат');
 
     const best = candidates[0];
     const autoMatched = Boolean(best && best.score >= 120);
@@ -110,12 +110,12 @@ export function validateImportData(
 
   const required = [
     ['code', 'Код позиции'],
-    ['name', 'Номенклатура'],
+    ['name', 'Позиция учёта'],
     ['category', 'Раздел'],
     ['baseUnit', 'Ед. базовая'],
     ['defaultInputUnit', 'Ед. учёта (по умолчанию)'],
     ['reportUnit', 'Ед. отчёта (по умолчанию)'],
-    ['purposeCode', 'Назначение'],
+    ['purposeCode', 'Статья затрат'],
   ] as const;
 
   const codeSet = new Set<string>();

@@ -22,7 +22,7 @@ export function CatalogFilters(props: CatalogFiltersProps): JSX.Element {
         <option value="">Все</option>
         {props.categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
       </Select>
-      <Select label="Статья расходов" value={props.expenseArticleId} onChange={(event) => props.onChange({ expenseArticleId: event.target.value })}>
+      <Select label="Статья затрат" value={props.expenseArticleId} onChange={(event) => props.onChange({ expenseArticleId: event.target.value })}>
         <option value="">Все</option>
         {props.expenseArticles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
       </Select>

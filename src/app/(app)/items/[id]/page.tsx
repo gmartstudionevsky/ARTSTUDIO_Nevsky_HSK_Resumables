@@ -78,7 +78,7 @@ export default async function ItemReadonlyPage({ params }: { params: { id: strin
           <p>Код: {item.code}</p>
           <p>Раздел: {item.category.name}</p>
           <p>Статья: {item.defaultExpenseArticle.code} — {item.defaultExpenseArticle.name}</p>
-          <p>Назначение: {item.defaultPurpose.code} — {item.defaultPurpose.name}</p>
+          <p>Раздел: {item.defaultPurpose.code} — {item.defaultPurpose.name}</p>
           <p>Активность: {item.isActive ? 'Активна' : 'Архив'}</p>
         </CardContent>
       </Card>

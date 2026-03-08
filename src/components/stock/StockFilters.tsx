@@ -31,7 +31,7 @@ export function StockFilters({ value, categories, expenseArticles, onChange }: S
           <option key={item.id} value={item.id}>{item.name}</option>
         ))}
       </Select>
-      <Select label="Статья расходов" value={value.expenseArticleId} onChange={(event) => onChange({ ...value, expenseArticleId: event.target.value })}>
+      <Select label="Статья затрат" value={value.expenseArticleId} onChange={(event) => onChange({ ...value, expenseArticleId: event.target.value })}>
         <option value="">Все</option>
         {expenseArticles.map((item) => (
           <option key={item.id} value={item.id}>{item.code} — {item.name}</option>
