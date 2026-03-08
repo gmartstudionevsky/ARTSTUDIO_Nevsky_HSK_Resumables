@@ -145,3 +145,37 @@ Compatibility-ограничение R5.2: распределённый прих
    - после submit явно известно, какие строки участвовали;
    - результат и ошибки разведены по уровням (row-local / submit-global);
    - архитектура готова к наращиванию post-action цикла и локальной коррекции без перепроектирования state-модели.
+
+## 14. Реализация R5.4 (post-action цикл внутри хаба)
+
+R5.4 закрывает обязательный цикл `действие → понятный результат → короткий rollback/correction path → продолжение работы` без выпадения в отдельный продуктовый режим.
+
+Ключевые элементы:
+
+1. **Локальный result layer (не отдельный экран)**
+   - успех submit материализуется в `PostActionState`;
+   - слой рендерится внутри того же хаба (`ResultView`), рядом с рабочим полем;
+   - отображает batch + список проведённых строк + summary по режиму (`single`/`multi`).
+
+2. **Локальный rollback недавнего действия (touched safe scope)**
+   - быстрый путь из result layer: `Локально отменить последнее действие`;
+   - UI вызывает `POST /api/transactions/[id]/rollback`, который делегирует в `createRecoveryService().rollbackMovement(...)`;
+   - применяются ограничения канона R3.4: movement rollback (`IN/OUT/ADJUST`), история сохраняется, destructive universal recovery UI не открывается.
+
+3. **Локальная коррекция недавнего действия**
+   - path `Исправить в рабочем поле` переносит данные строки результата обратно в текущий row draft (`rehydrate`);
+   - пользователь остаётся в том же разделе и сразу может повторно провести корректировку;
+   - fallback-path `Исправить в модальном редакторе` сохранён для scoped compatibility.
+
+4. **Согласование с multi-row foundation R5.3**
+   - result layer строится по `participatingItemIds`, а не по single-row assumptions;
+   - при multi-row submit пользователь видит количество реально проведённых строк и line-level детали;
+   - рабочее поле не сбрасывается wholesale, что сохраняет серийный ритм.
+
+5. **Разделение state-уровней**
+   - row-level validation: `rowDrafts[itemId].error`;
+   - workspace submit failure: `workspaceError`;
+   - success/result: `postAction`;
+   - rollback/correction feedback: toast + локальная ошибка.
+
+Это создаёт устойчивый foundation для следующего слоя: richer local details (второй слой аналитик, компактная недавняя лента, deeper batch correction matrix) без смены архитектуры хаба.

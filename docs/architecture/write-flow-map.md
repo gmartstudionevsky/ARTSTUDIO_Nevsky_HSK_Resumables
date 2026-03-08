@@ -162,3 +162,21 @@ R5.3 фиксирует канонический submit-контракт UI-ур
 - при валидности хаб отправляет единый payload в существующий route `POST /api/transactions`.
 
 Таким образом, серийный режим расширяет R5.2, но не меняет канонический write-side и не вводит клиентский bypass доменной логики.
+
+## R5.4 update: post-action orchestration и recovery binding в «Движениях»
+
+R5.4 не меняет канонический submit (`POST /api/transactions`), но добавляет два post-action path внутри того же хаба:
+
+1. **Local rollback path**
+   - `POST /api/transactions/[id]/rollback` → `recoveryService.rollbackMovement`;
+   - предназначен для immediate undo недавнего movement-действия в touched safe scope.
+
+2. **Local correction path**
+   - line-result → `rehydrate row draft` → повторный submit через тот же `POST /api/transactions`;
+   - correction не равна rollback: это новое корректирующее проведение, а не удаление/скрытие прошлого факта.
+
+State orchestration:
+- submit success: `postAction`;
+- row validation: `rowDraft.error`;
+- workspace failure: `workspaceError`;
+- rollback/correction feedback: локальные toast/error.

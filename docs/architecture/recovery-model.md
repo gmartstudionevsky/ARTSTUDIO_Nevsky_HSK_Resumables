@@ -105,3 +105,14 @@
 - обновление projection receipts после rollback.
 
 Ограничение локализовано: это scoped rollback import consequences, а не universal rollback всех возможных последующих цепочек.
+
+## R5.4 update: local rollback bridge в хабе «Движения»
+
+На UI-уровне хаба «Движения» добавлен быстрый post-action bridge к recovery use-case:
+
+- endpoint `POST /api/transactions/[id]/rollback` вызывает `rollbackMovement` из `src/lib/application/recovery/service.ts`;
+- bridge используется только как локальная отмена **недавнего** действия из result layer;
+- scope остаётся touched-safe: movement rollback (`IN/OUT/ADJUST`), без universal rollback UI;
+- история и аудит сохраняются (канон R3.4), пользователь не переводится в «Историю» для immediate undo path.
+
+Таким образом recovery foundation R3.4 начинает работать как часть повседневного рабочего цикла, а не только как эксплуатационный toolkit.

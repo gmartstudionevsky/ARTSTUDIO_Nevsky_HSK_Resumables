@@ -37,6 +37,11 @@ export async function createTransaction(payload: { type: OperationType; occurred
   return httpPost<TxResult>('/api/transactions', payload);
 }
 
+
+export async function rollbackMovement(id: string, payload: { reasonId?: string; note?: string }): Promise<{ ok: boolean; message: string }> {
+  return httpPost<{ ok: boolean; message: string }>(`/api/transactions/${id}/rollback`, payload);
+}
+
 export async function cancelTransaction(id: string, payload: { reasonId?: string; cancelNote?: string }): Promise<{ ok: boolean }> {
   return httpPost<{ ok: boolean }>(`/api/transactions/${id}/cancel`, payload);
 }
