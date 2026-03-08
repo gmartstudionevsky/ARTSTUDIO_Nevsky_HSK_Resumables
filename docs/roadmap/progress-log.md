@@ -317,3 +317,22 @@
 - rollback UI в хабе ограничен movement-сценариями `IN/OUT/ADJUST`;
 - correction matrix остаётся scoped: быстрый rehydrate path для недавних строк + существующий модальный корректор, без full historical editing grid;
 - rich second-layer details (расширенные аналитики/мини-таймлайн) остаются задачей следующего шага.
+
+### 2026-03-08 / R5.5
+
+- Статус: done.
+- Что сделано:
+  - В рабочей строке хаба «Движения» добавлено локальное раскрытие второго слоя (`2-й слой`) без перехода в отдельный экран и без глобальной панели аналитик.
+  - Первый слой сохранён action-ready (позиция, количество, единица, submit), а аналитики/пояснения/вторичные действия вынесены во второй слой строки.
+  - Во втором слое добавлены локальные блоки:
+    - аналитики второго слоя (section/expenseArticle в контексте строки);
+    - controlledParameters как extension point c явным отображением availability/valuesCount;
+    - вторичные действия: показать/скрыть пояснения, показать/скрыть managed параметры, сбросить локальный draft;
+    - контекстные спокойные eligibility/availability пояснения для reduced-eligibility и отключённых/опциональных параметров.
+  - Состояние второго слоя изолировано в row draft (`secondLayerExpanded`, `showEligibilityHint`, `showControlledParameters`), что сохраняет serial-flow: раскрытие одной строки не сбрасывает другие drafts и не ломает правило `filled row = participates`.
+  - Post-action correction path (rehydrate) согласован со вторым слоем: `buildCorrectionPatch` открывает строку для локальной корректировки и не конфликтует с action-ready контролами.
+- Тесты:
+  - Обновлены unit-тесты row-state/post-action контрактов под второй слой.
+  - Добавлены тесты на eligibility hints и payload-guard для второго слоя.
+- Следующий шаг:
+  - refinement mobile/desktop поведения второго слоя и richer UX-подсказки (без смены архитектурной модели хаба).

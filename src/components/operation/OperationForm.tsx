@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
+import { buildInitialActionRowDraft, getSecondLayerEligibilityHints, hasSecondLayerPayload, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
 import { CancelModal } from '@/components/operation/CancelModal';
 import { LineEditorModal } from '@/components/operation/LineEditorModal';
 import { buildCorrectionPatch, buildPostActionState, canPrepareCorrection, PostActionState } from '@/components/operation/post-action-state';
@@ -131,7 +131,7 @@ export function OperationForm(): JSX.Element {
     setRowDrafts((prev) => ({
       ...prev,
       [item.id]: {
-        ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
+        ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, secondLayerExpanded: false, showEligibilityHint: false, showControlledParameters: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
         loadingUnits: true,
       } as ActionRowDraft,
     }));
@@ -152,7 +152,7 @@ export function OperationForm(): JSX.Element {
       setRowDrafts((prev) => ({
         ...prev,
         [item.id]: {
-          ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: item.defaultExpenseArticle.id, purposeId: item.defaultPurpose.id, comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
+          ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: item.defaultExpenseArticle.id, purposeId: item.defaultPurpose.id, comment: '', expanded: false, secondLayerExpanded: false, showEligibilityHint: false, showControlledParameters: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
           loadingUnits: false,
           error: 'Не удалось загрузить единицы этой позиции',
         },
@@ -355,6 +355,8 @@ export function OperationForm(): JSX.Element {
               const showUnitSelect = unitOptions.length > 1;
               const selectedUnitName = unitOptions.find((unit) => unit.unitId === row?.unitId)?.unit.name;
               const participates = row ? isActionRowFilled(row) : false;
+              const secondLayerHints = getSecondLayerEligibilityHints(item);
+              const secondLayerAvailable = hasSecondLayerPayload(item);
 
               return (
                 <article key={item.id} className="rounded-xl border border-border bg-bg p-3" data-testid={`movements-item-${item.id}`}>
@@ -363,9 +365,22 @@ export function OperationForm(): JSX.Element {
                       <p className="text-sm font-medium">{item.code} — {item.name}</p>
                       <p className="text-xs text-muted">Статья по умолчанию: {item.defaultExpenseArticle.code} — {item.defaultExpenseArticle.name}</p>
                     </div>
-                    <Button size="sm" variant="ghost" onClick={() => { void ensureItemRowReady(item); patchRowDraft(item.id, { expanded: !row?.expanded }); }} data-testid={`op-row-more-${item.id}`}>
-                      {row?.expanded ? 'Скрыть детали' : 'Доп. параметры'}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => { void ensureItemRowReady(item); patchRowDraft(item.id, { expanded: !row?.expanded }); }} data-testid={`op-row-more-${item.id}`}>
+                        {row?.expanded ? 'Скрыть детали' : 'Доп. параметры'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          void ensureItemRowReady(item);
+                          patchRowDraft(item.id, { secondLayerExpanded: !row?.secondLayerExpanded });
+                        }}
+                        data-testid={`op-row-second-layer-${item.id}`}
+                      >
+                        {row?.secondLayerExpanded ? 'Скрыть 2-й слой' : '2-й слой'}
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="mt-3 grid gap-2 md:grid-cols-[140px_1fr_auto] md:items-end">
@@ -418,6 +433,67 @@ export function OperationForm(): JSX.Element {
                         {purposes.map((purpose) => <option key={purpose.id} value={purpose.id}>{purpose.code} — {purpose.name}</option>)}
                       </Select>
                       <Input className="md:col-span-2" label="Комментарий" value={row.comment} onChange={(event) => patchRowDraft(item.id, { comment: event.target.value })} />
+                    </div>
+                  ) : null}
+
+                  {row?.secondLayerExpanded ? (
+                    <div className="mt-3 space-y-3 rounded-lg border border-border bg-surface p-3" data-testid={`op-row-second-layer-panel-${item.id}`}>
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted">Локальный второй слой</p>
+                      {secondLayerAvailable ? (
+                        <div className="grid gap-2 md:grid-cols-2">
+                          <div className="rounded-md border border-border bg-bg px-3 py-2 text-xs">
+                            Аналитика раздела: {item.analytics?.section?.name ?? 'Недоступна'}
+                          </div>
+                          <div className="rounded-md border border-border bg-bg px-3 py-2 text-xs">
+                            Аналитика статьи: {item.analytics?.expenseArticle?.name ?? item.defaultExpenseArticle.name}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted">Для позиции доступен только action-ready слой, расширенная аналитика не требуется.</p>
+                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => patchRowDraft(item.id, { showEligibilityHint: !row.showEligibilityHint })}
+                          data-testid={`op-row-hints-toggle-${item.id}`}
+                        >
+                          {row?.showEligibilityHint ? 'Скрыть пояснения' : 'Показать пояснения'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => patchRowDraft(item.id, { showControlledParameters: !row.showControlledParameters })}
+                          data-testid={`op-row-controlled-toggle-${item.id}`}
+                        >
+                          {row?.showControlledParameters ? 'Скрыть параметры' : 'Управляемые параметры'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => patchRowDraft(item.id, { qtyInput: '', comment: '', distributions: [], error: '' })}
+                          data-testid={`op-row-reset-draft-${item.id}`}
+                        >
+                          Сбросить draft
+                        </Button>
+                      </div>
+
+                      {row?.showControlledParameters ? (
+                        <div className="rounded-md border border-border bg-bg p-3 text-xs" data-testid={`op-row-controlled-panel-${item.id}`}>
+                          {item.analytics?.availability?.controlledParameters === 'disabled'
+                            ? 'Слой controlledParameters отключён для позиции.'
+                            : item.analytics?.controlledParameters?.valuesCount
+                              ? `Значения controlledParameters: ${item.analytics.controlledParameters.valuesCount}`
+                              : 'Управляемые параметры доступны как extension point и сейчас не заполнены.'}
+                        </div>
+                      ) : null}
+
+                      {row?.showEligibilityHint && secondLayerHints.length > 0 ? (
+                        <ul className="space-y-1 text-xs text-muted" data-testid={`op-row-hints-${item.id}`}>
+                          {secondLayerHints.map((hint) => <li key={hint}>• {hint}</li>)}
+                        </ul>
+                      ) : null}
                     </div>
                   ) : null}
 

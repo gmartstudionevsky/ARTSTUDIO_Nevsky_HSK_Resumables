@@ -3,6 +3,22 @@ import test from 'node:test';
 
 import { normalizeTxResult, resolveParticipatingItemIds } from '../../src/components/operation/OperationForm';
 
+const rowBase = {
+  qtyInput: '',
+  unitId: 'u1',
+  expenseArticleId: 'ea',
+  purposeId: 'p',
+  comment: '',
+  expanded: false,
+  secondLayerExpanded: false,
+  showEligibilityHint: false,
+  showControlledParameters: false,
+  loadingUnits: false,
+  isSubmitting: false,
+  error: '',
+  distributions: [],
+};
+
 test('normalizeTxResult: guards post-action result rendering for incomplete line payload', () => {
   const normalized = normalizeTxResult({
     transaction: { id: 'tx-1', batchId: 'BAT-1', type: 'IN', occurredAt: new Date().toISOString() },
@@ -22,13 +38,12 @@ test('normalizeTxResult: guards post-action result rendering for incomplete line
   assert.equal(normalized.lines[0]?.purpose.code, '—');
 });
 
-
 test('resolveParticipatingItemIds: row submit keeps single-row success scope', () => {
   const itemIds = resolveParticipatingItemIds({
     onlyItemId: 'item-1',
     rowDrafts: {
-      'item-1': { qtyInput: '5', unitId: 'u1', expenseArticleId: 'ea', purposeId: 'p', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] },
-      'item-2': { qtyInput: '7', unitId: 'u2', expenseArticleId: 'ea', purposeId: 'p', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] },
+      'item-1': { ...rowBase, qtyInput: '5' },
+      'item-2': { ...rowBase, qtyInput: '7', unitId: 'u2' },
     },
   });
 
