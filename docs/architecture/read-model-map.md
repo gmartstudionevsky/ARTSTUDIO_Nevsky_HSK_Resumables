@@ -143,3 +143,12 @@ Import apply/rollback больше не является отдельной «в
 - рабочий контекст «раздел» транслируется в `purposeId` запроса `/api/items`;
 - рабочее поле позиций строится из `catalog-projection` (`getPositionCatalogProjection`);
 - поиск работает как narrowing текущего read-context (`q` + `purposeId`), а не как альтернативный сценарий навигации.
+
+
+## R5.2 update: read-context и row-level action
+
+R5.2 сохраняет read-side композицию R5.1 (`/api/items` + `purposeId` + optional `q`), но меняет прикладной слой использования:
+
+- read-model продолжает быть источником рабочего поля;
+- каждая прочитанная позиция становится самостоятельной action-row с локальным state;
+- поиск остаётся вспомогательным narrowing read-context и не подменяет действие по позиции.

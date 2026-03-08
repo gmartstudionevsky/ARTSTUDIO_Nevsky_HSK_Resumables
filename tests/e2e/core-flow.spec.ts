@@ -31,12 +31,12 @@ test('core flow: intake operation -> stock check', async ({ page }) => {
 
   await page.getByTestId('op-item-search').fill(testData.itemName);
   await page.getByTestId('op-search-item').click();
-  await page.getByTestId(`movements-item-${testData.itemId}`).click();
-
-  await page.getByTestId('op-qty').fill('10');
-  await page.getByTestId('op-unit').selectOption({ label: 'шт' });
-  await page.getByTestId('op-add-line').click();
-  await page.getByTestId('op-save').click();
+  await page.getByTestId(`op-qty-${testData.itemId}`).fill('10');
+  const unitSelect = page.getByTestId(`op-unit-${testData.itemId}`);
+  if (await unitSelect.count()) {
+    await unitSelect.selectOption({ label: 'шт' });
+  }
+  await page.getByTestId(`op-row-submit-${testData.itemId}`).click();
 
   await expect(page.getByTestId('op-result')).toBeVisible({ timeout: 20000 });
   await expect(page.getByTestId('op-result-lines')).toContainText(testData.itemName);

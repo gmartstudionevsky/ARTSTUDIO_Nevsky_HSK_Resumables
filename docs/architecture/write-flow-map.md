@@ -141,3 +141,12 @@ R3.4 добавляет отдельный application recovery слой, кот
    - rollback сценарий доступен через use-case (`rollback`) и связан с projection receipts.
 
 Route handlers `/api/admin/import/xlsx/*` являются адаптерами и не содержат предметной import-логики.
+
+
+## R5.2 update: row-level action path в хабе «Движения»
+
+UI-хаб больше не требует центральной heavy-form для типового действия. Рабочая строка вызывает тот же application/write-flow контракт:
+
+- row action -> `POST /api/transactions`;
+- route -> `createAccountingEventWriteService().createMovement(...)`;
+- каноническая доменная семантика движения не дублируется на client side.
