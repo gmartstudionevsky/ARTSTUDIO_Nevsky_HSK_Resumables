@@ -43,7 +43,7 @@ function txTypeLabel(type: TxType): string {
 
 export function buildTxCreatedMessage(data: TxTemplateData): string {
   const header = `${txTypeLabel(data.type)} • ${data.occurredAt.toLocaleString('ru-RU')}`;
-  const lines = data.lines.slice(0, 10).map((line) => `- ${line.itemName} — ${line.qtyInput} ${line.unitName} (статья: ${line.expenseArticleCode}, назначение: ${line.purposeCode})`);
+  const lines = data.lines.slice(0, 10).map((line) => `- ${line.itemName} — ${line.qtyInput} ${line.unitName} (статья: ${line.expenseArticleCode}, раздел: ${line.purposeCode})`);
   const extraCount = data.lines.length > 10 ? data.lines.length - 10 : 0;
   const extraText = extraCount > 0 ? `\n… ещё ${extraCount}` : '';
 

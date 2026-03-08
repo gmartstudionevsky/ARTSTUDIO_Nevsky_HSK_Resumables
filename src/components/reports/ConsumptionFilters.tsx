@@ -50,8 +50,8 @@ export function ConsumptionFilters({
         <div className="space-y-1.5">
           <p className="text-sm font-medium text-text">Группировка</p>
           <div className="flex gap-2">
-            <Button type="button" variant={value.groupBy === 'expenseArticle' ? 'primary' : 'secondary'} size="sm" onClick={() => onChange({ ...value, groupBy: 'expenseArticle' })}>По статьям расходов</Button>
-            <Button type="button" variant={value.groupBy === 'purpose' ? 'primary' : 'secondary'} size="sm" onClick={() => onChange({ ...value, groupBy: 'purpose' })}>По назначениям</Button>
+            <Button type="button" variant={value.groupBy === 'expenseArticle' ? 'primary' : 'secondary'} size="sm" onClick={() => onChange({ ...value, groupBy: 'expenseArticle' })}>По статьям затрат</Button>
+            <Button type="button" variant={value.groupBy === 'purpose' ? 'primary' : 'secondary'} size="sm" onClick={() => onChange({ ...value, groupBy: 'purpose' })}>По разделам</Button>
           </div>
         </div>
       </div>

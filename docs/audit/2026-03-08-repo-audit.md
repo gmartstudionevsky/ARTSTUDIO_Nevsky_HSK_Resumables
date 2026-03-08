@@ -139,3 +139,11 @@
 - Выполнена первичная зачистка user-facing legacy-терминов в seed, admin/profile/catalog/stock/operation UI-copy и e2e/unit ожиданиях.
 - Legacy в import layer переведён в transitional compatibility (канонические колонки primary + legacy aliases).
 - Остаточный разрыв остаётся на уровне внутренних persistence-имён (`purpose*`), что зафиксировано как technical debt для отдельной миграционной волны.
+
+## Update 2026-03-08 (Block 1.3 completion pass)
+
+- В пользовательском слое touched scope устранены остаточные формулировки legacy (`Номенклатура`, `Назначение`, `Статья расходов`) как primary copy.
+- Import слой переведён в canon-first UX; legacy-колонки оставлены только как compatibility aliases на уровне parser.
+- Остаточный legacy локализован в:
+  - внутренних `purpose*` именах persistence/domain слоя (explicit technical debt до отдельной миграционной волны);
+  - исторических документах и журнале прогресса как зафиксированном контексте прошлых этапов.

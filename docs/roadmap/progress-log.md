@@ -374,3 +374,25 @@
   - Массовый rename внутренних доменных/персистентных идентификаторов (`purpose`, `defaultPurposeId`, таблица `Purpose`) сознательно не выполнялся на этом шаге во избежание рискованной миграции.
 - **Следующий шаг:**
   - Выполнить вторую волну Block 1.3: вынести transitional aliases импорта в отдельный compatibility policy, подготовить план безопасного переименования внутреннего `purpose`-слоя в канонический `section`.
+
+### 2026-03-08 / Block 1.3 (wave 2, completion pass)
+
+- **Статус этапа:** `done`
+- **Что сделано:**
+  - Проведён целевой repo-audit remaining legacy после первой волны: UI-copy, import UI, отчёты, история, admin labels, telegram templates, parser aliases и связанный тестовый слой.
+  - Доведён пользовательский слой до канонического языка в touched scope: убраны остаточные формулировки `Номенклатура`, `Назначение`, `Статья расходов` из экранного языка и подсказок.
+  - Import UX переведён в canon-first коммуникацию: канонический шаблон объявлен основным, legacy-колонки явно описаны как compatibility-only.
+  - Import parser оставлен backward-compatible, но локализован: legacy aliases поддерживаются только как переходный слой (`Номенклатура`, `Статья расходов`, `Назначение` -> канонические колонки).
+  - Обновлены тексты в operation/history/reports/catalog/admin/telegram так, чтобы основной рабочий контекст был только `Раздел`.
+- **Проверки:**
+  - `npm run lint`
+  - `npm run typecheck`
+  - `node --import tsx --test tests/components/operation.action-row-state.test.ts tests/components/operation.post-action-state.test.ts tests/components/operation.result-contract.test.ts tests/application/import-sync.use-case.test.ts`
+  - `npm run build`
+  - Repo-search после cleanup: в коде legacy-термины остались только в import compatibility aliases и в документации исторического/compatibility характера.
+- **Remaining legacy after block 1.3:**
+  - Внутренние persistence/domain имена `purpose*` сохранены как локализованный technical debt (безопасность миграций > косметический rename на этом этапе).
+  - Import aliases `Номенклатура` / `Статья расходов` / `Назначение` сохранены только как backward compatibility для старых файлов.
+  - Исторические документы (`docs/spec-gap-analysis.md`, части старых roadmap/audit записей) сохраняют legacy-лексему как зафиксированный контекст прошлых этапов.
+- **Следующий шаг:**
+  - Перейти к следующему блоку master-plan (контрольный слой и эксплуатационная зрелость), отдельно спланировав безопасную миграционную волну переименования внутреннего `purpose`-слоя в `section`.

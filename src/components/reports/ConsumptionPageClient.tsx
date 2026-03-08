@@ -117,7 +117,7 @@ export function ConsumptionPageClient({ canExport }: { canExport: boolean }): JS
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Отчёт: расход</h1>
         <p className="text-sm text-muted">
-          Показывает расход по позициям с разбивкой по статьям расходов (или назначениям).
+          Показывает расход по позициям с разбивкой по статьям затрат (или разделам).
         </p>
       </header>
 

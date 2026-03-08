@@ -257,7 +257,7 @@ export function createAccountingEventWriteService(
             const basePurposeId = line.purposeId ?? (command.intakeMode === 'SINGLE_PURPOSE' && command.headerPurposeId ? command.headerPurposeId : item.defaultPurposeId);
 
             if (command.movementType === TxType.IN && command.intakeMode === 'DISTRIBUTE_PURPOSES') {
-              if (!line.distributions?.length) return failure(MOVEMENT_SCENARIO, 'validation', 'Добавьте распределение по назначениям', command.context);
+              if (!line.distributions?.length) return failure(MOVEMENT_SCENARIO, 'validation', 'Добавьте распределение по разделам', command.context);
               const sum = line.distributions.reduce((acc, entry) => acc + entry.qtyInput, 0);
               if (Math.abs(sum - line.qtyInput) > 0.0001) return failure(MOVEMENT_SCENARIO, 'validation', 'Сумма распределений должна совпадать с количеством строки', command.context);
               for (const dist of line.distributions) {

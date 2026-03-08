@@ -13,7 +13,7 @@ export function ImportUploadCard({ onFileChange, onPreview, loading, hasFile }: 
     <Card>
       <CardHeader>
         <CardTitle>Загрузка XLSX</CardTitle>
-        <CardDescription>Поддерживается файл c листами “Справочник” и “Единицы”.</CardDescription>
+        <CardDescription>Поддерживается канонический файл с листами “Справочник” и “Единицы” (legacy-колонки также распознаются в режиме совместимости).</CardDescription>
       </CardHeader>
       <CardContent>
         <input

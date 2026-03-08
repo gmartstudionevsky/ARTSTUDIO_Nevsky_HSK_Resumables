@@ -19,8 +19,8 @@ export type DictionaryItem = { id: string; isActive: boolean; name: string; sort
 const tabConfig: { type: DictionaryType; label: string; addLabel: string; single: string }[] = [
   { type: 'categories', label: 'Разделы', addLabel: 'Добавить раздел', single: 'раздел' },
   { type: 'units', label: 'Единицы', addLabel: 'Добавить единицу', single: 'единицу' },
-  { type: 'expense-articles', label: 'Статьи расходов', addLabel: 'Добавить статью расходов', single: 'статью расходов' },
-  { type: 'purposes', label: 'Назначения', addLabel: 'Добавить назначение', single: 'назначение' },
+  { type: 'expense-articles', label: 'Статьи затрат', addLabel: 'Добавить статью затрат', single: 'статью затрат' },
+  { type: 'purposes', label: 'Разделы учёта', addLabel: 'Добавить раздел учёта', single: 'раздел учёта' },
   { type: 'reasons', label: 'Причины', addLabel: 'Добавить причину', single: 'причину' },
 ];
 
