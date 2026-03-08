@@ -27,6 +27,9 @@ export function buildCorrectionPatch(line: TxLineView): Partial<ActionRowDraft> 
     purposeId: line.purpose.id,
     comment: line.comment ?? '',
     expanded: true,
+    secondLayerExpanded: true,
+    showEligibilityHint: false,
+    showControlledParameters: false,
     error: '',
   };
 }

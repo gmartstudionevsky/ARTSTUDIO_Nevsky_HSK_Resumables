@@ -7,6 +7,9 @@ export type ActionRowDraft = {
   purposeId: string;
   comment: string;
   expanded: boolean;
+  secondLayerExpanded: boolean;
+  showEligibilityHint: boolean;
+  showControlledParameters: boolean;
   loadingUnits: boolean;
   isSubmitting: boolean;
   error: string;
@@ -38,6 +41,9 @@ export function buildInitialActionRowDraft(item: ItemOption, unitRows: UnitOptio
     purposeId: resolveDefaultPurposeId(item, context),
     comment: '',
     expanded: false,
+    secondLayerExpanded: false,
+    showEligibilityHint: false,
+    showControlledParameters: false,
     loadingUnits: false,
     isSubmitting: false,
     error: '',
@@ -82,4 +88,41 @@ export function validateActionRowDraft(draft: ActionRowDraft): string {
   if (Number(draft.qtyInput) <= 0) return 'Введите количество больше нуля';
   if (!draft.unitId) return 'Выберите единицу';
   return '';
+}
+
+export function getSecondLayerEligibilityHints(item: ItemOption): string[] {
+  const hints: string[] = [];
+  const analytics = item.analytics;
+
+  if (!analytics) {
+    hints.push('Расширенные аналитики не настроены для этой позиции, используется базовый режим строки.');
+    return hints;
+  }
+
+  if (analytics.availability?.controlledParameters === 'disabled') {
+    hints.push('Управляемые параметры для позиции отключены и не влияют на проведение.');
+  }
+
+  if (analytics.availability?.controlledParameters === 'optional' && (analytics.controlledParameters?.valuesCount ?? 0) === 0) {
+    hints.push('Управляемые параметры опциональны: сейчас слой не участвует в расширенных метриках.');
+  }
+
+  if (analytics.projectionEligibility?.expandedMetrics === false) {
+    hints.push('Расширенные метрики работают в reduced-eligibility режиме для этой позиции.');
+  }
+
+  return hints;
+}
+
+export function hasSecondLayerPayload(item: ItemOption): boolean {
+  const analytics = item.analytics;
+  if (!analytics) return false;
+
+  return Boolean(
+    analytics.expenseArticle ||
+    analytics.section ||
+    analytics.controlledParameters ||
+    analytics.availability ||
+    analytics.projectionEligibility,
+  );
 }
