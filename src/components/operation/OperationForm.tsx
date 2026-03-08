@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { buildInitialActionRowDraft, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
+import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
 import { BatchLinesList } from '@/components/operation/BatchLinesList';
 import { CancelModal } from '@/components/operation/CancelModal';
 import { DistributePurposesModal } from '@/components/operation/DistributePurposesModal';
@@ -131,9 +131,12 @@ export function OperationForm(): JSX.Element {
       setUnitsByItemId((prev) => ({ ...prev, [item.id]: unitRows }));
       setRowDrafts((prev) => ({
         ...prev,
-        [item.id]: prev[item.id]?.unitId
-          ? { ...prev[item.id], loadingUnits: false, error: '' }
-          : buildInitialActionRowDraft(item, unitRows, actionContext),
+        [item.id]: hydrateActionRowDraftWithUnits({
+          currentDraft: prev[item.id],
+          item,
+          unitRows,
+          context: actionContext,
+        }),
       }));
     } catch {
       setRowDrafts((prev) => ({

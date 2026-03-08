@@ -43,6 +43,28 @@ export function buildInitialActionRowDraft(item: ItemOption, unitRows: UnitOptio
   };
 }
 
+export function hydrateActionRowDraftWithUnits(params: {
+  currentDraft: ActionRowDraft | undefined;
+  item: ItemOption;
+  unitRows: UnitOption[];
+  context: ActionRowContext;
+}): ActionRowDraft {
+  const { currentDraft, item, unitRows, context } = params;
+  const fallback = buildInitialActionRowDraft(item, unitRows, context);
+
+  if (!currentDraft) return fallback;
+
+  return {
+    ...currentDraft,
+    qtyInput: currentDraft.qtyInput || fallback.qtyInput,
+    unitId: currentDraft.unitId || fallback.unitId,
+    expenseArticleId: currentDraft.expenseArticleId || fallback.expenseArticleId,
+    purposeId: currentDraft.purposeId || fallback.purposeId,
+    loadingUnits: false,
+    error: '',
+  };
+}
+
 export function validateActionRowDraft(draft: ActionRowDraft): string {
   if (Number(draft.qtyInput) <= 0) return 'Введите количество больше нуля';
   if (!draft.unitId) return 'Выберите единицу';

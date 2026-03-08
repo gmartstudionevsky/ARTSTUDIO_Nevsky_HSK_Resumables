@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildInitialActionRowDraft, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
+import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
 import { ItemOption, UnitOption } from '../../src/lib/operation/types';
 
 const item: ItemOption = {
@@ -64,4 +64,33 @@ test('buildInitialActionRowDraft: sets default unit and row defaults', () => {
 test('validateActionRowDraft: returns local errors for qty/unit', () => {
   assert.equal(validateActionRowDraft({ qtyInput: '0', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '' }), 'Введите количество больше нуля');
   assert.equal(validateActionRowDraft({ qtyInput: '2', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '' }), 'Выберите единицу');
+});
+
+test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hydration', () => {
+  const hydrated = hydrateActionRowDraftWithUnits({
+    currentDraft: {
+      qtyInput: '10',
+      unitId: '',
+      expenseArticleId: item.defaultExpenseArticle.id,
+      purposeId: item.defaultPurpose.id,
+      comment: 'Комментарий',
+      expanded: false,
+      loadingUnits: true,
+      isSubmitting: false,
+      error: 'old',
+    },
+    item,
+    unitRows: units,
+    context: {
+      type: 'IN',
+      intakeMode: 'SINGLE_PURPOSE',
+      headerPurposeId: '',
+      workspaceSectionId: '00000000-0000-0000-0000-000000000098',
+    },
+  });
+
+  assert.equal(hydrated.qtyInput, '10');
+  assert.equal(hydrated.unitId, units[1]?.unitId);
+  assert.equal(hydrated.loadingUnits, false);
+  assert.equal(hydrated.error, '');
 });
