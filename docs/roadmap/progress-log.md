@@ -294,3 +294,26 @@
   - Добавлен targeted regression test на контракт single-row scope для row-submit.
 - Следующий шаг:
   - Продолжить R5.4 (post-action слой) без изменения канона R5.3.
+
+### 2026-03-08 / R5.4
+
+Что сделано:
+- В хабе «Движения» введён канонический локальный post-action слой (`PostActionState` + `ResultView`): после submit пользователь остаётся в том же workspace и получает читаемый итог по участвовавшим строкам (`single`/`multi`).
+- Добавлен быстрый локальный rollback последнего действия через recovery use-case foundation R3.4: новый UI-экшен `Локально отменить последнее действие` и API path `POST /api/transactions/[id]/rollback` (movement touched safe scope).
+- Добавлена локальная коррекция недавнего действия без перехода в «Историю»: `Исправить в рабочем поле` ре-гидратирует строку результата обратно в текущий row draft (action-ready состояние), сохраняя раздел и рабочий контекст.
+- Разведены состояния:
+  - row-level validation остаётся в `rowDrafts[*].error`;
+  - workspace submit failure остаётся в `workspaceError`;
+  - success/result живёт в `postAction`;
+  - rollback/correction ошибки отображаются локально без смешивания с validation-path.
+- Result layer согласован с multi-row foundation R5.3: summary и line-list показывают именно участвовавшие строки, не сбрасывая весь workspace.
+
+Обновлённые документы:
+- `master-plan`: R5.4 отмечен как `done`.
+- `movements-hub`: зафиксирован пост-экшен цикл (result/rollback/correction) внутри одного хаба.
+- `recovery-model`: уточнён UI-bridge к recovery use-case для touched safe rollback в «Движениях».
+
+Ограничения шага (осознанно оставлено на следующий слой):
+- rollback UI в хабе ограничен movement-сценариями `IN/OUT/ADJUST`;
+- correction matrix остаётся scoped: быстрый rehydrate path для недавних строк + существующий модальный корректор, без full historical editing grid;
+- rich second-layer details (расширенные аналитики/мини-таймлайн) остаются задачей следующего шага.

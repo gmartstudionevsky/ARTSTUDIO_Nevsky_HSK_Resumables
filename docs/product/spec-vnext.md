@@ -327,3 +327,14 @@ Import v2 — не отдельная предметная логика, а ка
 
 - default: opening-init (`TxType.OPENING`);
 - fallback policy: operational intake (`TxType.IN`) через явный import mode (`openingEventMode`).
+
+## R5.4 update — post-action цикл хаба «Движения»
+
+В рамках R5.4 post-action цикл закреплён как обязательная часть одного рабочего пространства:
+
+- после проведения пользователь получает локальный result layer в том же хабе;
+- из результата доступен быстрый rollback недавнего movement-действия (touched safe scope);
+- доступна быстрая коррекция недавней строки через rehydrate в action-ready row draft;
+- переход в «Историю» остаётся инструментом глубокого анализа прошлого, но не основным путем immediate undo/correct.
+
+Этот шаг завершает минимально usable closed-loop для хаба «Движения» и подготавливает второй слой локального раскрытия/полировки.

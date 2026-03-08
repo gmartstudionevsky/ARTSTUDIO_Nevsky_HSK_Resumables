@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
 import { CancelModal } from '@/components/operation/CancelModal';
 import { LineEditorModal } from '@/components/operation/LineEditorModal';
+import { buildCorrectionPatch, buildPostActionState, canPrepareCorrection, PostActionState } from '@/components/operation/post-action-state';
 import { ResultView } from '@/components/operation/ResultView';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -13,7 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Tabs } from '@/components/ui/Tabs';
 import { Toast } from '@/components/ui/Toast';
 import { parseRuDateTime } from '@/lib/datetime/ru';
-import { cancelLine, cancelTransaction, correctLine, createTransaction, fetchItemUnits, fetchLookup, fetchMovementWorkspace, fetchPolicies } from '@/lib/operation/api';
+import { cancelLine, cancelTransaction, correctLine, createTransaction, fetchItemUnits, fetchLookup, fetchMovementWorkspace, fetchPolicies, rollbackMovement } from '@/lib/operation/api';
 import { IntakeMode, ItemOption, LookupItem, OperationType, TxLineView, TxResult, UnitOption } from '@/lib/operation/types';
 
 function nowText(): string {
@@ -64,13 +65,14 @@ export function OperationForm(): JSX.Element {
   const [reasons, setReasons] = useState<LookupItem[]>([]);
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
   const [workspaceError, setWorkspaceError] = useState('');
-  const [result, setResult] = useState<TxResult | null>(null);
+  const [postAction, setPostAction] = useState<PostActionState | null>(null);
   const [toast, setToast] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLineId, setCancelLineId] = useState('');
   const [correctLineItem, setCorrectLineItem] = useState<TxLineView | null>(null);
   const [policies, setPolicies] = useState({ supervisorBackdateDays: 3, requireReasonOnCancel: true, allowNegativeStock: true, displayDecimals: 2, enablePeriodLocks: false });
   const [warnings, setWarnings] = useState<Array<{ message: string; itemName: string }>>([]);
+  const [rollbackBusy, setRollbackBusy] = useState(false);
 
   const actionContext = useMemo<ActionRowContext>(() => ({
     type,
@@ -223,7 +225,7 @@ export function OperationForm(): JSX.Element {
       });
 
       const normalized = normalizeTxResult(saved);
-      setResult(normalized);
+      setPostAction(buildPostActionState(normalized, participatingItemIds));
       setWarnings(saved.warnings ?? []);
       setToast(participatingItemIds.length === 1 ? 'Позиция проведена' : `Проведено строк: ${participatingItemIds.length}`);
       setRowDrafts((prev) => {
@@ -251,17 +253,17 @@ export function OperationForm(): JSX.Element {
   }
 
   async function submitCancel(payload: { reasonId?: string; cancelNote?: string }): Promise<void> {
-    if (!result) return;
+    if (!postAction) return;
     try {
       if (cancelLineId) {
         await cancelLine(cancelLineId, payload);
       } else {
-        await cancelTransaction(result.transaction.id, payload);
+        await cancelTransaction(postAction.result.transaction.id, payload);
       }
       setToast(cancelLineId ? 'Строка отменена' : 'Операция отменена');
       setCancelOpen(false);
       setCancelLineId('');
-      setResult(null);
+      setPostAction(null);
       setWarnings([]);
     } catch (err) {
       setWorkspaceError(err instanceof Error ? err.message : 'Ошибка отмены');
@@ -283,6 +285,36 @@ export function OperationForm(): JSX.Element {
     const lineUnits = await fetchItemUnits(line.item.id);
     setCorrectUnits(lineUnits);
     setCorrectLineItem(line);
+  }
+
+  async function rollbackLastAction(): Promise<void> {
+    if (!postAction) return;
+    setRollbackBusy(true);
+    try {
+      await rollbackMovement(postAction.result.transaction.id, {});
+      setToast('Последнее действие откачено локально');
+      setPostAction(null);
+      setWarnings([]);
+      setWorkspaceError('');
+    } catch (err) {
+      setWorkspaceError(err instanceof Error ? err.message : 'Rollback недоступен');
+    } finally {
+      setRollbackBusy(false);
+    }
+  }
+
+  async function hydrateLineForCorrection(line: TxLineView): Promise<void> {
+    if (!canPrepareCorrection(line, rowDrafts)) {
+      setWorkspaceError('Позиция недоступна в текущем разделе рабочего поля. Используйте модальный корректор.');
+      return;
+    }
+
+    const workspaceItem = items.find((item) => item.id === line.item.id);
+    if (!workspaceItem) return;
+
+    await ensureItemRowReady(workspaceItem);
+    patchRowDraft(line.item.id, buildCorrectionPatch(line));
+    setToast('Строка перенесена в рабочее поле для коррекции');
   }
 
   return (
@@ -404,7 +436,21 @@ export function OperationForm(): JSX.Element {
       <Button onClick={() => { void submitParticipatingRows(); }} data-testid="op-save">Провести заполненные строки</Button>
       {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.itemName}>{w.itemName}</li>)}</ul></div> : null}
 
-      {result ? <ResultView transaction={result.transaction} lines={result.lines} onCancelTx={() => setCancelOpen(true)} onCancelLine={(lineId) => { setCancelLineId(lineId); setCancelOpen(true); }} onCorrectLine={(line) => { void openCorrectModal(line); }} /> : null}
+      {postAction ? (
+        <ResultView
+          transaction={postAction.result.transaction}
+          lines={postAction.result.lines}
+          participatingItemIds={postAction.participatingItemIds}
+          mode={postAction.mode}
+          rollbackAvailable={Boolean(postAction.result.transaction.type === 'IN' || postAction.result.transaction.type === 'OUT' || postAction.result.transaction.type === 'ADJUST')}
+          rollbackBusy={rollbackBusy}
+          correctionHint="Быстрая коррекция переносит недавнюю строку обратно в рабочее поле текущего хаба без перехода в историю."
+          onRollbackTx={() => { void rollbackLastAction(); }}
+          onHydrateLineForCorrection={(line) => { void hydrateLineForCorrection(line); }}
+          onCancelLine={(lineId) => { setCancelLineId(lineId); setCancelOpen(true); }}
+          onCorrectLine={(line) => { void openCorrectModal(line); }}
+        />
+      ) : null}
       {toast ? <Toast message={toast} onClose={() => setToast('')} /> : null}
 
       <CancelModal open={cancelOpen} reasons={reasons} requireReason={policies.requireReasonOnCancel} onClose={() => { setCancelOpen(false); setCancelLineId(''); }} onSubmit={(payload) => { void submitCancel(payload); }} />

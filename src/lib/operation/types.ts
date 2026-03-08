@@ -65,6 +65,11 @@ export interface TxLineView {
 export interface TxResult {
   transaction: { id: string; batchId: string; type: OperationType; occurredAt: string };
   lines: TxLineView[];
+  recovery?: {
+    eventContextId?: string;
+    causalChain?: string[];
+    correlationId?: string | null;
+  };
   warnings?: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string }>;
 }
 
