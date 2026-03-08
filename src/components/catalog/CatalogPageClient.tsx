@@ -41,7 +41,7 @@ export function CatalogPageClient({ categories, expenseArticles, purposes, units
     <section className="space-y-4">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Каталог позиций</h1>
-        <p className="text-sm text-muted">Позиции, единицы учёта и привязки к статьям/назначениям.</p>
+        <p className="text-sm text-muted">Позиции, единицы учёта и привязки к статьям затрат/разделам.</p>
       </header>
 
       <CatalogFilters {...filters} categories={categories} expenseArticles={expenseArticles} onChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))} />

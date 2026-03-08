@@ -16,7 +16,7 @@ export function DistributePurposesModal({ open, totalQty, purposes, initial, onC
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-2xl space-y-3 rounded-lg border border-border bg-bg p-4">
-        <h3 className="text-lg font-semibold">Распределить по назначениям</h3>
+        <h3 className="text-lg font-semibold">Распределить по разделам</h3>
         {rows.map((row, index) => (
           <div key={`${index}-${row.purposeId}`} className="grid gap-2 md:grid-cols-2">
             <Select value={row.purposeId} onChange={(event) => setRows((prev) => prev.map((item, idx) => idx === index ? { ...item, purposeId: event.target.value } : item))}>

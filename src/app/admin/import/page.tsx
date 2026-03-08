@@ -145,7 +145,7 @@ export default function AdminImportPage(): JSX.Element {
       {summary ? (
         <section className="space-y-4">
           <ImportSummary summary={summary} />
-          <p className="text-sm text-muted">Синхронизация номенклатуры со складом выполняется автоматически, при спорных совпадениях можно вручную выбрать действие.</p>
+          <p className="text-sm text-muted">Синхронизация каталога позиций со складом выполняется автоматически, при спорных совпадениях можно вручную выбрать действие.</p>
 
           <div className="grid gap-3 md:grid-cols-3">
             <Select label="Режим синхронизации" value={syncMode} onChange={(event) => setSyncMode(event.target.value as 'AUTO' | 'MANUAL')}>
@@ -209,7 +209,7 @@ export default function AdminImportPage(): JSX.Element {
           <ImportIssuesTable errors={errors} warnings={warnings} />
           <div className="flex flex-wrap gap-2">
             <Button onClick={handleCommit} loading={loadingCommit} disabled={errors.length > 0 || !jobId}>Импортировать</Button>
-            <Link href="/catalog" className="inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-medium text-text hover:bg-surface/80">Перейти в Номенклатуру</Link>
+            <Link href="/catalog" className="inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-medium text-text hover:bg-surface/80">Перейти в Каталог позиций</Link>
             <Link href="/stock" className="inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-surface px-4 text-sm font-medium text-text hover:bg-surface/80">Перейти на Склад</Link>
           </div>
         </section>

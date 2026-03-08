@@ -14,7 +14,7 @@ export function TransactionLinesTable({ lines, onCancel, onCorrect, decimals }: 
           <tr>
             <th className="px-4 py-3">Позиция</th>
             <th className="px-4 py-3">Количество</th>
-            <th className="px-4 py-3">Статья / назначение</th>
+            <th className="px-4 py-3">Статья затрат / раздел</th>
             <th className="px-4 py-3">Статус</th>
             <th className="px-4 py-3">Действия</th>
           </tr>
