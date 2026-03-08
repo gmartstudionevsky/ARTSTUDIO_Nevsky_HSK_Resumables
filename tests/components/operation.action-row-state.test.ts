@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
+import { buildInitialActionRowDraft, getSecondLayerEligibilityHints, hasSecondLayerPayload, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
 import { ItemOption, UnitOption } from '../../src/lib/operation/types';
 
 const item: ItemOption = {
@@ -36,6 +36,22 @@ const units: UnitOption[] = [
   },
 ];
 
+const baseDraft = {
+  qtyInput: '',
+  unitId: '',
+  expenseArticleId: '',
+  purposeId: '',
+  comment: '',
+  expanded: false,
+  secondLayerExpanded: false,
+  showEligibilityHint: false,
+  showControlledParameters: false,
+  loadingUnits: false,
+  isSubmitting: false,
+  error: '',
+  distributions: [],
+};
+
 test('resolveDefaultPurposeId: uses header purpose for IN single purpose mode', () => {
   const purposeId = resolveDefaultPurposeId(item, {
     type: 'IN',
@@ -60,24 +76,23 @@ test('buildInitialActionRowDraft: starts empty and keeps defaults', () => {
   assert.equal(draft.expenseArticleId, item.defaultExpenseArticle.id);
   assert.equal(draft.purposeId, item.defaultPurpose.id);
   assert.deepEqual(draft.distributions, []);
+  assert.equal(draft.secondLayerExpanded, false);
 });
 
 test('validateActionRowDraft: returns local errors for qty/unit', () => {
-  assert.equal(validateActionRowDraft({ qtyInput: '0', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }), 'Введите количество больше нуля');
-  assert.equal(validateActionRowDraft({ qtyInput: '2', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }), 'Выберите единицу');
+  assert.equal(validateActionRowDraft({ ...baseDraft, qtyInput: '0' }), 'Введите количество больше нуля');
+  assert.equal(validateActionRowDraft({ ...baseDraft, qtyInput: '2' }), 'Выберите единицу');
 });
 
 test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hydration', () => {
   const hydrated = hydrateActionRowDraftWithUnits({
     currentDraft: {
+      ...baseDraft,
       qtyInput: '10',
-      unitId: '',
       expenseArticleId: item.defaultExpenseArticle.id,
       purposeId: item.defaultPurpose.id,
       comment: 'Комментарий',
-      expanded: false,
       loadingUnits: true,
-      isSubmitting: false,
       error: 'old',
       distributions: [{ purposeId: item.defaultPurpose.id, qtyInput: '10' }],
     },
@@ -100,11 +115,33 @@ test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hy
 
 test('filled-row rule: only rows with qty input participate', () => {
   const rowDrafts = {
-    a: { qtyInput: '', unitId: 'u1', expenseArticleId: 'ea', purposeId: 'p', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] },
-    b: { qtyInput: '2', unitId: 'u2', expenseArticleId: 'ea', purposeId: 'p', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] },
+    a: { ...baseDraft, unitId: 'u1' },
+    b: { ...baseDraft, qtyInput: '2', unitId: 'u2' },
   };
 
   assert.equal(isActionRowFilled(rowDrafts.a), false);
   assert.equal(isActionRowFilled(rowDrafts.b), true);
   assert.deepEqual(pickParticipatingRowIds(rowDrafts), ['b']);
+});
+
+test('second-layer hints: returns calm contextual notes for reduced availability', () => {
+  const hints = getSecondLayerEligibilityHints({
+    ...item,
+    analytics: {
+      availability: {
+        expenseArticle: 'required',
+        section: 'required',
+        controlledParameters: 'optional',
+      },
+      controlledParameters: { mode: 'optional', valuesCount: 0 },
+      projectionEligibility: { expandedMetrics: false, reasons: ['optional empty'] },
+    },
+  });
+
+  assert.equal(hints.length >= 2, true);
+});
+
+test('second-layer payload guard: false when analytics absent', () => {
+  assert.equal(hasSecondLayerPayload(item), false);
+  assert.equal(hasSecondLayerPayload({ ...item, analytics: { section: { id: 's1', name: 'Секция' } } }), true);
 });

@@ -16,7 +16,18 @@ export interface ItemOption {
   defaultExpenseArticle: { id: string; code: string; name: string };
   defaultPurpose: { id: string; code: string; name: string };
   analytics?: {
+    expenseArticle?: { id: string; code?: string; name: string } | null;
     section?: { id: string; code?: string; name: string } | null;
+    controlledParameters?: { mode: 'required' | 'optional' | 'disabled'; valuesCount: number };
+    availability?: {
+      expenseArticle: 'required' | 'optional' | 'disabled';
+      section: 'required' | 'optional' | 'disabled';
+      controlledParameters: 'required' | 'optional' | 'disabled';
+    };
+    projectionEligibility?: {
+      expandedMetrics: boolean;
+      reasons: string[];
+    };
   };
 }
 

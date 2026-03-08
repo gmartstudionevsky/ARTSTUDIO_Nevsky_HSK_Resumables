@@ -34,6 +34,9 @@ test('buildCorrectionPatch: rehydrates row draft from recent result line', () =>
     purposeId: 'p-1',
     comment: 'note',
     expanded: true,
+    secondLayerExpanded: true,
+    showEligibilityHint: false,
+    showControlledParameters: false,
     error: '',
   });
 });
@@ -46,6 +49,9 @@ test('canPrepareCorrection: allows local correction only for rows in current wor
     purposeId: '',
     comment: '',
     expanded: false,
+    secondLayerExpanded: true,
+    showEligibilityHint: false,
+    showControlledParameters: false,
     loadingUnits: false,
     isSubmitting: false,
     error: '',
