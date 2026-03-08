@@ -414,3 +414,10 @@
   - Запущены `npm run lint`, `npm run typecheck`, профильный unit-test для import parser, `npm run build`.
 - **Итог по Block 1.3:**
   - После corrective wave блок закрыт честно: пользовательский слой остаётся каноническим, import — canon-first, legacy локализован в compatibility/internal/historical зонах и задокументирован.
+
+## Update 2026-03-08 (Block 1.3 final corrective)
+
+- Закрыт persisted override для `ui_texts`: добавлена идемпотентная синхронизация канонических ключей и repair-path для существующих окружений (`seed + standalone script`).
+- Устранено смысловое схлопывание импорта: `Раздел` и `Статья затрат` разведены в отдельные поля (`sectionCode`, `expenseArticleCode`) на уровнях parse/validate/apply.
+- Добавлены целевые тесты на repair persisted `nav.catalog` и независимую валидацию/сводку аналитических осей импорта.
+- **Статус Block 1.3:** `done` только при успешной проверке из changelog `docs/changelog/2026-03-08-block-1.3-final-corrective.md`.

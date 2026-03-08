@@ -25,7 +25,7 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
   for (const row of parsed.directoryRows) {
     const rowCode = normalize(row.code);
     const rowName = normalize(row.name);
-    const rowCategory = normalize(row.category);
+    const rowSection = normalize(row.sectionCode);
     const rowAliases = new Set([rowName, ...parseSynonyms(row.synonyms)]);
 
     const candidates = existingItems
@@ -38,7 +38,7 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
         const codeExact = rowCode && rowCode === itemCode;
         const nameExact = rowName && rowName === itemName;
         const nameAlias = [...rowAliases].some((alias) => itemAliases.has(alias));
-        const categoryExact = rowCategory && rowCategory === itemCategory;
+        const categoryExact = rowSection && rowSection === itemCategory;
 
         let score = 0;
         const reasons: string[] = [];
@@ -74,11 +74,11 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
 
     const missingRequired: string[] = [];
     if (!row.name) missingRequired.push('Позиция учёта');
-    if (!row.category) missingRequired.push('Раздел');
+    if (!row.sectionCode) missingRequired.push('Раздел');
     if (!row.baseUnit) missingRequired.push('Ед. базовая');
     if (!row.defaultInputUnit) missingRequired.push('Ед. учёта (по умолчанию)');
     if (!row.reportUnit) missingRequired.push('Ед. отчёта (по умолчанию)');
-    if (!row.purposeCode) missingRequired.push('Статья затрат');
+    if (!row.expenseArticleCode) missingRequired.push('Статья затрат');
 
     const best = candidates[0];
     const autoMatched = Boolean(best && best.score >= 120);
@@ -88,8 +88,8 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
       rowNumber: row.rowNumber,
       sourceCode: row.code,
       sourceName: row.name,
-      sourceCategory: row.category,
-      sourceKey: normalize(`${row.code}::${row.name}::${row.category}`),
+      sourceCategory: row.sectionCode,
+      sourceKey: normalize(`${row.code}::${row.name}::${row.sectionCode}`),
       status: autoMatched ? 'MATCHED' : needsReview ? 'NEEDS_REVIEW' : 'CREATE',
       selectedItemId: autoMatched ? best.itemId : null,
       selectedReason: autoMatched ? `Автосопоставление: ${best.reason}` : null,
@@ -111,11 +111,11 @@ export function validateImportData(
   const required = [
     ['code', 'Код позиции'],
     ['name', 'Позиция учёта'],
-    ['category', 'Раздел'],
+    ['sectionCode', 'Раздел'],
     ['baseUnit', 'Ед. базовая'],
     ['defaultInputUnit', 'Ед. учёта (по умолчанию)'],
     ['reportUnit', 'Ед. отчёта (по умолчанию)'],
-    ['purposeCode', 'Статья затрат'],
+    ['expenseArticleCode', 'Статья затрат'],
   ] as const;
 
   const codeSet = new Set<string>();
@@ -172,8 +172,8 @@ export function validateImportData(
     }
   }
 
-  const categorySet = new Set(parsed.directoryRows.map((row) => row.category).filter(Boolean));
-  const purposeSet = new Set(parsed.directoryRows.map((row) => row.purposeCode).filter(Boolean));
+  const sectionSet = new Set(parsed.directoryRows.map((row) => row.sectionCode).filter(Boolean));
+  const expenseArticleSet = new Set(parsed.directoryRows.map((row) => row.expenseArticleCode).filter(Boolean));
   const unitSet = new Set<string>();
 
   for (const row of parsed.directoryRows) {
@@ -191,10 +191,10 @@ export function validateImportData(
   return {
     summary: {
       items: parsed.directoryRows.length,
-      categories: categorySet.size,
+      categories: sectionSet.size,
       units: unitSet.size,
-      expenseArticles: purposeSet.size,
-      purposes: purposeSet.size,
+      expenseArticles: expenseArticleSet.size,
+      purposes: sectionSet.size,
       itemUnits: parsed.unitRows.length,
       openingLines,
       syncMatched: syncRows.filter((row) => row.status === 'MATCHED').length,

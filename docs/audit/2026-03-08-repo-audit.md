@@ -147,3 +147,9 @@
 - Остаточный legacy локализован в:
   - внутренних `purpose*` именах persistence/domain слоя (explicit technical debt до отдельной миграционной волны);
   - исторических документах и журнале прогресса как зафиксированном контексте прошлых этапов.
+
+## Addendum: 2026-03-08 final corrective (Block 1.3)
+
+- Persisted `ui_texts` override risk addressed via explicit canonical sync flow (including existing DB repair path), eliminating post-hydrate rollback for `nav.catalog` legacy text.
+- Import semantic collapse addressed: `Раздел` and `Статья затрат` now represented by separate import fields through parse/validate/service layers.
+- Remaining `purpose*` internal naming is classified as migration debt, not user-facing canon leak.
