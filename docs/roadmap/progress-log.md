@@ -396,3 +396,21 @@
   - Исторические документы (`docs/spec-gap-analysis.md`, части старых roadmap/audit записей) сохраняют legacy-лексему как зафиксированный контекст прошлых этапов.
 - **Следующий шаг:**
   - Перейти к следующему блоку master-plan (контрольный слой и эксплуатационная зрелость), отдельно спланировав безопасную миграционную волну переименования внутреннего `purpose`-слоя в `section`.
+
+### 2026-03-08 / Block 1.3 corrective wave (summary-to-repo reconciliation)
+
+- **Статус этапа:** `done (corrected)`
+- **Причина corrective wave:**
+  - Предыдущий статус `done` для Block 1.3 оказался недостаточно строгим: в import parser оставалась семантически некорректная alias-привязка `Назначение -> Статья затрат`, что искажало canon-first модель.
+- **Что исправлено:**
+  - В `src/lib/import/xlsx/parse.ts` разделены compatibility aliases по каноническим осям:
+    - `Назначение` -> `Раздел` (compatibility-only);
+    - `Статья расходов` -> `Статья затрат` (compatibility-only);
+    - `Номенклатура` -> `Позиция учёта` (compatibility-only).
+  - Удалён некорректный путь `Назначение` -> `Статья затрат`.
+  - Добавлены тесты `tests/import.xlsx.parse.compatibility.test.ts` для явной фиксации alias-совместимости.
+- **Проверки:**
+  - Повторён repo-wide search по `Номенклатура|Назначение|Статья расходов|nomenclature|purpose|expense article` до/после.
+  - Запущены `npm run lint`, `npm run typecheck`, профильный unit-test для import parser, `npm run build`.
+- **Итог по Block 1.3:**
+  - После corrective wave блок закрыт честно: пользовательский слой остаётся каноническим, import — canon-first, legacy локализован в compatibility/internal/historical зонах и задокументирован.
