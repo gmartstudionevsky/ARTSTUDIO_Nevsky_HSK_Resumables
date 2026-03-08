@@ -2,10 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
-import { BatchLinesList } from '@/components/operation/BatchLinesList';
+import { buildInitialActionRowDraft, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, type ActionRowContext, type ActionRowDraft, validateActionRowDraft } from '@/components/operation/action-row-state';
 import { CancelModal } from '@/components/operation/CancelModal';
-import { DistributePurposesModal } from '@/components/operation/DistributePurposesModal';
 import { LineEditorModal } from '@/components/operation/LineEditorModal';
 import { ResultView } from '@/components/operation/ResultView';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +14,7 @@ import { Tabs } from '@/components/ui/Tabs';
 import { Toast } from '@/components/ui/Toast';
 import { parseRuDateTime } from '@/lib/datetime/ru';
 import { cancelLine, cancelTransaction, correctLine, createTransaction, fetchItemUnits, fetchLookup, fetchMovementWorkspace, fetchPolicies } from '@/lib/operation/api';
-import { BatchLineDraft, IntakeMode, ItemOption, LookupItem, OperationType, TxLineView, TxResult, UnitOption } from '@/lib/operation/types';
+import { IntakeMode, ItemOption, LookupItem, OperationType, TxLineView, TxResult, UnitOption } from '@/lib/operation/types';
 
 function nowText(): string {
   const d = new Date();
@@ -51,15 +49,12 @@ export function OperationForm(): JSX.Element {
   const [articles, setArticles] = useState<LookupItem[]>([]);
   const [purposes, setPurposes] = useState<LookupItem[]>([]);
   const [reasons, setReasons] = useState<LookupItem[]>([]);
-  const [lines, setLines] = useState<BatchLineDraft[]>([]);
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
   const [workspaceError, setWorkspaceError] = useState('');
   const [result, setResult] = useState<TxResult | null>(null);
   const [toast, setToast] = useState('');
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLineId, setCancelLineId] = useState('');
-  const [editLine, setEditLine] = useState<BatchLineDraft | null>(null);
-  const [distributeLine, setDistributeLine] = useState<BatchLineDraft | null>(null);
   const [correctLineItem, setCorrectLineItem] = useState<TxLineView | null>(null);
   const [policies, setPolicies] = useState({ supervisorBackdateDays: 3, requireReasonOnCancel: true, allowNegativeStock: true, displayDecimals: 2, enablePeriodLocks: false });
   const [warnings, setWarnings] = useState<Array<{ message: string; itemName: string }>>([]);
@@ -121,7 +116,7 @@ export function OperationForm(): JSX.Element {
     setRowDrafts((prev) => ({
       ...prev,
       [item.id]: {
-        ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, isSubmitting: false, error: '' }),
+        ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
         loadingUnits: true,
       } as ActionRowDraft,
     }));
@@ -142,7 +137,7 @@ export function OperationForm(): JSX.Element {
       setRowDrafts((prev) => ({
         ...prev,
         [item.id]: {
-          ...(prev[item.id] ?? { qtyInput: '1', unitId: '', expenseArticleId: item.defaultExpenseArticle.id, purposeId: item.defaultPurpose.id, comment: '', expanded: false, isSubmitting: false }),
+          ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: item.defaultExpenseArticle.id, purposeId: item.defaultPurpose.id, comment: '', expanded: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
           loadingUnits: false,
           error: 'Не удалось загрузить единицы этой позиции',
         },
@@ -155,111 +150,90 @@ export function OperationForm(): JSX.Element {
       if (!prev[itemId]) return prev;
       return { ...prev, [itemId]: { ...prev[itemId], ...patch } };
     });
+    if (patch.error === '') setWorkspaceError('');
   }
 
-  async function submitRowAction(item: ItemOption): Promise<void> {
-    const row = rowDrafts[item.id];
-    if (!row) return;
-
-    const validationError = validateActionRowDraft(row);
-    if (validationError) {
-      patchRowDraft(item.id, { error: validationError });
-      return;
-    }
-
-    const occurredAt = parseRuDateTime(dateInput);
-    if (!occurredAt) {
-      patchRowDraft(item.id, { error: 'Проверьте дату и время операции' });
-      return;
-    }
-
-    patchRowDraft(item.id, { error: '', isSubmitting: true });
-
-    try {
-      const saved = await createTransaction({
-        type,
-        occurredAt: occurredAt.toISOString(),
-        intakeMode,
-        headerPurposeId,
-        lines: [{
-          itemId: item.id,
-          qtyInput: row.qtyInput,
-          unitId: row.unitId,
-          expenseArticleId: row.expenseArticleId,
-          purposeId: row.purposeId,
-          comment: row.comment,
-        }],
-      });
-
-      const normalized = normalizeTxResult(saved);
-      setResult(normalized);
-      setWarnings(saved.warnings ?? []);
-      setToast(`Позиция «${item.name}» проведена`);
-      patchRowDraft(item.id, { qtyInput: '1', comment: '', isSubmitting: false, error: '' });
-    } catch (err) {
-      patchRowDraft(item.id, { isSubmitting: false, error: err instanceof Error ? err.message : 'Не удалось провести позицию' });
-    }
-  }
-
-  function addLineFromRow(item: ItemOption): void {
-    const row = rowDrafts[item.id];
-    if (!row) return;
-
-    const validationError = validateActionRowDraft(row);
-    if (validationError) {
-      patchRowDraft(item.id, { error: validationError });
-      return;
-    }
-
-    const unit = unitsByItemId[item.id]?.find((option) => option.unitId === row.unitId)?.unit;
-    const expenseArticle = articles.find((option) => option.id === row.expenseArticleId);
-    const purpose = purposes.find((option) => option.id === row.purposeId);
-
-    setLines((prev) => [...prev, {
-      localId: `${Date.now()}-${Math.random()}`,
-      itemId: item.id,
-      itemLabel: `${item.code} — ${item.name}`,
-      qtyInput: row.qtyInput,
-      unitId: row.unitId,
-      unitName: unit?.name ?? '—',
-      expenseArticleId: row.expenseArticleId,
-      expenseArticleLabel: expenseArticle ? `${expenseArticle.code} — ${expenseArticle.name}` : '—',
-      purposeId: row.purposeId,
-      purposeLabel: purpose ? `${purpose.code} — ${purpose.name}` : '—',
-      comment: row.comment,
-      distributions: [],
-    }]);
-
-    patchRowDraft(item.id, { error: '', qtyInput: '1', comment: '' });
-  }
-
-  async function saveBatch(): Promise<void> {
+  async function submitParticipatingRows(): Promise<void> {
     const occurredAt = parseRuDateTime(dateInput);
     if (!occurredAt) return setWorkspaceError('Проверьте дату и время операции');
 
+    const participatingItemIds = pickParticipatingRowIds(rowDrafts);
+    if (participatingItemIds.length === 0) {
+      setWorkspaceError('Заполните минимум одну строку, чтобы провести движение');
+      return;
+    }
+
+    const invalidItemIds: string[] = [];
+    for (const itemId of participatingItemIds) {
+      const row = rowDrafts[itemId];
+      if (!row) continue;
+      const validationError = validateActionRowDraft(row);
+      if (validationError) {
+        invalidItemIds.push(itemId);
+        patchRowDraft(itemId, { error: validationError });
+      }
+    }
+
+    if (invalidItemIds.length > 0) {
+      setWorkspaceError('Проведение остановлено: исправьте ошибки в отмеченных строках');
+      return;
+    }
+
+    setWorkspaceError('');
+    setRowDrafts((prev) => {
+      const next = { ...prev };
+      for (const itemId of participatingItemIds) {
+        if (!next[itemId]) continue;
+        next[itemId] = { ...next[itemId], isSubmitting: true, error: '' };
+      }
+      return next;
+    });
+
     try {
       const saved = await createTransaction({
         type,
         occurredAt: occurredAt.toISOString(),
         intakeMode,
         headerPurposeId,
-        lines: lines.map((line) => ({
-          itemId: line.itemId,
-          qtyInput: line.qtyInput,
-          unitId: line.unitId,
-          expenseArticleId: line.expenseArticleId,
-          purposeId: line.purposeId,
-          comment: line.comment,
-          distributions: line.distributions,
-        })),
+        lines: participatingItemIds.map((itemId) => {
+          const row = rowDrafts[itemId]!;
+          return {
+            itemId,
+            qtyInput: row.qtyInput,
+            unitId: row.unitId,
+            expenseArticleId: row.expenseArticleId,
+            purposeId: row.purposeId,
+            comment: row.comment,
+            distributions: row.distributions,
+          };
+        }),
       });
+
       const normalized = normalizeTxResult(saved);
       setResult(normalized);
       setWarnings(saved.warnings ?? []);
-      setLines([]);
-      setToast('Движение проведено');
+      setToast(participatingItemIds.length === 1 ? 'Позиция проведена' : `Проведено строк: ${participatingItemIds.length}`);
+      setRowDrafts((prev) => {
+        const next = { ...prev };
+        for (const itemId of participatingItemIds) {
+          const row = next[itemId];
+          if (!row) continue;
+          next[itemId] = { ...row, qtyInput: '', comment: '', distributions: [], isSubmitting: false, error: '' };
+        }
+        return next;
+      });
     } catch (err) {
-      setWorkspaceError(err instanceof Error ? err.message : 'Не удалось провести движение');
+      const message = err instanceof Error ? err.message : 'Не удалось провести движение';
+      setWorkspaceError(message);
+      setRowDrafts((prev) => {
+        const next = { ...prev };
+        for (const itemId of participatingItemIds) {
+          const row = next[itemId];
+          if (!row) continue;
+          next[itemId] = { ...row, isSubmitting: false, error: row.error || message };
+        }
+        return next;
+      });
     }
   }
 
@@ -327,7 +301,7 @@ export function OperationForm(): JSX.Element {
             <Button className="mt-7" variant="secondary" onClick={() => setSearchQuery(searchInput)} data-testid="op-search-item">Найти</Button>
             <Button className="mt-7" variant="ghost" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>Сброс</Button>
           </div>
-          <p className="text-xs text-muted">Поиск остаётся вспомогательным: рабочее поле строится по выбранному разделу, а действие выполняется прямо в строке позиции.</p>
+          <p className="text-xs text-muted">Поиск остаётся вспомогательным: рабочее поле строится по выбранному разделу, а участие строки определяется фактом ввода количества.</p>
           {loadingWorkspace ? <p className="text-sm text-muted">Загрузка позиций...</p> : null}
           <div className="space-y-2" data-testid="movements-workspace-list">
             {items.map((item) => {
@@ -335,6 +309,7 @@ export function OperationForm(): JSX.Element {
               const unitOptions = unitsByItemId[item.id] ?? [];
               const showUnitSelect = unitOptions.length > 1;
               const selectedUnitName = unitOptions.find((unit) => unit.unitId === row?.unitId)?.unit.name;
+              const participates = row ? isActionRowFilled(row) : false;
 
               return (
                 <article key={item.id} className="rounded-xl border border-border bg-bg p-3" data-testid={`movements-item-${item.id}`}>
@@ -376,24 +351,15 @@ export function OperationForm(): JSX.Element {
                       </div>
                     )}
 
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => {
-                          void ensureItemRowReady(item).then(() => submitRowAction(item));
-                        }}
-                        loading={Boolean(row?.isSubmitting)}
-                        data-testid={`op-row-submit-${item.id}`}
-                      >
-                        Провести
-                      </Button>
-                      {type === 'IN' && intakeMode === 'DISTRIBUTE_PURPOSES' ? (
-                        <Button size="sm" variant="ghost" onClick={() => { void ensureItemRowReady(item).then(() => addLineFromRow(item)); }} data-testid={`op-row-batch-${item.id}`}>
-                          В batch
-                        </Button>
-                      ) : null}
-                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => { void ensureItemRowReady(item); }}
+                      loading={Boolean(row?.isSubmitting)}
+                      data-testid={`op-row-submit-${item.id}`}
+                    >
+                      Готово к проведению
+                    </Button>
                   </div>
 
                   {row?.expanded ? (
@@ -408,6 +374,7 @@ export function OperationForm(): JSX.Element {
                     </div>
                   ) : null}
 
+                  <p className="mt-2 text-xs text-muted">{participates ? 'Строка участвует в проведении' : 'Пустая строка не участвует в проведении'}</p>
                   {row?.error && !row.error.includes('количество') && !row.error.includes('единицу') ? <p className="mt-2 text-xs text-critical">{row.error}</p> : null}
                   {row?.loadingUnits ? <p className="mt-2 text-xs text-muted">Загружаем единицы...</p> : null}
                 </article>
@@ -419,22 +386,14 @@ export function OperationForm(): JSX.Element {
       </Card>
 
       {workspaceError ? <p className="text-sm text-critical">{workspaceError}</p> : null}
-      {lines.length > 0 ? <BatchLinesList lines={lines} onDelete={(lineId) => setLines((prev) => prev.filter((line) => line.localId !== lineId))} onEdit={setEditLine} /> : null}
-      {type === 'IN' && intakeMode === 'DISTRIBUTE_PURPOSES' ? <Button onClick={() => { void saveBatch(); }} disabled={lines.length === 0} data-testid="op-save">Провести batch</Button> : null}
-      {type === 'IN' && intakeMode === 'DISTRIBUTE_PURPOSES' && lines.length > 0 ? <Button variant="ghost" onClick={() => setDistributeLine(lines[lines.length - 1])}>Распределить по назначениям</Button> : null}
+      <Button onClick={() => { void submitParticipatingRows(); }} data-testid="op-save">Провести заполненные строки</Button>
       {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.itemName}>{w.itemName}</li>)}</ul></div> : null}
 
       {result ? <ResultView transaction={result.transaction} lines={result.lines} onCancelTx={() => setCancelOpen(true)} onCancelLine={(lineId) => { setCancelLineId(lineId); setCancelOpen(true); }} onCorrectLine={(line) => { void openCorrectModal(line); }} /> : null}
       {toast ? <Toast message={toast} onClose={() => setToast('')} /> : null}
 
       <CancelModal open={cancelOpen} reasons={reasons} requireReason={policies.requireReasonOnCancel} onClose={() => { setCancelOpen(false); setCancelLineId(''); }} onSubmit={(payload) => { void submitCancel(payload); }} />
-      <LineEditorModal open={Boolean(editLine)} mode="draft" units={editLine ? (unitsByItemId[editLine.itemId] ?? []) : []} articles={articles} purposes={purposes} initial={editLine ? { qtyInput: editLine.qtyInput, unitId: editLine.unitId, expenseArticleId: editLine.expenseArticleId, purposeId: editLine.purposeId, comment: editLine.comment } : {}} onClose={() => setEditLine(null)} onSubmit={(payload) => { if (!editLine) return; setLines((prev) => prev.map((line) => line.localId === editLine.localId ? { ...line, ...payload } as BatchLineDraft : line)); setEditLine(null); }} />
       <LineEditorModal open={Boolean(correctLineItem)} mode="correct" units={correctUnits} articles={articles} purposes={purposes} reasons={reasons} requireReason={policies.requireReasonOnCancel} initial={correctLineItem ? { qtyInput: String(correctLineItem.qtyInput), unitId: correctLineItem.unit.id, expenseArticleId: correctLineItem.expenseArticle.id, purposeId: correctLineItem.purpose.id, comment: correctLineItem.comment ?? '' } : {}} onClose={() => setCorrectLineItem(null)} onSubmit={(payload) => { void submitCorrection(payload); }} />
-      <DistributePurposesModal open={Boolean(distributeLine)} totalQty={distributeLine?.qtyInput ?? ''} purposes={purposes} initial={distributeLine?.distributions ?? []} onClose={() => setDistributeLine(null)} onSave={(rows) => {
-        if (!distributeLine) return;
-        setLines((prev) => prev.map((line) => line.localId === distributeLine.localId ? { ...line, distributions: rows } : line));
-        setDistributeLine(null);
-      }} />
     </section>
   );
 }
