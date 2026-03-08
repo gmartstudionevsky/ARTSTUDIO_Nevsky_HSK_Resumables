@@ -38,8 +38,8 @@ test('parseImportWorkbook: legacy header "Назначение" maps to canonica
   const parsed = await parseImportWorkbook(await workbookBufferWithDirectoryHeaders(headers, row));
 
   assert.equal(parsed.parseErrors.length, 0);
-  assert.equal(parsed.directoryRows[0]?.category, 'Раздел A');
-  assert.equal(parsed.directoryRows[0]?.purposeCode, '2.1.4');
+  assert.equal(parsed.directoryRows[0]?.sectionCode, 'Раздел A');
+  assert.equal(parsed.directoryRows[0]?.expenseArticleCode, '2.1.4');
 });
 
 test('parseImportWorkbook: legacy header "Статья расходов" maps to canonical "Статья затрат"', async () => {
@@ -59,5 +59,26 @@ test('parseImportWorkbook: legacy header "Статья расходов" maps to
 
   assert.equal(parsed.parseErrors.length, 0);
   assert.equal(parsed.directoryRows[0]?.name, 'Тестовая позиция');
-  assert.equal(parsed.directoryRows[0]?.purposeCode, '2.1.4');
+  assert.equal(parsed.directoryRows[0]?.expenseArticleCode, '2.1.4');
+});
+
+
+test('parseImportWorkbook: keeps section and expense article as separate parsed axes', async () => {
+  const headers = [
+    'Код позиции',
+    'Позиция учёта',
+    'Раздел',
+    'Ед. базовая',
+    'Ед. учёта (по умолчанию)',
+    'Ед. отчёта (по умолчанию)',
+    'Статья затрат',
+  ];
+
+  const row = ['IT-001', 'Тестовая позиция', 'SEC-01', 'шт', 'шт', 'шт', 'EA-77'];
+
+  const parsed = await parseImportWorkbook(await workbookBufferWithDirectoryHeaders(headers, row));
+
+  assert.equal(parsed.parseErrors.length, 0);
+  assert.equal(parsed.directoryRows[0]?.sectionCode, 'SEC-01');
+  assert.equal(parsed.directoryRows[0]?.expenseArticleCode, 'EA-77');
 });

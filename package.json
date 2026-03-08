@@ -30,7 +30,8 @@
     "test:e2e": "npm run build && playwright test",
     "test:e2e:local": "npm run testdb:reset:local-e2e && npm run test:e2e",
     "verify": "npm run prisma:generate && npm run lint && npm run typecheck && npm run build",
-    "start:e2e": "next start -H 127.0.0.1 -p 3000"
+    "start:e2e": "next start -H 127.0.0.1 -p 3000",
+    "ui-texts:sync": "tsx scripts/ui-texts/sync-canonical.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",

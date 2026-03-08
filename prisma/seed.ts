@@ -1,5 +1,7 @@
 import { hash } from '@node-rs/argon2';
-import { PrismaClient, Role, SettingKey, UiTextScope } from '@prisma/client';
+import { PrismaClient, Role, SettingKey } from '@prisma/client';
+
+import { syncCanonicalUiTexts } from '../src/lib/ui-texts/sync';
 
 const prisma = new PrismaClient();
 
@@ -7,25 +9,6 @@ const E2E_USER_LOGIN = process.env.E2E_USER_LOGIN ?? 'e2e_admin';
 const E2E_USER_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'E2EPass12345!';
 
 type SeedMode = 'defaults' | 'staging' | 'test-e2e' | 'bootstrap-admin';
-
-const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }> = [
-  { key: 'nav.stock', ruText: 'Склад' },
-  { key: 'nav.operation', ruText: 'Операция' },
-  { key: 'nav.inventory', ruText: 'Инвентаризация' },
-  { key: 'nav.history', ruText: 'История' },
-  { key: 'nav.profile', ruText: 'Профиль' },
-  { key: 'nav.catalog', ruText: 'Каталог позиций' },
-  { key: 'nav.reports', ruText: 'Отчёты' },
-  { key: 'nav.admin.dictionaries', ruText: 'Справочники' },
-  { key: 'nav.admin.users', ruText: 'Пользователи' },
-  { key: 'nav.admin.telegram', ruText: 'Telegram' },
-  { key: 'nav.admin.uiTexts', ruText: 'Тексты интерфейса' },
-  { key: 'nav.admin.settings', ruText: 'Политики данных' },
-  { key: 'nav.admin.periodLocks', ruText: 'Закрытие периода' },
-  { key: 'tooltip.reportUnit', ruText: 'Единица отчётности — в ней показывается склад и отчёты.' },
-  { key: 'tooltip.purpose', ruText: 'Раздел — основной рабочий контекст движения и учёта.' },
-  { key: 'tooltip.expenseArticle', ruText: 'Статья затрат — финансово-учётная аналитика для отчётов.' },
-];
 
 const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [
   { key: SettingKey.SUPERVISOR_BACKDATE_DAYS, value: 3 },
@@ -111,17 +94,7 @@ async function seedReferenceData(): Promise<void> {
 }
 
 export async function seedDefaults(): Promise<void> {
-  for (const item of defaultUiTexts) {
-    await prisma.uiText.upsert({
-      where: { key: item.key },
-      create: {
-        key: item.key,
-        ruText: item.ruText,
-        scope: item.scope ?? UiTextScope.BOTH,
-      },
-      update: {},
-    });
-  }
+  await syncCanonicalUiTexts(prisma, 'legacy-only');
 
   for (const setting of defaultSettings) {
     await prisma.appSetting.upsert({

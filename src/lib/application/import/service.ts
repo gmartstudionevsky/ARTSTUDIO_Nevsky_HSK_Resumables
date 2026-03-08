@@ -147,8 +147,8 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
           if (existingOpening) throw new Error('Открытие склада уже импортировано.');
         }
 
-        const categories = [...new Set(payload.rows.directory.map((row) => row.category))].filter(Boolean);
-        const purposeCodes = [...new Set(payload.rows.directory.map((row) => row.purposeCode))].filter(Boolean);
+        const sections = [...new Set(payload.rows.directory.map((row) => row.sectionCode))].filter(Boolean);
+        const expenseArticleCodes = [...new Set(payload.rows.directory.map((row) => row.expenseArticleCode))].filter(Boolean);
         const units = new Set<string>();
         payload.rows.directory.forEach((row) => {
           units.add(row.baseUnit);
@@ -158,7 +158,7 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
         payload.rows.units.forEach((row) => units.add(row.unitName));
 
         const categoryMap = new Map<string, string>();
-        for (const name of categories) {
+        for (const name of sections) {
           const exists = await tx.category.findUnique({ where: { name } });
           const category = await tx.category.upsert({ where: { name }, update: { isActive: true }, create: { name, isActive: true } });
           if (!exists) created.categories += 1;
@@ -175,17 +175,23 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
         }
 
         const expenseMap = new Map<string, string>();
-        const purposeMap = new Map<string, string>();
-        for (const code of purposeCodes) {
+        for (const code of expenseArticleCodes) {
           const expenseExists = await tx.expenseArticle.findUnique({ where: { code } });
           const expense = await tx.expenseArticle.upsert({ where: { code }, update: { isActive: true, name: expenseExists?.name ?? code }, create: { code, name: code, isActive: true } });
           if (!expenseExists) created.expenseArticles += 1;
           expenseMap.set(code, expense.id);
+        }
 
-          const purposeExists = await tx.purpose.findUnique({ where: { code } });
-          const purpose = await tx.purpose.upsert({ where: { code }, update: { isActive: true, name: purposeExists?.name ?? code }, create: { code, name: code, isActive: true } });
+        const purposeMap = new Map<string, string>();
+        for (const sectionCode of sections) {
+          const purposeExists = await tx.purpose.findUnique({ where: { code: sectionCode } });
+          const purpose = await tx.purpose.upsert({
+            where: { code: sectionCode },
+            update: { isActive: true, name: purposeExists?.name ?? sectionCode },
+            create: { code: sectionCode, name: sectionCode, isActive: true },
+          });
           if (!purposeExists) created.purposes += 1;
-          purposeMap.set(code, purpose.id);
+          purposeMap.set(sectionCode, purpose.id);
         }
 
         const unitRowsByCode = new Map<string, typeof payload.rows.units>();
@@ -199,7 +205,7 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
         const openingLinePayload: Array<{ itemId: string; qtyInput: Prisma.Decimal; unitId: string; qtyBase: Prisma.Decimal; expenseArticleId: string; purposeId: string }> = [];
 
         for (const row of payload.rows.directory) {
-          const categoryId = categoryMap.get(row.category) as string;
+          const categoryId = categoryMap.get(row.sectionCode) as string;
           const decision = decisionsMap.get(row.rowNumber);
           let targetItemId: string | null = decision?.itemId ?? null;
           if (!targetItemId && decision?.action === 'AUTO') {
@@ -262,8 +268,8 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
                 code: row.code,
                 name: row.name,
                 categoryId,
-                defaultExpenseArticleId: expenseMap.get(row.purposeCode) as string,
-                defaultPurposeId: purposeMap.get(row.purposeCode) as string,
+                defaultExpenseArticleId: expenseMap.get(row.expenseArticleCode) as string,
+                defaultPurposeId: purposeMap.get(row.sectionCode) as string,
                 minQtyBase: row.minQtyBase == null ? null : toDecimal(row.minQtyBase),
                 isActive: row.isActive,
                 synonyms: row.synonyms,
@@ -280,8 +286,8 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
                 code: generatedCode,
                 name: row.name,
                 categoryId,
-                defaultExpenseArticleId: expenseMap.get(row.purposeCode) as string,
-                defaultPurposeId: purposeMap.get(row.purposeCode) as string,
+                defaultExpenseArticleId: expenseMap.get(row.expenseArticleCode) as string,
+                defaultPurposeId: purposeMap.get(row.sectionCode) as string,
                 minQtyBase: row.minQtyBase == null ? null : toDecimal(row.minQtyBase),
                 isActive: row.isActive,
                 synonyms: row.synonyms,
@@ -343,8 +349,8 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
               qtyInput,
               unitId: reportUnitId,
               qtyBase: toDecimal(new Prisma.Decimal(row.openingQty).mul(factor).toNumber()),
-              expenseArticleId: expenseMap.get(row.purposeCode) as string,
-              purposeId: purposeMap.get(row.purposeCode) as string,
+              expenseArticleId: expenseMap.get(row.expenseArticleCode) as string,
+              purposeId: purposeMap.get(row.sectionCode) as string,
             });
           }
         }

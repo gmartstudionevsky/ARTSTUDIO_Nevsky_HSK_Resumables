@@ -9,13 +9,13 @@ export type DirectoryRow = {
   rowNumber: number;
   code: string;
   name: string;
-  category: string;
+  sectionCode: string;
   baseUnit: string;
   defaultInputUnit: string;
   reportUnit: string;
   minQtyBase: number | null;
   openingQty: number;
-  purposeCode: string;
+  expenseArticleCode: string;
   isActive: boolean;
   synonyms: string | null;
   note: string | null;
