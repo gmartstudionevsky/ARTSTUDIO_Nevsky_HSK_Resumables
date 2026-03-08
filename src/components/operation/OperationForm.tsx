@@ -34,6 +34,19 @@ export function normalizeTxResult(result: TxResult): TxResult {
   };
 }
 
+
+export function resolveParticipatingItemIds(params: {
+  rowDrafts: Record<string, ActionRowDraft>;
+  onlyItemId?: string;
+}): string[] {
+  if (params.onlyItemId) {
+    const row = params.rowDrafts[params.onlyItemId];
+    return row && isActionRowFilled(row) ? [params.onlyItemId] : [];
+  }
+
+  return pickParticipatingRowIds(params.rowDrafts);
+}
+
 export function OperationForm(): JSX.Element {
   const [type, setType] = useState<OperationType>('IN');
   const [intakeMode, setIntakeMode] = useState<IntakeMode>('SINGLE_PURPOSE');
@@ -153,13 +166,13 @@ export function OperationForm(): JSX.Element {
     if (patch.error === '') setWorkspaceError('');
   }
 
-  async function submitParticipatingRows(): Promise<void> {
+  async function submitParticipatingRows(onlyItemId?: string): Promise<void> {
     const occurredAt = parseRuDateTime(dateInput);
     if (!occurredAt) return setWorkspaceError('Проверьте дату и время операции');
 
-    const participatingItemIds = pickParticipatingRowIds(rowDrafts);
+    const participatingItemIds = resolveParticipatingItemIds({ rowDrafts, onlyItemId });
     if (participatingItemIds.length === 0) {
-      setWorkspaceError('Заполните минимум одну строку, чтобы провести движение');
+      setWorkspaceError(onlyItemId ? 'Заполните количество в строке перед проведением' : 'Заполните минимум одну строку, чтобы провести движение');
       return;
     }
 
@@ -354,11 +367,13 @@ export function OperationForm(): JSX.Element {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => { void ensureItemRowReady(item); }}
+                      onClick={() => {
+                        void ensureItemRowReady(item).then(() => submitParticipatingRows(item.id));
+                      }}
                       loading={Boolean(row?.isSubmitting)}
                       data-testid={`op-row-submit-${item.id}`}
                     >
-                      Готово к проведению
+                      Провести
                     </Button>
                   </div>
 
