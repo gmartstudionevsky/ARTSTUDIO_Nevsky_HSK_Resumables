@@ -32,7 +32,7 @@ export default function ProfilePage(): JSX.Element {
   const [logoutLoading, setLogoutLoading] = useState(false);
 
   const reportsLabel = useUiText('nav.reports', 'Отчёты');
-  const catalogLabel = useUiText('nav.catalog', 'Номенклатура');
+  const catalogLabel = useUiText('nav.catalog', 'Каталог позиций');
 
   useEffect(() => {
     async function fetchMe(): Promise<void> {

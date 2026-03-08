@@ -329,7 +329,7 @@ export function OperationForm(): JSX.Element {
           <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} getItemTestId={(item) => (item.value === 'IN' ? 'op-tab-in' : item.value === 'OUT' ? 'op-tab-out' : 'op-tab-adjust')} />
           <Input label="Дата и время" value={dateInput} onChange={(event) => setDateInput(event.target.value)} helperText="Примеры: 1.3.26 или 01.03.2026 12:30" data-testid="op-datetime" />
           {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_PURPOSE', label: 'Одно назначение' }, { value: 'DISTRIBUTE_PURPOSES', label: 'Распределить' }]} getItemTestId={(item) => (item.value === 'SINGLE_PURPOSE' ? 'op-intake-single' : 'op-intake-distribute')} /> : null}
-          {type === 'IN' && intakeMode === 'SINGLE_PURPOSE' ? <Select label="Назначение для прихода" value={headerPurposeId} onChange={(event) => setHeaderPurposeId(event.target.value)} data-testid="op-header-purpose">{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
+          {type === 'IN' && intakeMode === 'SINGLE_PURPOSE' ? <Select label="Раздел для прихода" value={headerPurposeId} onChange={(event) => setHeaderPurposeId(event.target.value)} data-testid="op-header-purpose">{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
           <Select label="Раздел рабочего поля" value={workspaceSectionId} onChange={(event) => setWorkspaceSectionId(event.target.value)} data-testid="movements-section-select">
             {purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
           </Select>
@@ -426,10 +426,10 @@ export function OperationForm(): JSX.Element {
 
                   {row?.expanded ? (
                     <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      <Select label="Статья расходов" value={row.expenseArticleId} onChange={(event) => patchRowDraft(item.id, { expenseArticleId: event.target.value })}>
+                      <Select label="Статья затрат" value={row.expenseArticleId} onChange={(event) => patchRowDraft(item.id, { expenseArticleId: event.target.value })}>
                         {articles.map((article) => <option key={article.id} value={article.id}>{article.code} — {article.name}</option>)}
                       </Select>
-                      <Select label="Назначение" value={row.purposeId} onChange={(event) => patchRowDraft(item.id, { purposeId: event.target.value })}>
+                      <Select label="Раздел" value={row.purposeId} onChange={(event) => patchRowDraft(item.id, { purposeId: event.target.value })}>
                         {purposes.map((purpose) => <option key={purpose.id} value={purpose.id}>{purpose.code} — {purpose.name}</option>)}
                       </Select>
                       <Input className="md:col-span-2" label="Комментарий" value={row.comment} onChange={(event) => patchRowDraft(item.id, { comment: event.target.value })} />

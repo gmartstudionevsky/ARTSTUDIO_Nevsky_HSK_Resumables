@@ -14,7 +14,7 @@ const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }
   { key: 'nav.inventory', ruText: 'Инвентаризация' },
   { key: 'nav.history', ruText: 'История' },
   { key: 'nav.profile', ruText: 'Профиль' },
-  { key: 'nav.catalog', ruText: 'Номенклатура' },
+  { key: 'nav.catalog', ruText: 'Каталог позиций' },
   { key: 'nav.reports', ruText: 'Отчёты' },
   { key: 'nav.admin.dictionaries', ruText: 'Справочники' },
   { key: 'nav.admin.users', ruText: 'Пользователи' },
@@ -23,8 +23,8 @@ const defaultUiTexts: Array<{ key: string; ruText: string; scope?: UiTextScope }
   { key: 'nav.admin.settings', ruText: 'Политики данных' },
   { key: 'nav.admin.periodLocks', ruText: 'Закрытие периода' },
   { key: 'tooltip.reportUnit', ruText: 'Единица отчётности — в ней показывается склад и отчёты.' },
-  { key: 'tooltip.purpose', ruText: 'Назначение — для какого направления/участка учитывается расход.' },
-  { key: 'tooltip.expenseArticle', ruText: 'Статья расходов — финансовый разрез для отчёта.' },
+  { key: 'tooltip.purpose', ruText: 'Раздел — основной рабочий контекст движения и учёта.' },
+  { key: 'tooltip.expenseArticle', ruText: 'Статья затрат — финансово-учётная аналитика для отчётов.' },
 ];
 
 const defaultSettings: Array<{ key: SettingKey; value: number | boolean }> = [

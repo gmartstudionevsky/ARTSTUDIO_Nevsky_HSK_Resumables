@@ -5,7 +5,12 @@ import { DirectoryRow, ImportIssue, UnitRow } from '@/lib/import/types';
 const DIRECTORY_SHEET = 'Справочник';
 const UNITS_SHEET = 'Единицы';
 
-const REQUIRED_DIRECTORY_COLUMNS = ['Код позиции', 'Номенклатура', 'Раздел', 'Ед. базовая', 'Ед. учёта (по умолчанию)', 'Ед. отчёта (по умолчанию)', 'Назначение'];
+const REQUIRED_DIRECTORY_COLUMNS = ['Код позиции', 'Позиция учёта', 'Раздел', 'Ед. базовая', 'Ед. учёта (по умолчанию)', 'Ед. отчёта (по умолчанию)', 'Статья затрат'];
+
+const DIRECTORY_HEADER_ALIASES: Record<string, string[]> = {
+  'Позиция учёта': ['Позиция учёта', 'Номенклатура'],
+  'Статья затрат': ['Статья затрат', 'Назначение'],
+};
 
 function normalizeHeader(value: unknown): string {
   return String(value ?? '').trim().toLowerCase();
@@ -42,10 +47,20 @@ function mapHeaders(rowValues: ExcelJS.CellValue[]): Map<string, number> {
   return map;
 }
 
+function resolveHeaderName(name: string): string[] {
+  return DIRECTORY_HEADER_ALIASES[name] ?? [name];
+}
+
 function getCell(row: ExcelJS.Row, headers: Map<string, number>, name: string): unknown {
-  const index = headers.get(normalizeHeader(name));
-  if (!index) return null;
-  return row.getCell(index).value;
+  for (const candidate of resolveHeaderName(name)) {
+    const index = headers.get(normalizeHeader(candidate));
+    if (index) return row.getCell(index).value;
+  }
+  return null;
+}
+
+function hasHeader(headers: Map<string, number>, name: string): boolean {
+  return resolveHeaderName(name).some((candidate) => headers.has(normalizeHeader(candidate)));
 }
 
 export type ParsedImportResult = {
@@ -72,7 +87,7 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
   const directoryHeaders = mapHeaders(directorySheet.getRow(1).values as ExcelJS.CellValue[]);
 
   for (const col of REQUIRED_DIRECTORY_COLUMNS) {
-    if (!directoryHeaders.has(normalizeHeader(col))) {
+    if (!hasHeader(directoryHeaders, col)) {
       parseErrors.push({ sheet: DIRECTORY_SHEET, row: 1, column: col, message: 'Отсутствует обязательная колонка.' });
     }
   }
@@ -91,14 +106,14 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
     directoryRows.push({
       rowNumber,
       code,
-      name: String(getCell(row, directoryHeaders, 'Номенклатура') ?? '').trim(),
+      name: String(getCell(row, directoryHeaders, 'Позиция учёта') ?? '').trim(),
       category: String(getCell(row, directoryHeaders, 'Раздел') ?? '').trim(),
       baseUnit: String(getCell(row, directoryHeaders, 'Ед. базовая') ?? '').trim(),
       defaultInputUnit: String(getCell(row, directoryHeaders, 'Ед. учёта (по умолчанию)') ?? '').trim(),
       reportUnit: String(getCell(row, directoryHeaders, 'Ед. отчёта (по умолчанию)') ?? '').trim(),
       minQtyBase: minQty,
       openingQty,
-      purposeCode: String(getCell(row, directoryHeaders, 'Назначение') ?? '').trim(),
+      purposeCode: String(getCell(row, directoryHeaders, 'Статья затрат') ?? '').trim(),
       isActive: activeParsed ?? true,
       synonyms: String(getCell(row, directoryHeaders, 'Синонимы (если есть)') ?? '').trim() || null,
       note: String(getCell(row, directoryHeaders, 'Комментарий (позиция)') ?? '').trim() || null,

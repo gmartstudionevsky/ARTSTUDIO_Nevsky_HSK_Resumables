@@ -10,7 +10,7 @@ const item: ItemOption = {
   name: 'Позиция',
   isActive: true,
   defaultExpenseArticle: { id: '00000000-0000-0000-0000-000000000011', code: 'EA', name: 'Статья' },
-  defaultPurpose: { id: '00000000-0000-0000-0000-000000000022', code: 'P', name: 'Назначение' },
+  defaultPurpose: { id: '00000000-0000-0000-0000-000000000022', code: 'P', name: 'Раздел' },
 };
 
 const units: UnitOption[] = [
