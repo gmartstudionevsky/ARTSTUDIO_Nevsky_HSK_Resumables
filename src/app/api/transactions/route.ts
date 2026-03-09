@@ -1,4 +1,4 @@
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -15,20 +15,24 @@ const accountingEventWriteService = createAccountingEventWriteService();
 const numberInputSchema = z.union([z.string(), z.number()]).transform((value) => Number(value));
 
 const createSchema = z.object({
-  type: z.nativeEnum(TxType).refine((value) => value === TxType.IN || value === TxType.OUT || value === TxType.ADJUST, { message: 'Недопустимый тип операции' }),
+  type: z.nativeEnum(MovementType).refine((value) => value === MovementType.IN || value === MovementType.OUT || value === MovementType.ADJUST, { message: 'Недопустимый тип операции' }),
   occurredAt: z.string().datetime().nullable().optional(),
   note: z.string().trim().nullable().optional(),
-  intakeMode: z.enum(['SINGLE_PURPOSE', 'DISTRIBUTE_PURPOSES']).optional(),
+  intakeMode: z.enum(['SINGLE_PURPOSE', 'DISTRIBUTE_PURPOSES', 'SINGLE_SECTION', 'DISTRIBUTE_SECTIONS']).optional(),
   headerPurposeId: z.string().uuid().nullable().optional(),
+  headerSectionId: z.string().uuid().nullable().optional(),
   lines: z.array(
     z.object({
-      itemId: z.string().uuid(),
+      itemId: z.string().uuid().optional(),
+      accountingPositionId: z.string().uuid().optional(),
       qtyInput: numberInputSchema,
       unitId: z.string().uuid(),
       expenseArticleId: z.string().uuid().nullable().optional(),
       purposeId: z.string().uuid().nullable().optional(),
+      sectionId: z.string().uuid().nullable().optional(),
       comment: z.string().trim().nullable().optional(),
       distributions: z.array(z.object({ purposeId: z.string().uuid(), qtyInput: numberInputSchema })).optional(),
+      sectionDistributions: z.array(z.object({ sectionId: z.string().uuid(), qtyInput: numberInputSchema })).optional(),
     })
   ).min(1),
 });
@@ -93,9 +97,20 @@ export async function POST(request: Request): Promise<NextResponse> {
       movementType: data.type as 'IN' | 'OUT' | 'ADJUST',
       occurredAt: occurredAt.toISOString(),
       note: data.note ?? null,
-      intakeMode: data.intakeMode,
-      headerPurposeId: data.headerPurposeId,
-      lines: data.lines,
+      intakeMode: data.intakeMode === 'SINGLE_SECTION' ? 'SINGLE_PURPOSE' : data.intakeMode === 'DISTRIBUTE_SECTIONS' ? 'DISTRIBUTE_PURPOSES' : data.intakeMode,
+      headerPurposeId: data.headerSectionId ?? data.headerPurposeId,
+      lines: data.lines.map((line) => ({
+        itemId: line.accountingPositionId ?? line.itemId!,
+        accountingPositionId: line.accountingPositionId ?? line.itemId!,
+        qtyInput: line.qtyInput,
+        unitId: line.unitId,
+        expenseArticleId: line.expenseArticleId,
+        purposeId: line.sectionId ?? line.purposeId,
+        sectionId: line.sectionId ?? line.purposeId,
+        comment: line.comment,
+        distributions: (line.sectionDistributions ?? line.distributions?.map((d) => ({ sectionId: d.purposeId, qtyInput: d.qtyInput })))?.map((d) => ({ purposeId: d.sectionId, qtyInput: d.qtyInput })),
+        sectionDistributions: line.sectionDistributions ?? line.distributions?.map((d) => ({ sectionId: d.purposeId, qtyInput: d.qtyInput })),
+      })),
       context: {
         actorId: user.id,
         actorRole: user.role,
@@ -128,9 +143,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.error('[telegram] tx notification enqueue failed', telegramError);
     }
 
+    const normalizedLines = lines.map((line) => ({
+      ...line,
+      accountingPosition: line.item,
+      section: line.purpose,
+    }));
+
     return NextResponse.json({
       transaction: txResult.data.transaction,
-      lines,
+      lines: normalizedLines,
       projection: txResult.data.projection,
       recovery: txResult.data.recovery,
       ...(txResult.data.warnings?.length ? { warnings: txResult.data.warnings } : {}),

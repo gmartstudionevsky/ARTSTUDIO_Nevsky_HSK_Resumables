@@ -28,7 +28,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         let factor = new Prisma.Decimal(1);
 
         if (nextUnitId) {
-          const itemUnit = await tx.itemUnit.findUnique({ where: { itemId_unitId: { itemId: line.item.id, unitId: nextUnitId } } });
+          const itemUnit = await tx.accountingPositionUnit.findUnique({ where: { itemId_unitId: { itemId: line.item.id, unitId: nextUnitId } } });
           if (!itemUnit || !itemUnit.isAllowed) throw new Error('UNIT_NOT_ALLOWED');
           factor = itemUnit.factorToBase;
         }

@@ -11,16 +11,19 @@ export async function fetchLookup(type: 'expense-articles' | 'purposes' | 'reaso
   return payload.items;
 }
 
-function buildItemsQuery(params: { q?: string; purposeId?: string; limit?: number }): string {
+function buildItemsQuery(params: { q?: string; sectionId?: string; limit?: number }): string {
   const search = new URLSearchParams({ active: 'true', limit: String(params.limit ?? 50) });
   if (params.q?.trim()) search.set('q', params.q.trim());
-  if (params.purposeId) search.set('purposeId', params.purposeId);
+  if (params.sectionId) search.set('purposeId', params.sectionId);
   return search.toString();
 }
 
 export async function fetchMovementWorkspace(params: { sectionId?: string; q?: string; limit?: number }): Promise<ItemOption[]> {
-  const payload = await httpGet<{ items: ItemOption[] }>(`/api/items?${buildItemsQuery({ q: params.q, purposeId: params.sectionId, limit: params.limit })}`);
-  return payload.items;
+  const payload = await httpGet<{ items: Array<ItemOption & { defaultPurpose?: ItemOption['defaultSection'] }> }>(`/api/items?${buildItemsQuery({ q: params.q, sectionId: params.sectionId, limit: params.limit })}`);
+  return payload.items.map((item) => ({
+    ...item,
+    defaultSection: item.defaultSection ?? item.defaultPurpose!,
+  }));
 }
 
 export async function searchItems(q: string): Promise<ItemOption[]> {
@@ -29,12 +32,25 @@ export async function searchItems(q: string): Promise<ItemOption[]> {
 
 export async function fetchItemUnits(itemId: string): Promise<UnitOption[]> {
   const res = await fetch(`/api/items/${itemId}/units`, { cache: 'no-store' });
-  const payload = await parseResponse<{ units: UnitOption[] }>(res);
-  return payload.units;
+  const payload = await parseResponse<{ units: Array<UnitOption & { itemId?: string }> }>(res);
+  return payload.units.map((unit) => ({ ...unit, accountingPositionId: unit.accountingPositionId ?? unit.itemId! }));
 }
 
-export async function createTransaction(payload: { type: OperationType; occurredAt?: string | null; note?: string; intakeMode?: IntakeMode; headerPurposeId?: string; lines: Array<{ itemId: string; qtyInput: string | number; unitId: string; expenseArticleId?: string; purposeId?: string; comment?: string; distributions?: Array<{ purposeId: string; qtyInput: string | number }> }> }): Promise<TxResult> {
-  return httpPost<TxResult>('/api/transactions', payload);
+export async function createTransaction(payload: { type: OperationType; occurredAt?: string | null; note?: string; intakeMode?: IntakeMode; headerSectionId?: string; lines: Array<{ accountingPositionId: string; qtyInput: string | number; unitId: string; expenseArticleId?: string; sectionId?: string; comment?: string; sectionDistributions?: Array<{ sectionId: string; qtyInput: string | number }> }> }): Promise<TxResult> {
+  return httpPost<TxResult>('/api/transactions', {
+    ...payload,
+    intakeMode: payload.intakeMode === 'SINGLE_SECTION' ? 'SINGLE_PURPOSE' : payload.intakeMode === 'DISTRIBUTE_SECTIONS' ? 'DISTRIBUTE_PURPOSES' : undefined,
+    headerPurposeId: payload.headerSectionId,
+    lines: payload.lines.map((line) => ({
+      itemId: line.accountingPositionId,
+      qtyInput: line.qtyInput,
+      unitId: line.unitId,
+      expenseArticleId: line.expenseArticleId,
+      purposeId: line.sectionId,
+      comment: line.comment,
+      distributions: line.sectionDistributions?.map((d) => ({ purposeId: d.sectionId, qtyInput: d.qtyInput })),
+    })),
+  });
 }
 
 

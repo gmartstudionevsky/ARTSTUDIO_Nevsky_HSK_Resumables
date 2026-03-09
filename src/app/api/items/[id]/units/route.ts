@@ -9,7 +9,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
   const { error } = await requireAuthenticatedApiUser();
   if (error) return error;
 
-  const units = await prisma.itemUnit.findMany({
+  const units = await prisma.accountingPositionUnit.findMany({
     where: { itemId: params.id, isAllowed: true },
     include: { unit: { select: { id: true, name: true, isActive: true } } },
     orderBy: { unit: { name: 'asc' } },
@@ -26,7 +26,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = putItemUnitsSchema.parse(body);
-    const item = await prisma.item.findUnique({ where: { id: params.id }, select: { baseUnitId: true } });
+    const item = await prisma.accountingPosition.findUnique({ where: { id: params.id }, select: { baseUnitId: true } });
     if (!item) return NextResponse.json({ error: 'Позиция не найдена' }, { status: 404 });
 
     const unitIds = [...new Set(data.units.map((unit) => unit.unitId))];
@@ -59,8 +59,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.itemUnit.deleteMany({ where: { itemId: params.id } });
-      await tx.itemUnit.createMany({
+      await tx.accountingPositionUnit.deleteMany({ where: { itemId: params.id } });
+      await tx.accountingPositionUnit.createMany({
         data: data.units.map((unit) => ({
           itemId: params.id,
           unitId: unit.unitId,
@@ -71,7 +71,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         })),
       });
 
-      await tx.item.update({
+      await tx.accountingPosition.update({
         where: { id: params.id },
         data: {
           defaultInputUnitId: defaultInputs[0].unitId,

@@ -126,12 +126,13 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
 
   for (let rowNumber = 2; rowNumber <= unitsSheet.rowCount; rowNumber += 1) {
     const row = unitsSheet.getRow(rowNumber);
-    const itemCode = String(getCell(row, unitHeaders, 'Код позиции') ?? '').trim();
-    if (!itemCode) continue;
+    const accountingPositionCode = String(getCell(row, unitHeaders, 'Код позиции') ?? '').trim();
+    if (!accountingPositionCode) continue;
 
     unitRows.push({
       rowNumber,
-      itemCode,
+      accountingPositionCode,
+      itemCode: accountingPositionCode,
       unitName: String(getCell(row, unitHeaders, 'Ед. изм.') ?? '').trim(),
       factorToBase: parseNumber(getCell(row, unitHeaders, 'Коэффициент к базовой')) ?? Number.NaN,
       isAllowed: parseBoolean(getCell(row, unitHeaders, 'Доступно')) ?? true,

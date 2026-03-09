@@ -1,11 +1,11 @@
-export type HistoryTxType = 'IN' | 'OUT' | 'ADJUST' | 'OPENING' | 'INVENTORY_APPLY';
+export type HistoryMovementType = 'IN' | 'OUT' | 'ADJUST' | 'OPENING' | 'INVENTORY_APPLY';
 export type HistoryBatchStatusFilter = 'active' | 'cancelled' | 'all';
 export type HistoryBatchStatus = 'ACTIVE' | 'PARTIAL' | 'CANCELLED';
 
 export interface HistoryListItem {
   id: string;
   batchId: string;
-  type: HistoryTxType;
+  type: HistoryMovementType;
   occurredAt: string;
   createdAt: string;
   createdBy: { id: string; login: string };
@@ -25,7 +25,7 @@ export interface HistoryListResponse {
 export interface HistoryQuery {
   from?: string;
   to?: string;
-  type?: HistoryTxType | 'all';
+  type?: HistoryMovementType | 'all';
   status?: HistoryBatchStatusFilter;
   q?: string;
   itemId?: string;
@@ -57,7 +57,7 @@ export interface HistoryTransactionDetail {
   transaction: {
     id: string;
     batchId: string;
-    type: HistoryTxType;
+    type: HistoryMovementType;
     occurredAt: string;
     createdAt: string;
     note: string | null;

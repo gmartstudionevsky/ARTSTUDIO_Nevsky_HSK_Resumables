@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-export const accountingPositionRecordSelect = Prisma.validator<Prisma.ItemSelect>()({
+export const accountingPositionRecordSelect = Prisma.validator<Prisma.AccountingPositionSelect>()({
   id: true,
   code: true,
   name: true,
@@ -16,4 +16,4 @@ export const accountingPositionRecordSelect = Prisma.validator<Prisma.ItemSelect
   reportUnit: { select: { id: true, name: true } },
 });
 
-export type AccountingPositionRecord = Prisma.ItemGetPayload<{ select: typeof accountingPositionRecordSelect }>;
+export type AccountingPositionRecord = Prisma.AccountingPositionGetPayload<{ select: typeof accountingPositionRecordSelect }>;

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 
 import { getPositionCatalogProjection } from '../src/lib/read-models/catalog-projection';
 import { buildConsumptionReportProjectionFromRows } from '../src/lib/read-models/consumption-report-projection';
@@ -76,7 +76,7 @@ test('history projection: classifies OPENING and INVENTORY_APPLY events', () => 
   const opening = mapHistoryProjectionRow({
     id: 'tx-1',
     batchId: 'B-1',
-    type: TxType.OPENING,
+    type: MovementType.OPENING,
     occurredAt: new Date('2025-01-01T00:00:00Z'),
     createdAt: new Date('2025-01-01T00:00:00Z'),
     createdById: 'u-1',
@@ -91,7 +91,7 @@ test('history projection: classifies OPENING and INVENTORY_APPLY events', () => 
   const inventoryApply = mapHistoryProjectionRow({
     id: 'tx-2',
     batchId: 'B-2',
-    type: TxType.INVENTORY_APPLY,
+    type: MovementType.INVENTORY_APPLY,
     occurredAt: new Date('2025-01-01T00:00:00Z'),
     createdAt: new Date('2025-01-01T00:00:00Z'),
     createdById: 'u-1',
@@ -152,7 +152,7 @@ test('consumption analytics projection: filters out non-eligible rows', () => {
 test('projection contracts: register update from write-side handoff', () => {
   registerProjectionUpdate({
     projectionKinds: ['stock', 'history', 'reports', 'signals'],
-    eventType: TxType.OUT,
+    eventType: MovementType.OUT,
     analyticsImpact: 'full',
     itemIds: ['i-1'],
     transactionId: 'tx-10',
@@ -160,7 +160,7 @@ test('projection contracts: register update from write-side handoff', () => {
 
   const receipts = getProjectionReceipts();
   assert.ok(receipts.some((row) => row.kind === 'stock' && row.lastTransactionId === 'tx-10'));
-  assert.ok(receipts.some((row) => row.kind === 'history' && row.lastEventType === TxType.OUT));
+  assert.ok(receipts.some((row) => row.kind === 'history' && row.lastEventType === MovementType.OUT));
 });
 
 test('catalog projection: section filter is passed through canonical read-model query', async () => {

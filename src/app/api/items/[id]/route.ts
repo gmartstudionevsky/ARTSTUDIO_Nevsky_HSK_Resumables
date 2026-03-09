@@ -20,7 +20,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
-  const item = await prisma.item.findUnique({
+  const item = await prisma.accountingPosition.findUnique({
     where: { id: params.id },
     select: {
       id: true,

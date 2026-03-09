@@ -1,4 +1,4 @@
-import { Prisma, RecordStatus, TxType } from '@prisma/client';
+import { Prisma, RecordStatus, MovementType } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -43,13 +43,13 @@ export async function POST(request: Request, { params }: { params: { id: string 
     });
     if (!oldLine) return NextResponse.json({ error: 'Строка не найдена' }, { status: 404 });
     if (oldLine.status === RecordStatus.CANCELLED) return NextResponse.json({ error: 'Строка уже отменена' }, { status: 400 });
-    if (oldLine.transaction.type !== TxType.IN && oldLine.transaction.type !== TxType.OUT && oldLine.transaction.type !== TxType.ADJUST) return NextResponse.json({ error: 'Исправление для этого типа недоступно' }, { status: 400 });
+    if (oldLine.transaction.type !== MovementType.IN && oldLine.transaction.type !== MovementType.OUT && oldLine.transaction.type !== MovementType.ADJUST) return NextResponse.json({ error: 'Исправление для этого типа недоступно' }, { status: 400 });
     const locked = await isDateLocked(oldLine.transaction.occurredAt, prisma);
     if (locked && user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Период закрыт. Исправление строки недоступно, обратитесь к администратору.' }, { status: 403 });
     }
 
-    const itemUnit = await prisma.itemUnit.findFirst({ where: { itemId: oldLine.itemId, unitId: data.unitId, isAllowed: true } });
+    const itemUnit = await prisma.accountingPositionUnit.findFirst({ where: { itemId: oldLine.itemId, unitId: data.unitId, isAllowed: true } });
     if (!itemUnit) return NextResponse.json({ error: 'Единица не разрешена для позиции' }, { status: 400 });
     const qtyBase = new Prisma.Decimal(data.qtyInput).mul(itemUnit.factorToBase);
 

@@ -92,7 +92,7 @@ async function fetchConsumptionRows({ from, to, groupBy, q, limitGroups }: { fro
 
 async function getExpandedMetricsEligibility(itemIds: string[]): Promise<Map<string, { expandedMetrics: boolean; reasons: string[] }>> {
   if (itemIds.length === 0) return new Map();
-  const items = await prisma.item.findMany({
+  const items = await prisma.accountingPosition.findMany({
     where: { id: { in: itemIds } },
     select: {
       id: true, code: true, name: true, isActive: true, minQtyBase: true, synonyms: true, note: true,

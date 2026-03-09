@@ -1,4 +1,4 @@
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 
 type TxLineTemplateData = {
   itemName: string;
@@ -9,7 +9,7 @@ type TxLineTemplateData = {
 };
 
 type TxTemplateData = {
-  type: TxType;
+  type: MovementType;
   occurredAt: Date;
   login: string;
   transactionId: string;
@@ -33,11 +33,11 @@ type DigestTemplateData = {
   zero: DigestLine[];
 };
 
-function txTypeLabel(type: TxType): string {
-  if (type === TxType.IN) return 'Приход';
-  if (type === TxType.OUT) return 'Расход';
-  if (type === TxType.OPENING) return 'Открытие склада';
-  if (type === TxType.INVENTORY_APPLY) return 'Инвентаризация';
+function txTypeLabel(type: MovementType): string {
+  if (type === MovementType.IN) return 'Приход';
+  if (type === MovementType.OUT) return 'Расход';
+  if (type === MovementType.OPENING) return 'Открытие склада';
+  if (type === MovementType.INVENTORY_APPLY) return 'Инвентаризация';
   return 'Коррекция';
 }
 
@@ -55,7 +55,7 @@ export function buildTxCreatedMessage(data: TxTemplateData): string {
     ...lines,
     extraText,
     '',
-    `Операция: ${data.appUrl}/history/${data.transactionId}`,
+    `Движение: ${data.appUrl}/history/${data.transactionId}`,
   ]
     .filter(Boolean)
     .join('\n');

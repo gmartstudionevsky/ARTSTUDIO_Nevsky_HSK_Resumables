@@ -10,7 +10,7 @@ import { useUiText } from '@/components/ui-texts/useUiText';
 import { HelpTip } from '@/components/ui/Tooltip';
 
 export default function AdminPage(): JSX.Element {
-  const purposeTooltip = useUiText('tooltip.purpose', 'Раздел — основной рабочий контекст движения и учёта.');
+  const sectionTooltip = useUiText('tooltip.section', 'Раздел — основной рабочий контекст движения и учёта.');
   const reportUnitTooltip = useUiText('tooltip.reportUnit', 'Единица отчётности — в ней показывается склад и отчёты.');
   const expenseArticleTooltip = useUiText('tooltip.expenseArticle', 'Статья затрат — финансово-учётная аналитика для отчётов.');
 
@@ -30,7 +30,7 @@ export default function AdminPage(): JSX.Element {
         <CardContent>
           <p className="flex items-center gap-2">
             Раздел
-            <HelpTip label="Подсказка к разделу">{purposeTooltip}</HelpTip>
+            <HelpTip label="Подсказка к разделу">{sectionTooltip}</HelpTip>
           </p>
           <p className="flex items-center gap-2">
             Единица отчётности

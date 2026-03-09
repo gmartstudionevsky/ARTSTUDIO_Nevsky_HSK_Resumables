@@ -1,5 +1,6 @@
 export type OperationType = 'IN' | 'OUT' | 'ADJUST';
-export type IntakeMode = 'SINGLE_PURPOSE' | 'DISTRIBUTE_PURPOSES';
+export type IntakeMode = 'SINGLE_PURPOSE' | 'DISTRIBUTE_PURPOSES' | 'SINGLE_SECTION' | 'DISTRIBUTE_SECTIONS';
+export type CanonicalIntakeMode = 'SINGLE_SECTION' | 'DISTRIBUTE_SECTIONS';
 
 export interface LookupItem {
   id: string;
@@ -15,6 +16,7 @@ export interface ItemOption {
   isActive: boolean;
   defaultExpenseArticle: { id: string; code: string; name: string };
   defaultPurpose: { id: string; code: string; name: string };
+  defaultSection?: { id: string; code: string; name: string };
   analytics?: {
     expenseArticle?: { id: string; code?: string; name: string } | null;
     section?: { id: string; code?: string; name: string } | null;
@@ -34,6 +36,7 @@ export interface ItemOption {
 export interface UnitOption {
   id: string;
   itemId: string;
+  accountingPositionId?: string;
   unitId: string;
   factorToBase: string;
   isAllowed: boolean;
@@ -44,20 +47,25 @@ export interface UnitOption {
 
 export interface DistributionDraft {
   purposeId: string;
+  sectionId?: string;
   qtyInput: string;
 }
 
 export interface BatchLineDraft {
   localId: string;
   itemId: string;
+  accountingPositionId?: string;
   itemLabel: string;
+  accountingPositionLabel?: string;
   qtyInput: string;
   unitId: string;
   unitName: string;
   expenseArticleId: string;
   expenseArticleLabel: string;
   purposeId: string;
+  sectionId?: string;
   purposeLabel: string;
+  sectionLabel?: string;
   comment: string;
   distributions?: DistributionDraft[];
 }
@@ -68,9 +76,11 @@ export interface TxLineView {
   status: 'ACTIVE' | 'CANCELLED';
   comment: string | null;
   item: { id: string; code: string; name: string };
+  accountingPosition?: { id: string; code: string; name: string };
   unit: { id: string; name: string };
   expenseArticle: { id: string; code: string; name: string };
   purpose: { id: string; code: string; name: string };
+  section?: { id: string; code: string; name: string };
 }
 
 export interface TxResult {
@@ -81,7 +91,7 @@ export interface TxResult {
     causalChain?: string[];
     correlationId?: string | null;
   };
-  warnings?: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string }>;
+  warnings?: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string; accountingPositionId?: string; accountingPositionName?: string }>;
 }
 
 export type PoliciesResponse = {

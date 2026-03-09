@@ -17,7 +17,7 @@ export default async function ItemReadonlyPage({ params }: { params: { id: strin
   await requireSupervisorOrAbove();
 
   const [item, stock, movements] = await Promise.all([
-    prisma.item.findUnique({
+    prisma.accountingPosition.findUnique({
       where: { id: params.id },
       select: {
         id: true,
@@ -76,7 +76,7 @@ export default async function ItemReadonlyPage({ params }: { params: { id: strin
         <CardHeader><CardTitle>Свойства</CardTitle></CardHeader>
         <CardContent>
           <p>Код: {item.code}</p>
-          <p>Раздел: {item.category.name}</p>
+          <p>Категория: {item.category.name}</p>
           <p>Статья: {item.defaultExpenseArticle.code} — {item.defaultExpenseArticle.name}</p>
           <p>Раздел: {item.defaultPurpose.code} — {item.defaultPurpose.name}</p>
           <p>Активность: {item.isActive ? 'Активна' : 'Архив'}</p>

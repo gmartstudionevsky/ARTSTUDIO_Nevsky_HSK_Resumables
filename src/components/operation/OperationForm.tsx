@@ -208,18 +208,18 @@ export function OperationForm(): JSX.Element {
       const saved = await createTransaction({
         type,
         occurredAt: occurredAt.toISOString(),
-        intakeMode,
-        headerPurposeId,
+        intakeMode: intakeMode === 'SINGLE_PURPOSE' ? 'SINGLE_SECTION' : 'DISTRIBUTE_SECTIONS',
+        headerSectionId: headerPurposeId,
         lines: participatingItemIds.map((itemId) => {
           const row = rowDrafts[itemId]!;
           return {
-            itemId,
+            accountingPositionId: itemId,
             qtyInput: row.qtyInput,
             unitId: row.unitId,
             expenseArticleId: row.expenseArticleId,
-            purposeId: row.purposeId,
+            sectionId: row.purposeId,
             comment: row.comment,
-            distributions: row.distributions,
+            sectionDistributions: row.distributions.map((d) => ({ sectionId: d.purposeId, qtyInput: d.qtyInput })),
           };
         }),
       });

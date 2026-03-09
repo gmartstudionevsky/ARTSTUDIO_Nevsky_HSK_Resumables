@@ -16,7 +16,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         reason: { select: { id: true, code: true, name: true } },
       },
     });
-    if (!tx) return NextResponse.json({ error: 'Операция не найдена' }, { status: 404 });
+    if (!tx) return NextResponse.json({ error: 'Движение не найдено' }, { status: 404 });
 
     const lines = await prisma.transactionLine.findMany({
       where: { transactionId: tx.id },

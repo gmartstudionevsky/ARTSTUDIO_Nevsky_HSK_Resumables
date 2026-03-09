@@ -93,7 +93,7 @@ export function HistoryPageClient(): JSX.Element {
     <section className="space-y-4">
       <header>
         <h1 className="text-2xl font-semibold">История</h1>
-        <p className="text-sm text-muted">Все операции сохраняются. Отмена и исправление не удаляют данные.</p>
+        <p className="text-sm text-muted">Все движения сохраняются. Отмена и исправление не удаляют данные.</p>
       </header>
 
       <HistoryFilters
@@ -105,8 +105,8 @@ export function HistoryPageClient(): JSX.Element {
         categories={categories}
       />
 
-      {loading ? <p className="text-sm text-muted">Загрузка операций...</p> : null}
-      {!loading && items.length === 0 ? <EmptyState title="Операции не найдены" description="Измените фильтры или создайте операции в разделе «Операции»." /> : null}
+      {loading ? <p className="text-sm text-muted">Загрузка движений...</p> : null}
+      {!loading && items.length === 0 ? <EmptyState title="Движения не найдены" description="Измените фильтры или создайте движения в разделе «Движения»." /> : null}
       {!loading && items.length > 0 ? <><HistoryTable items={items} /><HistoryCards items={items} /></> : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">

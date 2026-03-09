@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('mobile nav shows admin links under "Ещё" for admin', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/stock');
-  await expect(page).toHaveURL(/\/(stock|operation)$/);
+  await expect(page).toHaveURL(/\/stock$/);
 
   await page.getByRole('button', { name: 'Ещё' }).click();
 

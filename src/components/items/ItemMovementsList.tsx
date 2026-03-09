@@ -1,7 +1,7 @@
 import { Badge } from '@/components/ui/Badge';
 import { ItemMovement } from '@/lib/items/types';
 
-function mapTxType(type: ItemMovement['tx']['type']): string {
+function mapMovementType(type: ItemMovement['tx']['type']): string {
   if (type === 'IN') return 'Приход';
   if (type === 'OUT') return 'Расход';
   if (type === 'ADJUST') return 'Коррекция';
@@ -20,7 +20,7 @@ export function ItemMovementsList({ items }: { items: ItemMovement[] }): JSX.Ele
             <p className="font-medium">{new Date(item.occurredAt).toLocaleString('ru-RU')}</p>
             <Badge variant={item.status === 'CANCELLED' ? 'neutral' : 'ok'}>{item.status === 'CANCELLED' ? 'Отменено' : 'Активно'}</Badge>
           </div>
-          <p>{mapTxType(item.tx.type)} · {item.qtyInput} {item.unit.name}</p>
+          <p>{mapMovementType(item.tx.type)} · {item.qtyInput} {item.unit.name}</p>
           <p className="text-muted">{item.expenseArticle.code} — {item.expenseArticle.name} · {item.purpose.code} — {item.purpose.name}</p>
         </div>
       ))}

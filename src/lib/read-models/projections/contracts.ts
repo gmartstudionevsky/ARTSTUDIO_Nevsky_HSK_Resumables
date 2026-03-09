@@ -1,10 +1,10 @@
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 
 export type ReadProjectionKind = 'catalog' | 'stock' | 'history' | 'reports' | 'admin' | 'signals';
 
 export interface ProjectionUpdateContract {
   projectionKinds: Array<'stock' | 'history' | 'reports' | 'signals'>;
-  eventType: TxType;
+  eventType: MovementType;
   analyticsImpact: 'full' | 'stock_only';
   itemIds: string[];
   transactionId: string;
@@ -17,7 +17,7 @@ export interface ReadModelRecoveryContract {
 
 export interface ProjectionUpdateReceipt {
   kind: ReadProjectionKind;
-  lastEventType: TxType | null;
+  lastEventType: MovementType | null;
   lastTransactionId: string | null;
   updatedAt: string;
   stale: boolean;

@@ -23,7 +23,7 @@ function makeService() {
   const db = {
     $transaction: async <T>(fn: (tx: any) => Promise<T>) =>
       fn({
-        item: {
+        accountingPosition: {
           create: async () => ({
             id: 'item-1',
             code: 'IT-001',
@@ -34,7 +34,7 @@ function makeService() {
           }),
           findUnique: async () => itemRecord,
         },
-        itemUnit: {
+        accountingPositionUnit: {
           create: async () => ({}),
           findUnique: async () => ({ factorToBase: { toString: () => '1' }, isAllowed: true }),
         },
@@ -42,7 +42,7 @@ function makeService() {
         transactionLine: { create: async () => ({}) },
         auditLog: { create: async () => ({}) },
       }),
-    item: {
+    accountingPosition: {
       findUnique: async (args: any) => {
         if (args?.select?.defaultExpenseArticleId) {
           return { id: 'item-1', defaultExpenseArticleId: 'exp-1', defaultPurposeId: 'sec-1' };
@@ -51,7 +51,7 @@ function makeService() {
       },
       update: async () => itemRecord,
     },
-    itemUnit: {
+    accountingPositionUnit: {
       findMany: async () => [{ unitId: 'u-1' }],
     },
   };

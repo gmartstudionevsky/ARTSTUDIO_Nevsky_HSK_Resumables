@@ -1,4 +1,4 @@
-import { Prisma, RecordStatus, TxType } from '@prisma/client';
+import { Prisma, RecordStatus, MovementType } from '@prisma/client';
 
 import {
   AccountingPositionUseCaseResult,
@@ -22,15 +22,15 @@ const UPDATE_SCENARIO = 'accounting-position.update';
 const SET_ACTIVE_SCENARIO = 'accounting-position.set-active-state';
 
 interface WriteTx {
-  item: {
-    create: typeof prisma.item.create;
-    update: typeof prisma.item.update;
-    findUnique: typeof prisma.item.findUnique;
+  accountingPosition: {
+    create: typeof prisma.accountingPosition.create;
+    update: typeof prisma.accountingPosition.update;
+    findUnique: typeof prisma.accountingPosition.findUnique;
   };
-  itemUnit: {
-    create: typeof prisma.itemUnit.create;
-    findMany: typeof prisma.itemUnit.findMany;
-    findUnique: typeof prisma.itemUnit.findUnique;
+  accountingPositionUnit: {
+    create: typeof prisma.accountingPositionUnit.create;
+    findMany: typeof prisma.accountingPositionUnit.findMany;
+    findUnique: typeof prisma.accountingPositionUnit.findUnique;
   };
   transaction: { create: typeof prisma.transaction.create };
   transactionLine: { create: typeof prisma.transactionLine.create };
@@ -40,8 +40,8 @@ interface WriteTx {
 interface AccountingPositionWriteServiceDeps {
   db: {
     $transaction<T>(fn: (tx: WriteTx) => Promise<T>): Promise<T>;
-    item: WriteTx['item'];
-    itemUnit: WriteTx['itemUnit'];
+    accountingPosition: WriteTx['accountingPosition'];
+    accountingPositionUnit: WriteTx['accountingPositionUnit'];
   };
   generateCode(tx: WriteTx): Promise<string>;
 }
@@ -96,7 +96,7 @@ export function createAccountingPositionWriteService(
       try {
         const txResult = await deps.db.$transaction(async (tx) => {
           const code = canonicalIntent.code ?? (await deps.generateCode(tx));
-          const created = await tx.item.create({
+          const created = await tx.accountingPosition.create({
             data: {
               code,
               name: canonicalIntent.name,
@@ -114,7 +114,7 @@ export function createAccountingPositionWriteService(
             select: { id: true, code: true, name: true, isActive: true, defaultExpenseArticleId: true, defaultPurposeId: true },
           });
 
-          await tx.itemUnit.create({
+          await tx.accountingPositionUnit.create({
             data: {
               itemId: created.id,
               unitId: canonicalIntent.baseUnitId,
@@ -146,7 +146,7 @@ export function createAccountingPositionWriteService(
               return { error: failure(CREATE_SCENARIO, 'validation', 'Некорректные данные первичного прихода', command.context) };
             }
 
-            const itemUnit = await tx.itemUnit.findUnique({
+            const itemUnit = await tx.accountingPositionUnit.findUnique({
               where: { itemId_unitId: { itemId: created.id, unitId: command.initialStock.unitId } },
               select: { factorToBase: true, isAllowed: true },
             });
@@ -162,7 +162,7 @@ export function createAccountingPositionWriteService(
             const qtyInput = toDecimal(command.initialStock.qty);
             const qtyBase = toDecimal(new Prisma.Decimal(command.initialStock.qty).mul(itemUnit.factorToBase).toNumber());
 
-            const txType = command.initialStock.mode === 'OPENING' ? TxType.OPENING : TxType.IN;
+            const txType = command.initialStock.mode === 'OPENING' ? MovementType.OPENING : MovementType.IN;
             const txData: Prisma.TransactionCreateInput = {
               batchId: makeBatchId(),
               type: txType,
@@ -202,7 +202,7 @@ export function createAccountingPositionWriteService(
             transactionId = createdTx.id;
           }
 
-          const createdRecord = await tx.item.findUnique({ where: { id: created.id }, select: accountingPositionRecordSelect });
+          const createdRecord = await tx.accountingPosition.findUnique({ where: { id: created.id }, select: accountingPositionRecordSelect });
           if (!createdRecord) {
             return { error: failure(CREATE_SCENARIO, 'unexpected', 'Не удалось прочитать созданную позицию', command.context) };
           }
@@ -228,7 +228,7 @@ export function createAccountingPositionWriteService(
     },
 
     async update(command: UpdateAccountingPositionCommand): Promise<AccountingPositionUseCaseResult> {
-      const existing = await deps.db.item.findUnique({
+      const existing = await deps.db.accountingPosition.findUnique({
         where: { id: command.id },
         select: { id: true, defaultExpenseArticleId: true, defaultPurposeId: true },
       });
@@ -245,15 +245,15 @@ export function createAccountingPositionWriteService(
       }
 
       if (command.changes.baseUnitId) {
-        const existingUnits = await deps.db.itemUnit.findMany({ where: { itemId: command.id }, select: { unitId: true } });
+        const existingUnits = await deps.db.accountingPositionUnit.findMany({ where: { itemId: command.id }, select: { unitId: true } });
         if (!existingUnits.some((unit) => unit.unitId === command.changes.baseUnitId)) {
           return failure(UPDATE_SCENARIO, 'validation', 'Базовая единица должна присутствовать в списке единиц позиции', command.context);
         }
       }
 
       try {
-        await deps.db.item.update({ where: { id: command.id }, data: command.changes });
-        const updatedRecord = await deps.db.item.findUnique({ where: { id: command.id }, select: accountingPositionRecordSelect });
+        await deps.db.accountingPosition.update({ where: { id: command.id }, data: command.changes });
+        const updatedRecord = await deps.db.accountingPosition.findUnique({ where: { id: command.id }, select: accountingPositionRecordSelect });
         if (!updatedRecord) return failure(UPDATE_SCENARIO, 'unexpected', 'Не удалось прочитать обновлённую позицию', command.context);
 
         const accountingPosition = mapItemRecordToAccountingPosition(updatedRecord);
@@ -273,7 +273,7 @@ export function createAccountingPositionWriteService(
 
     async setActiveState(command: SetAccountingPositionActiveStateCommand): Promise<AccountingPositionUseCaseResult> {
       try {
-        const item = await deps.db.item.update({
+        const item = await deps.db.accountingPosition.update({
           where: { id: command.id },
           data: { isActive: command.isActive },
           select: accountingPositionRecordSelect,

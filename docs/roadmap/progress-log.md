@@ -147,6 +147,124 @@
 - **Следующее логическое действие:** Закрыть 1.4 и перевести шаг 1 в «Закрыто глубоко».
 - **Доказательство завершения подшага/шага:** Наличие новой структуры журнала, статусной шкалы, карты текущего контура и reusable template будущей записи.
 
+### 2026-03-09 / Шаг 2.1 (закрыт): canonical compatibility-layer audit map
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.1.
+- **Каноны:** канонические сущности, карта связей, типы движения, write-side, read-side, recovery, строка позиции учёта, app shell/navigation, роли и доступы, нативная масштабируемость, технический/SLA/устойчивостный канон.
+- **Суть продвижения:** Собран единый audit-артефакт `docs/audit/compatibility-layer-map.md`, фиксирующий legacy vocabulary, compatibility seams, structural/semantic residues и маршрутизацию в 2.2–2.7.
+- **Какие repo artifacts были затронуты:** `docs/audit/compatibility-layer-map.md`, `docs/roadmap/progress-log.md`.
+- **Что стало глубже реализовано:**
+  - legacy/compatibility debt описан не только по naming, но и по hidden dependency/semantic drift;
+  - покрыты schema/persistence, domain/application, adapters/API, read-side, scripts/seed/fixtures, UI/admin, tests, docs;
+  - для high-priority разрывов указан конкретный следующий подшаг 2.x и критерий глубокого устранения.
+- **Что остаётся незакрытым:** Реализация migration cleanup по подшагам 2.2–2.7 (без выполнения в рамках 2.1).
+- **Текущий статус после записи:** Подшаг 2.1 — **Закрыто глубоко**; шаг 2 — **В реализации**.
+- **Следующее логическое действие:** Запустить 2.2 с упором на domain vocabulary canonicalization (`purpose/item` как primary debt).
+- **Доказательство завершения подшага/шага:** Наличие practically useful compatibility-layer registry с canonical targets, критичностью, временной допустимостью и маршрутизацией в 2.2–2.7.
+
+### 2026-03-09 / Шаг 2.2 (закрыт): canonical domain migration target and policy frame
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.2.
+- **Каноны:** канонические сущности, карта связей, типы движения, write-side, read-side, recovery, роли/доступы, строка позиции учёта, нативная масштабируемость, технический/SLA/устойчивостный канон.
+- **Суть продвижения:** Добавлен нормативный документ `docs/product/canon/canonical-domain-migration-target.md`, фиксирующий единую целевую каноническую модель и обязательные migration rules для подшагов 2.3–2.7.
+- **Какие repo artifacts были затронуты:** `docs/product/canon/canonical-domain-migration-target.md`, `docs/roadmap/progress-log.md`.
+- **Что стало глубже реализовано:**
+  - зафиксирован canonical primary model как единственная целевая траектория (без гибридной интерпретации);
+  - введены явные coexistence/transition правила и перечень недопустимых duality-паттернов;
+  - описаны layer-by-layer migration targets (schema, migrations, seed, domain, adapters, read-side, API, UI, tests, import);
+  - добавлены migration decision rules и canonical target examples как operational рамка для будущих Codex-задач.
+- **Что остаётся незакрытым:** Реализация норм документа в коде и контрактах подшагов 2.3–2.7.
+- **Текущий статус после записи:** Подшаг 2.2 — **Закрыто глубоко**; шаг 2 — **В реализации**.
+- **Следующее логическое действие:** Запустить 2.3 с приведением API/adapters/DTO к canonical primary contracts по правилам 2.2.
+- **Доказательство завершения подшага/шага:** Наличие нормативного migration anchor с чётким разделением canonical target / allowed transition / forbidden debt и прямой маршрутизацией на 2.3–2.7.
+
+### 2026-03-09 / Шаг 2.3 (в реализации): canonical persistence vocabulary via Prisma boundary mapping
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.3.
+- **Каноны:** канонические сущности, карта связей, write/read consistency foundation, recovery, technical/SLA trustworthiness.
+- **Суть продвижения:** Prisma schema переведена на canonical primary vocabulary (`MovementType`, `Section`, `AccountingPosition`, `AccountingPositionUnit`) с локализацией legacy physical names через `@@map`/`@map` в persistence-boundary.
+- **Какие repo artifacts были затронуты:** `prisma/schema.prisma`, `prisma/migrations/20260309130000_canonical_prisma_vocabulary/migration.sql`, persistence-facing usage в `src/*`, `tests/*`, `prisma/seed.ts`.
+- **Что стало глубже реализовано:**
+  - legacy vocabulary перестал быть primary в Prisma client contracts;
+  - canonical naming стал primary path для persistence-facing TypeScript-контрактов;
+  - coexistence локализован на физическом storage-уровне (DB table/type names) как controlled transition layer.
+- **Что остаётся незакрытым:** downstream vocabulary cleanup в application/API/UI/tests по шагам 2.4–2.7 и полный regression-green контур по всем сценариям.
+- **Текущий статус после записи:** Подшаг 2.3 — **В реализации**.
+- **Следующее логическое действие:** Довести regression-пакет и выровнять downstream контракты на canonical DTO/read-side semantics (2.4).
+- **Доказательство завершения подшага/шага:** зеленый schema/migration/type/regression verification loop + отсутствие legacy vocabulary в primary persistence path.
+
+### 2026-03-09 / Шаг 2.4 (в реализации): canonical application/API contracts with boundary-local compatibility
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.4.
+- **Каноны:** write-side/read-side/recovery consistency, канонические сущности и карта связей, explainability и app contract coherence.
+- **Суть продвижения:** Протянут canonical vocabulary через application/API contract boundaries для movement-flow: canonical поля (`accountingPosition*`, `section*`) добавлены как primary в прикладные контракты и server responses, при сохранении локализованной compatibility-переводки на boundary.
+- **Какие repo artifacts были затронуты:** `src/lib/application/accounting-event/contracts.ts`, `src/lib/application/accounting-event/service.ts`, `src/app/api/transactions/route.ts`, `src/lib/operation/api.ts`, `src/lib/operation/types.ts`.
+- **Что стало глубже реализовано:**
+  - compatibility перевод old→canonical локализован в API/client boundary вместо протекания в use-case backbone;
+  - write-flow contracts и warnings/projection payload получили canonical aliases как primary migration direction;
+  - operation client теперь отправляет canonical payload shape и транслирует его в legacy-route формат только на edge.
+- **Что остаётся незакрытым:** Полная зачистка legacy vocabulary в остальных API/adapters/UI/scripts/tests (2.5/2.6) и финальная closure-валидация (2.7).
+- **Текущий статус после записи:** Подшаг 2.4 — **В реализации**.
+- **Следующее логическое действие:** Запустить 2.5 для очистки seed/fixtures/import/scripts vocabulary на canonical baseline.
+- **Доказательство завершения подшага/шага:** зеленые application/component/regression tests + typecheck при canonical-first contract path и boundary-local compatibility.
+
+### 2026-03-09 / Шаг 2.5 (в реализации): canonical data/setup/import normalization
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.5.
+- **Каноны:** канонические сущности и связи, write/read consistency, trustworthy bootstrap foundation.
+- **Суть продвижения:** Seed/e2e setup/import normalization переведены на canonical internal vocabulary (`accountingPosition*`, `section*`) с сохранением legacy-парсинга только как boundary-compat для внешнего входа.
+- **Какие repo artifacts были затронуты:** `prisma/seed.ts`, `tests/e2e/setupTestData.ts`, `src/lib/import/types.ts`, `src/lib/import/xlsx/parse.ts`, `src/lib/import/xlsx/validate.ts`, `src/lib/application/import/service.ts`, import-related tests.
+- **Что стало глубже реализовано:**
+  - normalized import payload и sync metadata получили canonical primary shape (с совместимыми alias-полями);
+  - apply/rollback import-use-case опирается на canonical naming в internal decisions/summary/rollback metadata;
+  - seed и e2e bootstrap data builders перестроены на canonical variable semantics, сохраняя runtime совместимость с mapped persistence fields.
+- **Что остаётся незакрытым:** полная user-facing wording cleanup (2.6) и final migration sealing (2.7).
+- **Текущий статус после записи:** Подшаг 2.5 — **В реализации**.
+- **Следующее логическое действие:** Запустить 2.6 для user-facing/admin wording normalization поверх canonical data/setup foundation.
+- **Доказательство завершения подшага/шага:** зеленые import/setup tests + typecheck + подтверждение boundary-local legacy compatibility без legacy-primary internal representation.
+
+
+### 2026-03-09 / Шаг 2.6
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.6 (user-facing/admin/control-plane vocabulary canonicalization).
+- **Каноны:** канонические сущности, типы движения, app shell/навигация, explainability-слой, control-plane wording.
+- **Суть продвижения:** user-facing и admin vocabulary выровнены под canonical язык движения/раздела, а legacy wording локализован только в bounded compatibility-репарации UI text keys.
+- **Какие repo artifacts были затронуты:** `src/lib/ui-texts/defaults.ts`, `src/lib/ui-texts/sync.ts`, `src/app/admin/page.tsx`, `src/components/history/HistoryPageClient.tsx`, `src/components/history/HistoryDetailPageClient.tsx`, `src/app/(app)/items/[id]/page.tsx`, `src/app/api/transactions/[id]/route.ts`, `src/app/api/transactions/[id]/cancel/route.ts`, `src/lib/telegram/templates.ts`, `tests/ui-texts.sync.test.ts`.
+- **Что стало глубже реализовано:**
+  - canonical UI text keys `nav.movements` и `tooltip.section` стали source-of-truth;
+  - sync path теперь поднимает canonical keys даже при наличии только legacy aliases (`nav.operation`, `tooltip.purpose`), не возвращая legacy vocabulary в primary UI path;
+  - history/detail/admin/API/telegram wording синхронизирован вокруг «Движение/Движения» и корректных предметных осей «Категория/Раздел».
+- **Что остаётся незакрытым:** финальный sealing и removal pass для точечных compatibility следов в 2.7.
+- **Текущий статус после записи:** Подшаг 2.6 — **В реализации**.
+- **Следующее логическое действие:** Выполнить 2.7 (final migration sealing) с удалением временных compatibility следов и финальной верификацией canon-complete состояния.
+- **Доказательство завершения подшага/шага:** typecheck + targeted tests (UI texts/history wording paths) + ручная проверка ключевых surface labels.
+
+
+### 2026-03-09 / Шаг 2.7
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.7 (migration sealing: tests/QA/evidence and legacy-path localization).
+- **Каноны:** canonical entities, movement semantics, write/read contracts, bootstrap integrity, app shell/navigation, explainability.
+- **Суть продвижения:** выполнен финальный sealing-проход по residual legacy paths и verification contour 2.3–2.6; канонический путь подтвержден как primary через tests, typecheck и targeted smoke checks.
+- **Какие repo artifacts были затронуты:** `src/components/catalog/ItemHeaderActions.tsx`, `tests/e2e/mobile-nav.spec.ts`, `tests/e2e/core-flow.spec.ts`, `tests/ui-texts.sync.test.ts`, `docs/audit/compatibility-layer-map.md`.
+- **Что стало глубже реализовано:**
+  - canonical movement path закреплен в user-flow ссылках и e2e ожиданиях (legacy `/operation` больше не равноправный путь в тестовом baseline);
+  - verification contour усилен тестом на `tooltip.purpose -> tooltip.section` alias-bootstrap boundary;
+  - residual compatibility классифицирован и зафиксирован как narrow, explicit, non-primary.
+- **Residual compatibility после sealing:**
+  - `/operation` сохранен только как redirect для обратной совместимости внешних ссылок;
+  - UI-text alias lookup для legacy keys сохранен только в boundary sync logic для миграции существующих записей.
+- **Текущий статус после записи:** Подшаг 2.7 — **Закрыто глубоко**.
+- **Статус всего Шага 2:** **Закрыто глубоко** (canonical model primary across persistence/app/API/setup/surface; compatibility residue narrow and controlled).
+- **Следующее логическое действие:** Переход к Шагу 3 на structurally clean canonical foundation.
+- **Доказательство завершения подшага/шага:** green typecheck + targeted tests for canonical/compat boundaries + documented residual classification + no legacy-primary URL expectations in e2e baseline.
+
 ## 6. Открытые системные разрывы
 
 > Разрывы фиксируются как cross-cutting product/system risks, влияющие на несколько шагов сразу.

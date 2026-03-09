@@ -1,4 +1,4 @@
-import { Prisma, RecordStatus, TxType } from '@prisma/client';
+import { Prisma, RecordStatus, MovementType } from '@prisma/client';
 
 import {
   CheckReadModelConsistencyCommand,
@@ -53,7 +53,7 @@ interface RecoveryDeps {
     $transaction<T>(fn: (tx: TxClient) => Promise<T>): Promise<T>;
     transaction: typeof prisma.transaction;
     transactionLine: typeof prisma.transactionLine;
-    item: typeof prisma.item;
+    accountingPosition: typeof prisma.accountingPosition;
     $queryRaw<T = unknown>(query: Prisma.Sql): Promise<T>;
   };
 }
@@ -65,14 +65,14 @@ function resolveKinds(kinds: ReadProjectionKind[] | undefined, mode: 'rebuildabl
   return kinds.filter((kind) => allowed.includes(kind));
 }
 
-function isMovementType(type: TxType): boolean {
-  return type === TxType.IN || type === TxType.OUT || type === TxType.ADJUST;
+function isMovementType(type: MovementType): boolean {
+  return type === MovementType.IN || type === MovementType.OUT || type === MovementType.ADJUST;
 }
 
-async function computeLatestCanonicalEventByKind(db: RecoveryDeps['db'], kind: ReadProjectionKind): Promise<{ id: string; type: TxType } | null> {
+async function computeLatestCanonicalEventByKind(db: RecoveryDeps['db'], kind: ReadProjectionKind): Promise<{ id: string; type: MovementType } | null> {
   if (kind === 'catalog' || kind === 'admin') {
-    const latestItem = await db.item.findFirst({ where: {}, select: { id: true }, orderBy: { updatedAt: 'desc' } });
-    return latestItem ? { id: latestItem.id, type: TxType.ADJUST } : null;
+    const latestItem = await db.accountingPosition.findFirst({ where: {}, select: { id: true }, orderBy: { updatedAt: 'desc' } });
+    return latestItem ? { id: latestItem.id, type: MovementType.ADJUST } : null;
   }
 
   if (kind === 'stock' || kind === 'history' || kind === 'reports' || kind === 'signals') {
@@ -298,7 +298,7 @@ export function createRecoveryService(deps: RecoveryDeps = { db: prisma }): Reco
 
           if (receipt.lastTransactionId) {
             if (kind === 'catalog' || kind === 'admin') {
-              const itemExists = await deps.db.item.findUnique({ where: { id: receipt.lastTransactionId }, select: { id: true } });
+              const itemExists = await deps.db.accountingPosition.findUnique({ where: { id: receipt.lastTransactionId }, select: { id: true } });
               if (!itemExists) {
                 issues.push({
                   kind,

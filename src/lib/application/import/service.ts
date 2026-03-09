@@ -1,4 +1,4 @@
-import { ImportJobStatus, Prisma, RecordStatus, TxType } from '@prisma/client';
+import { ImportJobStatus, Prisma, RecordStatus, MovementType } from '@prisma/client';
 
 import { ImportApplyCommand, ImportApplyResult, ImportPreviewResult, ImportRollbackResult, ImportSyncUseCase } from '@/lib/application/import/contracts';
 import { prisma } from '@/lib/db/prisma';
@@ -10,7 +10,8 @@ import { registerProjectionUpdate, setProjectionReceipt } from '@/lib/read-model
 
 
 type RollbackItemSnapshot = {
-  itemId: string;
+  accountingPositionId: string;
+  itemId?: string;
   before: {
     code: string;
     name: string;
@@ -35,7 +36,8 @@ type RollbackItemSnapshot = {
 };
 
 type RollbackMeta = {
-  createdItemIds: string[];
+  createdAccountingPositionIds: string[];
+  createdItemIds?: string[];
   updatedItems: RollbackItemSnapshot[];
   openingTransactionId: string | null;
   rolledBackAt?: string;
@@ -56,13 +58,17 @@ async function loadDraftPayload(db: typeof prisma, jobId: string, userId: string
   return job.payload as unknown as NormalizedImportPayload;
 }
 
-function createDecisionsMap(payload: NormalizedImportPayload, options?: CommitOptions): Map<number, { action: 'AUTO' | 'CREATE' | 'SKIP'; itemId?: string }> {
-  const decisionsMap = new Map<number, { action: 'AUTO' | 'CREATE' | 'SKIP'; itemId?: string }>();
+function createDecisionsMap(payload: NormalizedImportPayload, options?: CommitOptions): Map<number, { action: 'AUTO' | 'CREATE' | 'SKIP'; accountingPositionId?: string }> {
+  const decisionsMap = new Map<number, { action: 'AUTO' | 'CREATE' | 'SKIP'; accountingPositionId?: string }>();
   for (const row of payload.syncPlan?.rows ?? []) {
-    if (row.status === 'MATCHED' && row.selectedItemId) decisionsMap.set(row.rowNumber, { action: 'AUTO', itemId: row.selectedItemId });
+    if (row.status === 'MATCHED' && (row.selectedAccountingPositionId ?? row.selectedItemId)) {
+      decisionsMap.set(row.rowNumber, { action: 'AUTO', accountingPositionId: row.selectedAccountingPositionId ?? row.selectedItemId ?? undefined });
+    }
     if (row.status === 'SKIP') decisionsMap.set(row.rowNumber, { action: 'SKIP' });
   }
-  for (const decision of options?.decisions ?? []) decisionsMap.set(decision.rowNumber, { action: decision.action, itemId: decision.itemId });
+  for (const decision of options?.decisions ?? []) {
+    decisionsMap.set(decision.rowNumber, { action: decision.action, accountingPositionId: decision.accountingPositionId ?? decision.itemId });
+  }
   return decisionsMap;
 }
 
@@ -82,7 +88,7 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
   return {
     async previewFromWorkbook(input): Promise<ImportPreviewResult> {
       const parsed = await deps.parseImportWorkbook(input.buffer);
-      const existingItems = await deps.db.item.findMany({
+      const existingItems = await deps.db.accountingPosition.findMany({
         select: { id: true, code: true, name: true, synonyms: true, categoryId: true, category: { select: { name: true } } },
       });
       const payload = deps.validateImportData(parsed, existingItems);
@@ -124,8 +130,11 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
         categories: 0,
         units: 0,
         expenseArticles: 0,
+        sections: 0,
         purposes: 0,
+        accountingPositions: 0,
         items: 0,
+        accountingPositionUnits: 0,
         itemUnits: 0,
         openingLines: 0,
         syncMatched: 0,
@@ -138,7 +147,7 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
       const unresolvedBehavior = command.options?.unresolvedBehavior ?? 'CREATE';
 
       const txResult = await deps.db.$transaction(async (tx) => {
-        const touchedItemIds = new Set<string>();
+        const touchedAccountingPositionIds = new Set<string>();
         if (createOpening) {
           const existingOpening = await tx.transaction.findFirst({
             where: { batchId: { startsWith: 'OPENING-20260301' }, note: { contains: 'Import' }, status: RecordStatus.ACTIVE },
@@ -182,43 +191,49 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
           expenseMap.set(code, expense.id);
         }
 
-        const purposeMap = new Map<string, string>();
-        for (const sectionCode of sections) {
-          const purposeExists = await tx.purpose.findUnique({ where: { code: sectionCode } });
-          const purpose = await tx.purpose.upsert({
+          const sectionMap = new Map<string, string>();
+          for (const sectionCode of sections) {
+            const purposeExists = await tx.section.findUnique({ where: { code: sectionCode } });
+            const purpose = await tx.section.upsert({
             where: { code: sectionCode },
             update: { isActive: true, name: purposeExists?.name ?? sectionCode },
             create: { code: sectionCode, name: sectionCode, isActive: true },
-          });
-          if (!purposeExists) created.purposes += 1;
-          purposeMap.set(sectionCode, purpose.id);
+            });
+          if (!purposeExists) {
+            created.sections += 1;
+            created.purposes += 1;
+          }
+          sectionMap.set(sectionCode, purpose.id);
         }
 
         const unitRowsByCode = new Map<string, typeof payload.rows.units>();
         for (const row of payload.rows.units) {
-          const list = unitRowsByCode.get(row.itemCode) ?? [];
+          const code = row.accountingPositionCode ?? row.itemCode;
+          if (!code) continue;
+          const list = unitRowsByCode.get(code) ?? [];
           list.push(row);
-          unitRowsByCode.set(row.itemCode, list);
+          unitRowsByCode.set(code, list);
         }
 
-        const rollback: RollbackMeta = { createdItemIds: [], updatedItems: [], openingTransactionId: null };
+        const rollback: RollbackMeta = { createdAccountingPositionIds: [], createdItemIds: [], updatedItems: [], openingTransactionId: null };
         const openingLinePayload: Array<{ itemId: string; qtyInput: Prisma.Decimal; unitId: string; qtyBase: Prisma.Decimal; expenseArticleId: string; purposeId: string }> = [];
 
         for (const row of payload.rows.directory) {
           const categoryId = categoryMap.get(row.sectionCode) as string;
           const decision = decisionsMap.get(row.rowNumber);
-          let targetItemId: string | null = decision?.itemId ?? null;
-          if (!targetItemId && decision?.action === 'AUTO') {
+          let targetAccountingPositionId: string | null = decision?.accountingPositionId ?? null;
+          if (!targetAccountingPositionId && decision?.action === 'AUTO') {
             const planned = payload.syncPlan?.rows?.find((planRow) => planRow.rowNumber === row.rowNumber);
-            targetItemId = planned?.selectedItemId ?? null;
+            targetAccountingPositionId = planned?.selectedAccountingPositionId ?? planned?.selectedItemId ?? null;
           }
 
           let action = decision?.action;
           if (!action) {
             const planned = payload.syncPlan?.rows?.find((planRow) => planRow.rowNumber === row.rowNumber);
-            if (planned?.status === 'MATCHED' && planned.selectedItemId) {
+            const plannedId = planned?.selectedAccountingPositionId ?? planned?.selectedItemId;
+            if (planned?.status === 'MATCHED' && plannedId) {
               action = 'AUTO';
-              targetItemId = planned.selectedItemId;
+              targetAccountingPositionId = plannedId;
             } else if (planned?.status === 'NEEDS_REVIEW') {
               action = unresolvedBehavior === 'SKIP' ? 'SKIP' : 'CREATE';
               created.syncNeedsReview += 1;
@@ -232,25 +247,26 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
             continue;
           }
 
-          const existingItem = targetItemId
-            ? await tx.item.findUnique({ where: { id: targetItemId }, select: { id: true } })
-            : await tx.item.findFirst({ where: { OR: [{ code: row.code }, { name: row.name, categoryId }] }, select: { id: true } });
+          const existingItem = targetAccountingPositionId
+            ? await tx.accountingPosition.findUnique({ where: { id: targetAccountingPositionId }, select: { id: true } })
+            : await tx.accountingPosition.findFirst({ where: { OR: [{ code: row.code }, { name: row.name, categoryId }] }, select: { id: true } });
 
           if (existingItem && action === 'AUTO') created.syncMatched += 1;
           if (!existingItem || action === 'CREATE') created.syncCreated += 1;
 
           if (existingItem) {
-            const snapshotItem = await tx.item.findUnique({
+            const snapshotItem = await tx.accountingPosition.findUnique({
               where: { id: existingItem.id },
               select: {
                 id: true, code: true, name: true, categoryId: true, defaultExpenseArticleId: true, defaultPurposeId: true,
                 minQtyBase: true, isActive: true, synonyms: true, note: true, baseUnitId: true, defaultInputUnitId: true, reportUnitId: true,
               },
             });
-            const snapshotUnits = await tx.itemUnit.findMany({ where: { itemId: existingItem.id }, select: { unitId: true, factorToBase: true, isAllowed: true, isDefaultInput: true, isDefaultReport: true } });
+            const snapshotUnits = await tx.accountingPositionUnit.findMany({ where: { itemId: existingItem.id }, select: { unitId: true, factorToBase: true, isAllowed: true, isDefaultInput: true, isDefaultReport: true } });
 
             if (snapshotItem) {
               rollback.updatedItems.push({
+                accountingPositionId: snapshotItem.id,
                 itemId: snapshotItem.id,
                 before: {
                   code: snapshotItem.code, name: snapshotItem.name, categoryId: snapshotItem.categoryId,
@@ -262,14 +278,14 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
               });
             }
 
-            await tx.item.update({
+            await tx.accountingPosition.update({
               where: { id: existingItem.id },
               data: {
                 code: row.code,
                 name: row.name,
                 categoryId,
                 defaultExpenseArticleId: expenseMap.get(row.expenseArticleCode) as string,
-                defaultPurposeId: purposeMap.get(row.sectionCode) as string,
+                defaultPurposeId: sectionMap.get(row.sectionCode) as string,
                 minQtyBase: row.minQtyBase == null ? null : toDecimal(row.minQtyBase),
                 isActive: row.isActive,
                 synonyms: row.synonyms,
@@ -281,13 +297,13 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
             });
           } else {
             const generatedCode = row.code || (await deps.generateNextItemCode(tx as Parameters<typeof generateNextItemCode>[0]));
-            const createdItem = await tx.item.create({
+            const createdItem = await tx.accountingPosition.create({
               data: {
                 code: generatedCode,
                 name: row.name,
                 categoryId,
                 defaultExpenseArticleId: expenseMap.get(row.expenseArticleCode) as string,
-                defaultPurposeId: purposeMap.get(row.sectionCode) as string,
+                defaultPurposeId: sectionMap.get(row.sectionCode) as string,
                 minQtyBase: row.minQtyBase == null ? null : toDecimal(row.minQtyBase),
                 isActive: row.isActive,
                 synonyms: row.synonyms,
@@ -298,13 +314,15 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
               },
               select: { id: true },
             });
-            rollback.createdItemIds.push(createdItem.id);
+            rollback.createdAccountingPositionIds.push(createdItem.id);
+            rollback.createdItemIds?.push(createdItem.id);
+            created.accountingPositions += 1;
             created.items += 1;
-            targetItemId = createdItem.id;
+            targetAccountingPositionId = createdItem.id;
           }
 
-          const itemId = (existingItem?.id ?? targetItemId) as string;
-          touchedItemIds.add(itemId);
+          const accountingPositionId = (existingItem?.id ?? targetAccountingPositionId) as string;
+          touchedAccountingPositionIds.add(accountingPositionId);
           const baseUnitId = unitMap.get(row.baseUnit) as string;
           const defaultInputUnitId = unitMap.get(row.defaultInputUnit) as string;
           const reportUnitId = unitMap.get(row.reportUnit) as string;
@@ -335,9 +353,10 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
           if (!dedup.has(defaultInputUnitId)) dedup.set(defaultInputUnitId, { factorToBase: toDecimal(1), isAllowed: true, isDefaultInput: true, isDefaultReport: false });
           if (!dedup.has(reportUnitId)) dedup.set(reportUnitId, { factorToBase: toDecimal(1), isAllowed: true, isDefaultInput: false, isDefaultReport: true });
 
-          const rowsToCreate = Array.from(dedup.entries()).map(([unitId, value]) => ({ itemId, unitId, ...value }));
-          await tx.itemUnit.deleteMany({ where: { itemId } });
-          await tx.itemUnit.createMany({ data: rowsToCreate });
+          const rowsToCreate = Array.from(dedup.entries()).map(([unitId, value]) => ({ itemId: accountingPositionId, unitId, ...value }));
+          await tx.accountingPositionUnit.deleteMany({ where: { itemId: accountingPositionId } });
+          await tx.accountingPositionUnit.createMany({ data: rowsToCreate });
+          created.accountingPositionUnits += rowsToCreate.length;
           created.itemUnits += rowsToCreate.length;
 
           if (createOpening && row.openingQty > 0) {
@@ -345,24 +364,24 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
             const factor = reportUnit?.factorToBase ?? toDecimal(1);
             const qtyInput = toDecimal(row.openingQty);
             openingLinePayload.push({
-              itemId,
+              itemId: accountingPositionId,
               qtyInput,
               unitId: reportUnitId,
               qtyBase: toDecimal(new Prisma.Decimal(row.openingQty).mul(factor).toNumber()),
               expenseArticleId: expenseMap.get(row.expenseArticleCode) as string,
-              purposeId: purposeMap.get(row.sectionCode) as string,
+              purposeId: sectionMap.get(row.sectionCode) as string,
             });
           }
         }
 
         let openingCreated = false;
-        let openingType: TxType | null = null;
+        let openingType: MovementType | null = null;
         let openingTransactionId: string | null = null;
         if (createOpening && openingLinePayload.length > 0) {
           const txOpening = await tx.transaction.create({
             data: {
               batchId: openingBatchId(),
-              type: openingEventMode === 'IN' ? TxType.IN : TxType.OPENING,
+              type: openingEventMode === 'IN' ? MovementType.IN : MovementType.OPENING,
               occurredAt: new Date('2026-03-01T00:00:00.000Z'),
               note: `Открытие склада 01.03.2026 (Import #${command.jobId})`,
               createdById: command.userId,
@@ -390,7 +409,7 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
           },
         });
 
-        return { openingCreated, openingType, openingTransactionId, touchedItemIds: Array.from(touchedItemIds) };
+        return { openingCreated, openingType, openingTransactionId, touchedAccountingPositionIds: Array.from(touchedAccountingPositionIds) };
       }, { maxWait: 10_000, timeout: 120_000 });
 
       const projections = [
@@ -403,7 +422,7 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
             projectionKinds: ['stock', 'history', 'reports', 'signals'],
             eventType: txResult.openingType,
             analyticsImpact: 'full',
-            itemIds: txResult.touchedItemIds,
+            itemIds: txResult.touchedAccountingPositionIds,
             transactionId: txResult.openingTransactionId,
           }),
         );
@@ -435,16 +454,17 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
           await tx.transaction.deleteMany({ where: { id: rollback.openingTransactionId } });
         }
 
-        for (const itemId of rollback.createdItemIds) {
-          const linesCount = await tx.transactionLine.count({ where: { itemId } });
+        for (const accountingPositionId of rollback.createdAccountingPositionIds) {
+          const linesCount = await tx.transactionLine.count({ where: { itemId: accountingPositionId } });
           if (linesCount > 0) throw new Error('Нельзя откатить импорт: по новым позициям уже есть движения.');
-          await tx.itemUnit.deleteMany({ where: { itemId } });
-          await tx.item.deleteMany({ where: { id: itemId } });
+          await tx.accountingPositionUnit.deleteMany({ where: { itemId: accountingPositionId } });
+          await tx.accountingPosition.deleteMany({ where: { id: accountingPositionId } });
         }
 
         for (const item of rollback.updatedItems) {
-          await tx.item.update({
-            where: { id: item.itemId },
+          const accountingPositionId = item.accountingPositionId;
+          await tx.accountingPosition.update({
+            where: { id: accountingPositionId },
             data: {
               code: item.before.code,
               name: item.before.name,
@@ -460,11 +480,11 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
               reportUnitId: item.before.reportUnitId,
             },
           });
-          await tx.itemUnit.deleteMany({ where: { itemId: item.itemId } });
+          await tx.accountingPositionUnit.deleteMany({ where: { itemId: accountingPositionId } });
           if (item.units.length > 0) {
-            await tx.itemUnit.createMany({
+            await tx.accountingPositionUnit.createMany({
               data: item.units.map((unit) => ({
-                itemId: item.itemId,
+                itemId: accountingPositionId,
                 unitId: unit.unitId,
                 factorToBase: new Prisma.Decimal(unit.factorToBase),
                 isAllowed: unit.isAllowed,

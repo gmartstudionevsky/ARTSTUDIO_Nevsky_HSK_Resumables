@@ -23,7 +23,8 @@ export type DirectoryRow = {
 
 export type UnitRow = {
   rowNumber: number;
-  itemCode: string;
+  accountingPositionCode: string;
+  itemCode?: string;
   unitName: string;
   factorToBase: number;
   isAllowed: boolean;
@@ -32,12 +33,15 @@ export type UnitRow = {
 };
 
 export type ImportSummary = {
-  items: number;
+  accountingPositions: number;
+  items?: number;
   categories: number;
   units: number;
   expenseArticles: number;
-  purposes: number;
-  itemUnits: number;
+  sections: number;
+  purposes?: number;
+  accountingPositionUnits: number;
+  itemUnits?: number;
   openingLines: number;
   syncMatched: number;
   syncCreated: number;
@@ -46,7 +50,8 @@ export type ImportSummary = {
 };
 
 export type ImportSyncCandidate = {
-  itemId: string;
+  accountingPositionId: string;
+  itemId?: string;
   code: string;
   name: string;
   category: string;
@@ -63,7 +68,8 @@ export type ImportSyncPlanRow = {
   sourceCategory: string;
   sourceKey: string;
   status: 'MATCHED' | 'CREATE' | 'SKIP' | 'NEEDS_REVIEW';
-  selectedItemId: string | null;
+  selectedAccountingPositionId: string | null;
+  selectedItemId?: string | null;
   selectedReason: string | null;
   candidates: ImportSyncCandidate[];
   missingRequired: string[];
@@ -89,5 +95,5 @@ export type CommitOptions = {
   createOpening?: boolean;
   syncMode?: 'AUTO' | 'MANUAL';
   unresolvedBehavior?: 'CREATE' | 'SKIP';
-  decisions?: Array<{ rowNumber: number; action: ImportSyncAction; itemId?: string }>;
+  decisions?: Array<{ rowNumber: number; action: ImportSyncAction; accountingPositionId?: string; itemId?: string }>;
 };

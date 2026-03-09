@@ -1,4 +1,4 @@
-import { Item } from '@prisma/client';
+import { AccountingPosition } from '@prisma/client';
 
 import { ImportSyncPlanRow, NormalizedImportPayload, ImportIssue } from '@/lib/import/types';
 import { ParsedImportResult } from '@/lib/import/xlsx/parse';
@@ -19,7 +19,7 @@ function parseSynonyms(value: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & { category: { name: string } }>): ImportSyncPlanRow[] {
+function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<AccountingPosition, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & { category: { name: string } }>): ImportSyncPlanRow[] {
   const rows: ImportSyncPlanRow[] = [];
 
   for (const row of parsed.directoryRows) {
@@ -60,6 +60,7 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
         }
 
         return {
+          accountingPositionId: item.id,
           itemId: item.id,
           code: item.code,
           name: item.name,
@@ -91,7 +92,8 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
       sourceCategory: row.sectionCode,
       sourceKey: normalize(`${row.code}::${row.name}::${row.sectionCode}`),
       status: autoMatched ? 'MATCHED' : needsReview ? 'NEEDS_REVIEW' : 'CREATE',
-      selectedItemId: autoMatched ? best.itemId : null,
+      selectedAccountingPositionId: autoMatched ? best.accountingPositionId : null,
+      selectedItemId: autoMatched ? best.accountingPositionId : null,
       selectedReason: autoMatched ? `Автосопоставление: ${best.reason}` : null,
       candidates,
       missingRequired,
@@ -103,7 +105,7 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Item
 
 export function validateImportData(
   parsed: ParsedImportResult,
-  existingItems: Array<Pick<Item, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & { category: { name: string } }> = []
+  existingItems: Array<Pick<AccountingPosition, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & { category: { name: string } }> = []
 ): NormalizedImportPayload {
   const errors: ImportIssue[] = [...parsed.parseErrors];
   const warnings: ImportIssue[] = [];
@@ -145,9 +147,9 @@ export function validateImportData(
 
   const unitsByItem = new Map<string, typeof parsed.unitRows>();
   for (const row of parsed.unitRows) {
-    const list = unitsByItem.get(row.itemCode) ?? [];
+    const list = unitsByItem.get(row.accountingPositionCode) ?? [];
     list.push(row);
-    unitsByItem.set(row.itemCode, list);
+    unitsByItem.set(row.accountingPositionCode, list);
 
     if (!row.unitName) {
       pushError(errors, 'Единицы', row.rowNumber, 'Ед. изм.', 'Поле обязательно.');
@@ -190,11 +192,14 @@ export function validateImportData(
 
   return {
     summary: {
+      accountingPositions: parsed.directoryRows.length,
       items: parsed.directoryRows.length,
       categories: sectionSet.size,
       units: unitSet.size,
       expenseArticles: expenseArticleSet.size,
+      sections: sectionSet.size,
       purposes: sectionSet.size,
+      accountingPositionUnits: parsed.unitRows.length,
       itemUnits: parsed.unitRows.length,
       openingLines,
       syncMatched: syncRows.filter((row) => row.status === 'MATCHED').length,
