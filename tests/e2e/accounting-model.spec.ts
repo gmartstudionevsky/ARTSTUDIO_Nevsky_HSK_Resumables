@@ -22,11 +22,13 @@ test('accounting model: OPENING + INVENTORY_APPLY affect stock as specified', as
   await page.goto('/stock');
   await expect(page).toHaveURL(/\/(stock|operation)$/);
 
-  const itemsRes = await apiJson<{ items: Array<{ id: string; code: string }> }>(page, '/api/accounting-positions?active=all');
+  const itemsRes = await apiJson<{ items?: Array<{ id: string; code: string }>; accountingPositions?: Array<{ id: string; code: string }> }>(page, '/api/accounting-positions?active=all');
   expect(itemsRes.ok, `items status=${itemsRes.status}`).toBeTruthy();
-  const item = itemsRes.json.items.find((entry) => entry.code === 'ITM-TEST');
+  const rows = itemsRes.json.accountingPositions ?? itemsRes.json.items ?? [];
+  const item = rows.find((entry) => entry.code === 'AP-TEST' || entry.code === 'ITM-TEST');
   expect(item).toBeTruthy();
   const itemId = item!.id;
+  const itemCode = item!.code;
 
   const openingCreateRes = await apiJson<{ session: { id: string } }>(page, '/api/inventory', {
     method: 'POST',
@@ -102,7 +104,7 @@ test('accounting model: OPENING + INVENTORY_APPLY affect stock as specified', as
   expect(regularTxRes.ok).toBeTruthy();
   expect(regularTxRes.json.transaction.type).toBe('INVENTORY_APPLY');
 
-  const stockRes = await apiJson<{ items: Array<{ qtyReport: string }> }>(page, '/api/stock?q=ITM-TEST');
+  const stockRes = await apiJson<{ items: Array<{ qtyReport: string }> }>(page, `/api/stock?q=${encodeURIComponent(itemCode)}`);
   expect(stockRes.ok).toBeTruthy();
   expect(stockRes.json.items[0]?.qtyReport ?? '').toMatch(/4/);
 });
