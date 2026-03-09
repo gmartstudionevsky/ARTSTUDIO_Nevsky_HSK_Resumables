@@ -21,17 +21,17 @@ test('buildCorrectionPatch: rehydrates row draft from recent result line', () =>
     qtyInput: '12.5',
     status: 'ACTIVE',
     comment: 'note',
-    item: { id: 'item-1', code: 'I-1', name: 'Item 1' },
+    accountingPosition: { id: 'item-1', code: 'I-1', name: 'Item 1' },
     unit: { id: 'u-1', name: 'шт' },
     expenseArticle: { id: 'ea-1', code: 'EA', name: 'Expense' },
-    purpose: { id: 'p-1', code: 'P', name: 'Purpose' },
+    section: { id: 's-1', code: 'S', name: 'Section' },
   };
 
   assert.deepEqual(buildCorrectionPatch(line), {
     qtyInput: '12.5',
     unitId: 'u-1',
     expenseArticleId: 'ea-1',
-    purposeId: 'p-1',
+    sectionId: 's-1',
     comment: 'note',
     expanded: true,
     secondLayerExpanded: true,
@@ -46,7 +46,7 @@ test('canPrepareCorrection: allows local correction only for rows in current wor
     qtyInput: '',
     unitId: '',
     expenseArticleId: '',
-    purposeId: '',
+    sectionId: '',
     comment: '',
     expanded: false,
     secondLayerExpanded: true,
@@ -63,10 +63,10 @@ test('canPrepareCorrection: allows local correction only for rows in current wor
     qtyInput: '1',
     status: 'ACTIVE',
     comment: null,
-    item: { id: 'item-a', code: 'A', name: 'A' },
+    accountingPosition: { id: 'item-a', code: 'A', name: 'A' },
     unit: { id: 'u', name: 'шт' },
     expenseArticle: { id: 'ea', code: 'EA', name: 'EA' },
-    purpose: { id: 'p', code: 'P', name: 'P' },
+    section: { id: 's', code: 'S', name: 'S' },
   };
 
   assert.equal(canPrepareCorrection(line, { 'item-a': rowDraft }), true);

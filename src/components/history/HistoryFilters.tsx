@@ -11,7 +11,7 @@ interface HistoryFiltersState {
   type: 'all' | 'IN' | 'OUT' | 'ADJUST' | 'OPENING' | 'INVENTORY_APPLY';
   status: 'all' | 'active' | 'cancelled';
   q: string;
-  itemId: string;
+  accountingPositionId: string;
   expenseArticleId: string;
   categoryId: string;
 }
@@ -45,7 +45,7 @@ export function HistoryFilters({ value, onChange, onPreset, items, expenseArticl
       <details>
         <summary className="cursor-pointer text-sm font-medium">Дополнительно</summary>
         <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <Select label="Позиция" value={value.itemId} onChange={(event) => onChange({ itemId: event.target.value })}>
+          <Select label="Позиция" value={value.accountingPositionId} onChange={(event) => onChange({ accountingPositionId: event.target.value })}>
             <option value="">Все</option>
             {items.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </Select>

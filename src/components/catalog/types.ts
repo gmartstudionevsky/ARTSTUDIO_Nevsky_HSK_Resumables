@@ -6,7 +6,7 @@ export type CatalogItem = {
   name: string;
   category: { name: string };
   defaultExpenseArticle: { code: string; name: string };
-  defaultPurpose: { code: string; name: string };
+  defaultSection: { code: string; name: string };
   isActive: boolean;
 };
 

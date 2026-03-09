@@ -11,6 +11,7 @@ const schema = z.object({
   qtyInput: z.union([z.string(), z.number()]).transform((value) => Number(value)),
   unitId: z.string().uuid(),
   expenseArticleId: z.string().uuid().nullable().optional(),
+  sectionId: z.string().uuid().nullable().optional(),
   purposeId: z.string().uuid().nullable().optional(),
   comment: z.string().trim().nullable().optional(),
   reasonId: z.string().uuid().nullable().optional(),
@@ -85,7 +86,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
           unitId: data.unitId,
           qtyBase,
           expenseArticleId: data.expenseArticleId ?? oldLine.item.defaultExpenseArticleId,
-          purposeId: data.purposeId ?? oldLine.item.defaultPurposeId,
+          purposeId: data.sectionId ?? data.purposeId ?? oldLine.item.defaultPurposeId,
           comment: data.comment ?? null,
           correctedFromLineId: oldLine.id,
           status: RecordStatus.ACTIVE,
@@ -111,7 +112,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return { tx: newTx, line: newLine };
     });
 
-    return NextResponse.json({ transaction: { id: created.tx.id, batchId: created.tx.batchId, type: created.tx.type, occurredAt: created.tx.occurredAt }, line: created.line, correctedFromLineId: oldLine.id });
+    return NextResponse.json({ transaction: { id: created.tx.id, batchId: created.tx.batchId, type: created.tx.type, occurredAt: created.tx.occurredAt }, line: { ...created.line, accountingPosition: created.line.item, section: created.line.purpose }, correctedFromLineId: oldLine.id });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });

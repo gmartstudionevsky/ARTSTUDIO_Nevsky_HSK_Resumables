@@ -20,7 +20,7 @@ type ItemPayload = {
     isActive: boolean;
     categoryId: string;
     defaultExpenseArticleId: string;
-    defaultPurposeId: string;
+    defaultSectionId: string;
     baseUnitId: string;
     defaultInputUnitId: string;
     reportUnitId: string;
@@ -31,7 +31,7 @@ type ItemPayload = {
   refs: {
     categories: RefOption[];
     expenseArticles: RefOption[];
-    purposes: RefOption[];
+    sections: RefOption[];
     units: RefOption[];
   };
 };
@@ -47,8 +47,8 @@ export function ItemDetailsClient(): JSX.Element {
   useEffect(() => {
     async function load() {
       const [itemResponse, unitsResponse] = await Promise.all([
-        fetch(`/api/items/${params.id}/full`, { cache: 'no-store' }),
-        fetch(`/api/items/${params.id}/units`, { cache: 'no-store' }),
+        fetch(`/api/accounting-positions/${params.id}/full`, { cache: 'no-store' }),
+        fetch(`/api/accounting-positions/${params.id}/units`, { cache: 'no-store' }),
       ]);
       if (!itemResponse.ok) return;
       const itemPayload = (await itemResponse.json()) as ItemPayload;
@@ -63,13 +63,13 @@ export function ItemDetailsClient(): JSX.Element {
   const itemData = data;
 
   async function save() {
-    await fetch(`/api/items/${itemData.item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(itemData.item) });
-    const response = await fetch(`/api/items/${itemData.item.id}/units`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ units }) });
+    await fetch(`/api/accounting-positions/${itemData.item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(itemData.item) });
+    const response = await fetch(`/api/accounting-positions/${itemData.item.id}/units`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ units }) });
     if (response.ok) setToast('Изменения сохранены');
   }
 
   async function toggle() {
-    const response = await fetch(`/api/items/${itemData.item.id}/toggle-active`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !itemData.item.isActive }) });
+    const response = await fetch(`/api/accounting-positions/${itemData.item.id}/toggle-active`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !itemData.item.isActive }) });
     if (!response.ok) return;
     setData((prev) => prev ? { ...prev, item: { ...prev.item, isActive: !prev.item.isActive } } : prev);
   }
@@ -86,7 +86,7 @@ export function ItemDetailsClient(): JSX.Element {
         <Input label="Название" value={itemData.item.name} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, name: e.target.value } } : prev)} />
         <Select label="Раздел" value={itemData.item.categoryId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, categoryId: e.target.value } } : prev)}>{itemData.refs.categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
         <Select label="Статья затрат" value={itemData.item.defaultExpenseArticleId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, defaultExpenseArticleId: e.target.value } } : prev)}>{itemData.refs.expenseArticles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
-        <Select label="Раздел" value={itemData.item.defaultPurposeId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, defaultPurposeId: e.target.value } } : prev)}>{itemData.refs.purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
+        <Select label="Раздел" value={itemData.item.defaultSectionId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, defaultSectionId: e.target.value } } : prev)}>{itemData.refs.sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
         <Input label="Мин. остаток" type="number" value={itemData.item.minQtyBase ?? ''} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, minQtyBase: e.target.value } } : prev)} />
         <Input label="Синонимы" value={itemData.item.synonyms ?? ''} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, synonyms: e.target.value } } : prev)} />
         <Input label="Примечание" value={itemData.item.note ?? ''} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, note: e.target.value } } : prev)} />

@@ -7,12 +7,12 @@ async function handle<T>(response: Response): Promise<T> {
 }
 
 export async function fetchItemDetails(itemId: string): Promise<ItemDetailsResponse> {
-  const response = await fetch(`/api/items/${itemId}`, { cache: 'no-store' });
+  const response = await fetch(`/api/accounting-positions/${itemId}`, { cache: 'no-store' });
   return handle<ItemDetailsResponse>(response);
 }
 
 export async function fetchItemMovements(itemId: string, limit = 20): Promise<ItemMovementsResponse> {
   const params = new URLSearchParams({ limit: String(limit) });
-  const response = await fetch(`/api/items/${itemId}/movements?${params.toString()}`, { cache: 'no-store' });
+  const response = await fetch(`/api/accounting-positions/${itemId}/movements?${params.toString()}`, { cache: 'no-store' });
   return handle<ItemMovementsResponse>(response);
 }

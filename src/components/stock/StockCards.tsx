@@ -17,7 +17,7 @@ export function StockCards({ items, decimals }: { items: StockListItem[]; decima
       {items.map((item) => {
         const badge = statusBadge(item.status);
         return (
-          <Card key={item.itemId} data-testid={`stock-item-mobile-${item.itemId}`}>
+          <Card key={item.accountingPositionId} data-testid={`stock-item-mobile-${item.accountingPositionId}`}>
             <CardContent>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -26,8 +26,8 @@ export function StockCards({ items, decimals }: { items: StockListItem[]; decima
                 </div>
                 <Badge variant={badge.variant}>{badge.label}</Badge>
               </div>
-              <p className="text-sm">Остаток: <span className="font-semibold" data-testid={`stock-qty-mobile-${item.itemId}`}>{formatQty(item.qtyReport, decimals)} {item.reportUnit.name}</span></p>
-              <Link className="text-sm text-accent underline" href={`/items/${item.itemId}`}>Открыть</Link>
+              <p className="text-sm">Остаток: <span className="font-semibold" data-testid={`stock-qty-mobile-${item.accountingPositionId}`}>{formatQty(item.qtyReport, decimals)} {item.reportUnit.name}</span></p>
+              <Link className="text-sm text-accent underline" href={`/items/${item.accountingPositionId}`}>Открыть</Link>
             </CardContent>
           </Card>
         );

@@ -7,7 +7,7 @@ export interface StockListQuery {
   q?: string;
   categoryId?: string;
   expenseArticleId?: string;
-  purposeId?: string;
+  sectionId?: string;
   status?: StockStatusFilter;
   active?: ActiveFilter;
   limit?: number;
@@ -15,12 +15,12 @@ export interface StockListQuery {
 }
 
 export interface StockListItem {
-  itemId: string;
+  accountingPositionId: string;
   code: string;
   name: string;
   category: { id: string; name: string };
   defaultExpenseArticle: { id: string; code: string; name: string };
-  defaultPurpose: { id: string; code: string; name: string };
+  defaultSection: { id: string; code: string; name: string };
   reportUnit: { id: string; name: string };
   qtyBase: string;
   qtyReport: string;

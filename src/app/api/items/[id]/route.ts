@@ -46,6 +46,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
   return NextResponse.json({
     item: {
       ...item,
+      defaultSectionId: item.defaultPurpose.id,
+      defaultSection: item.defaultPurpose,
       minQtyBase: item.minQtyBase?.toString() ?? null,
     },
     accountingPosition,

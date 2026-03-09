@@ -326,3 +326,82 @@
 - **Следующее логическое действие:** <следующий управляемый шаг>.
 - **Доказательство завершения подшага/шага:** <какой evidence обязателен для deep closure>.
 ```
+
+### 2026-03-09 / Шаг 2.8
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.8 (sealing: canonical field vocabulary в persistence/read contracts).
+- **Каноны:** canonical-domain-migration-target, read-side model, canonical entity relations.
+- **Суть продвижения:** read/projection и schema-facing stock/catalog contracts переведены на canonical primary field vocabulary (`sectionId`, `defaultSection`, `accountingPositionId`) с локализацией legacy-имен на internal storage boundary.
+- **Какие repo artifacts были затронуты:** `src/lib/stock/types.ts`, `src/lib/stock/api.ts`, `src/app/api/stock/route.ts`, `src/lib/read-models/stock-projection.ts`, `src/lib/read-models/catalog-projection.ts`, stock UI/e2e/read-model tests.
+- **Что стало глубже реализовано:**
+  - stock read contract и payload keys больше не публикуют `purposeId`/`itemId` как primary outward vocabulary;
+  - catalog read query contract переведен на canonical `sectionId` filter;
+  - e2e и projection tests закрепляют canonical field-level shape как основную модель read-side.
+- **Что остаётся незакрытым:** broader operation/history/catalog UI vocabulary cleanup и финальная compatibility зачистка в 2.9/2.10.
+- **Текущий статус после записи:** Подшаг 2.8 — **В реализации**.
+- **Следующее логическое действие:** продолжить 2.9 с user-facing/API cleanup поверх canonical field contracts.
+- **Доказательство завершения подшага/шага:** prisma validate/generate + typecheck + targeted read-model tests + e2e contract updates по stock payload shape.
+
+### 2026-03-09 / Шаг 2.9
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.9 (stock/catalog/operation contract-surface canonicalization).
+- **Каноны:** canonical entities, read/write contract alignment, movements hub semantics.
+- **Суть продвижения:** canonical field language доведен до product-surface contracts в catalog/stock/operation API edges: primary keys `section*`/`accountingPosition*` стали основой query/payload/form contracts, а legacy vocabulary оставлен только в explicit compatibility aliases.
+- **Какие repo artifacts были затронуты:** `src/lib/items/validators.ts`, `src/app/api/items/*`, `src/components/catalog/*`, `src/app/api/transactions/route.ts`, `src/app/api/transaction-lines/[id]/correct/route.ts`, e2e/test contracts, progress log.
+- **Что стало глубже реализовано:**
+  - catalog forms/details/list moved to `defaultSection*` primary contract semantics;
+  - items/catalog API now accepts canonical `sectionId/defaultSectionId` and exposes `accountingPositions` as canonical primary response key;
+  - operation/history transaction API query and mutation edges accept canonical `accountingPositionId/sectionId` while preserving bounded alias compatibility (`itemId/purposeId`) at boundary only.
+- **Что остаётся незакрытым:** final residual cleanup in seed/e2e/admin surfaces (2.10) and possible removal of explicit compatibility aliases after downstream clients are fully migrated.
+- **Текущий статус после записи:** Подшаг 2.9 — **В реализации**.
+- **Следующее логическое действие:** провести 2.10 final sealing: alias sunset, fixture parity и финальная regress/QA closure.
+- **Доказательство завершения подшага/шага:** prisma validate + typecheck + targeted read/operation tests + contract-shape assertions.
+
+
+### 2026-03-09 / Шаг 2.10
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.10 (seed/fixtures/e2e/regression baseline canonicalization).
+- **Каноны:** canonical entities, movements hub, read/write consistency, proof-layer reproducibility.
+- **Суть продвижения:** baseline setup и e2e data contracts переведены на canonical identifiers (`accountingPositionId`, `sectionId`) как default proof path; legacy aliases удалены из e2e setup outputs.
+- **Какие repo artifacts были затронуты:** `prisma/seed.ts`, `tests/e2e/setupTestData.ts`, `tests/e2e/core-flow.spec.ts`, `src/components/operation/OperationForm.tsx`, `tests/e2e/setupTestData.canonical-baseline.test.ts`.
+- **Что стало глубже реализовано:**
+  - seed/e2e setup больше не возвращают legacy-shaped setup contract (`itemId/purposeId`) как baseline truth;
+  - core e2e movement flow использует canonical section/accounting-position anchors;
+  - regression test фиксирует canonical setup contract и ловит возврат legacy keys в baseline.
+- **Что остаётся незакрытым:** full-suite e2e runtime verification depends on app/server/browser environment; final sealing in 2.11 validates full contour end-to-end.
+- **Текущий статус после записи:** Подшаг 2.10 — **В реализации**.
+- **Следующее логическое действие:** выполнить 2.11 final sealing с полным e2e/integration run и sunset residual compatibility checks.
+- **Доказательство завершения подшага/шага:** seed + canonical setup regression + typecheck + targeted e2e contract checks.
+
+### 2026-03-09 / Шаг 2.11 (финальный повторный sealing)
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.11 (closure gate after 2.8–2.10).
+- **Каноны:** canonical entities, write/read contract truth, movements hub semantics, proof-layer reproducibility.
+- **Суть проверки:** выполнен финальный cross-layer resealing audit по hotspots 2.3–2.10 (persistence, read/projection, stock/catalog/operation, seed/e2e/regression).
+- **Фактический итог:** **Шаг 2 пока не может быть переведён в статус `Закрыто глубоко`**.
+- **Почему:** в operation/history surfaces остаётся blocking class legacy-primary contract semantics (`purpose*`, `SINGLE_PURPOSE`, `itemId` как primary flow language), а `/api/items*` остаётся фактически primary route family.
+- **Что подтверждено как уже canonical-primary:** stock read contracts, часть catalog contracts, e2e setup object baseline (`accountingPositionId`/`sectionId`) и field-level read-side vocabulary from 2.8.
+- **Что требуется для честного закрытия:** отдельный узкий завершающий pass по operation/history contract surfaces и route-primary policy (`/api/items*` как strict secondary alias).
+- **Статус Шага 2 после 2.11:** **Требует повторного прохода по конкретному residual blocking классу** (не broad migration, а targeted closure pass).
+- **Решение по Step 3:** **не разблокирован** до устранения указанного blocking residue.
+
+### 2026-03-09 / Шаг 2.12
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.12 (operation/history residual blocking class elimination + route-primary inversion).
+- **Каноны:** movements hub semantics, row-state canon, read/write contract canon, compatibility-layer localization.
+- **Суть продвижения:** устранён последний blocking dual-primary класс в operation/history контрактах и потребителях; primary route path для сущности позиции учёта переведён на `/api/accounting-positions*`, а `/api/items*` помечен как secondary compatibility alias.
+- **Какие repo artifacts были затронуты:** `src/lib/operation/*`, `src/components/operation/*`, `src/lib/history/*`, `src/components/history/*`, `src/lib/items/api.ts`, `src/lib/inventory/api.ts`, `src/app/api/accounting-positions/**`, `src/app/api/items/route.ts`, `tests/components/operation.*.test.ts`, `tests/e2e/accounting-model.spec.ts`.
+- **Что стало глубже реализовано:**
+  - operation row-state и correction-путь используют canonical anchors (`sectionId`, `accountingPositionId`) как primary model;
+  - history detail/filter consumers больше не опираются на `itemId/purposeId` как default contract language;
+  - canonical route family `/api/accounting-positions*` стала default path для клиентов и тестов;
+  - `/api/items` оставлен только как явно помеченный compatibility слой (Deprecation/Sunset/successor headers).
+- **Что остаётся незакрытым:** compatibility aliases всё ещё поддерживаются на boundary-слое (`/api/items*`, dual keys в отдельных payload) до полного sunset, но больше не являются primary path.
+- **Текущий статус после записи:** Подшаг 2.12 — **В реализации (verification-complete, awaiting final closure mark)**.
+- **Следующее логическое действие:** выполнить финальную closure фиксацию Шага 2 как deep-closed gate и разблокировать старт Шага 3.
+- **Доказательство завершения подшага/шага:** typecheck + targeted operation contract tests + read-model regression + route semantics checks (`/api/accounting-positions` as default, `/api/items` as explicit secondary compatibility).

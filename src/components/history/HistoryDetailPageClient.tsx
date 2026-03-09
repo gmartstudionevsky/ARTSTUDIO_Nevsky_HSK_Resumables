@@ -44,7 +44,7 @@ export function HistoryDetailPageClient(): JSX.Element {
   const [detail, setDetail] = useState<HistoryTransactionDetail | null>(null);
   const [reasons, setReasons] = useState<RefOption[]>([]);
   const [articles, setArticles] = useState<RefOption[]>([]);
-  const [purposes, setPurposes] = useState<RefOption[]>([]);
+  const [sections, setSections] = useState<RefOption[]>([]);
   const [correctUnits, setCorrectUnits] = useState<Array<{ id: string; unitId: string; unit: { id: string; name: string } }>>([]);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelLine, setCancelLine] = useState<HistoryLine | null>(null);
@@ -60,10 +60,10 @@ export function HistoryDetailPageClient(): JSX.Element {
   }, [id]);
 
   useEffect(() => {
-    void Promise.all([fetchLookup('reasons'), fetchLookup('expense-articles'), fetchLookup('purposes')]).then(([reasonRows, articleRows, purposeRows]) => {
+    void Promise.all([fetchLookup('reasons'), fetchLookup('expense-articles'), fetchLookup('purposes')]).then(([reasonRows, articleRows, sectionRows]) => {
       setReasons(reasonRows);
       setArticles(articleRows);
-      setPurposes(purposeRows);
+      setSections(sectionRows);
     });
     void fetchPolicies().then((policies) => { setRequireReason(policies.requireReasonOnCancel); setDecimals(policies.displayDecimals); });
     void load();
@@ -104,7 +104,7 @@ export function HistoryDetailPageClient(): JSX.Element {
         onCancel={(line) => { setCancelLine(line); setCancelOpen(true); }}
         onCorrect={(line) => {
           setCorrectLine(line);
-          void fetchItemUnits(line.item.id).then((units) => setCorrectUnits(units));
+          void fetchItemUnits(line.accountingPosition.id).then((units) => setCorrectUnits(units));
         }}
       />
 
@@ -136,12 +136,12 @@ export function HistoryDetailPageClient(): JSX.Element {
       <LineEditorModal
         open={Boolean(correctLine)}
         mode="correct"
-        units={correctUnits.map((unit) => ({ ...unit, itemId: correctLine?.item.id ?? '', factorToBase: '1', isAllowed: true, isDefaultInput: false, isDefaultReport: false, unit: { ...unit.unit, isActive: true } }))}
+        units={correctUnits.map((unit) => ({ ...unit, accountingPositionId: correctLine?.accountingPosition.id ?? '', itemId: correctLine?.accountingPosition.id ?? '', factorToBase: '1', isAllowed: true, isDefaultInput: false, isDefaultReport: false, unit: { ...unit.unit, isActive: true } }))}
         articles={articles.map((item) => ({ ...item, isActive: true }))}
-        purposes={purposes.map((item) => ({ ...item, isActive: true }))}
+        sections={sections.map((item) => ({ ...item, isActive: true }))}
         reasons={reasons.map((item) => ({ ...item, isActive: true }))}
         requireReason={requireReason}
-        initial={correctLine ? { qtyInput: correctLine.qtyInput, unitId: correctLine.unit.id, expenseArticleId: correctLine.expenseArticle.id, purposeId: correctLine.purpose.id, comment: correctLine.comment ?? '' } : {}}
+        initial={correctLine ? { qtyInput: correctLine.qtyInput, unitId: correctLine.unit.id, expenseArticleId: correctLine.expenseArticle.id, sectionId: correctLine.section.id, comment: correctLine.comment ?? '' } : {}}
         onClose={() => setCorrectLine(null)}
         onSubmit={(payload) => {
           if (!correctLine) return;

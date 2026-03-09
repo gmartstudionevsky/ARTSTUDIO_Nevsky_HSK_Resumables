@@ -43,7 +43,7 @@ export async function applyInventory(id: string, payload: { reasonId?: string | 
 
 export async function searchItems(q: string): Promise<Array<{ id: string; code: string; name: string }>> {
   const params = new URLSearchParams({ q, limit: '20', active: 'true' });
-  const res = await fetch(`/api/items?${params.toString()}`, { cache: 'no-store' });
+  const res = await fetch(`/api/accounting-positions?${params.toString()}`, { cache: 'no-store' });
   const payload = await handle<{ items: Array<{ id: string; code: string; name: string }> }>(res);
   return payload.items;
 }

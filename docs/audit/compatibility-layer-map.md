@@ -202,3 +202,54 @@ Baseline для сравнения взят из канонов и traceability-
   - `src/app/(app)/operation/page.tsx` redirect alias (`/operation -> /movements`) as narrow transition boundary.
   - `src/lib/ui-texts/sync.ts` legacy key lookup (`nav.operation`, `tooltip.purpose`) only for canonical key bootstrap/repair.
 - Residual compatibility is **not** primary: canonical routes/keys/contracts are default across app shell, admin surfaces, tests, and setup flows.
+
+## Final resealing checkpoint (Шаг 2.11 / 2026-03-09)
+
+### Rechecked former critical hotspots after 2.8–2.10
+
+- **Persistence boundary** (`prisma/schema.prisma`, SQL-level `itemId/defaultPurposeId`) remains legacy by physical storage design and is accepted only as mapped storage boundary.
+- **Stock surface** is canonical-primary (`sectionId`, `accountingPositionId`, `defaultSection`) and no longer exposes legacy keys as default outward contract.
+- **Catalog edge contracts** were improved with canonical keys, but still run through `/api/items*` primary route family and keep dual response compatibility (`items`, `catalogPositions`, `accountingPositions`).
+- **Operation and history surfaces** still contain legacy-primary semantics in critical form/query/contracts (`SINGLE_PURPOSE`, `purposeId`, `defaultPurpose`, `itemId`) beyond narrow compatibility edge mapping.
+- **Seed/e2e baseline** moved to canonical setup object for core flow, but broader regression surface still includes legacy-first assumptions around operation/history contracts.
+
+### Residual classification update
+
+1. **Blocking residual (still prevents deep closure of Step 2):**
+   - operation UI/domain contracts still primary on `purpose*`/`SINGLE_PURPOSE` state model in row drafts and form flow;
+   - history filters/details still primary on `itemId`/`purposeId` payload semantics;
+   - `/api/items*` remains primary route family rather than explicit secondary alias path.
+
+2. **Localized and acceptable temporary residue (non-blocking):**
+   - physical DB field names (`itemId`, `defaultPurposeId`) localized to persistence mapping boundary;
+   - explicit API compatibility aliases where canonical key is primary in request/response contract.
+
+### Final Step-2 closure gate decision
+
+- **Step 2 is NOT yet “Закрыто глубоко”.**
+- Reason: at least one remaining **product-surface primary legacy path class** persists (operation/history contract semantics), so closure would be optimistic and non-evidence-based.
+- Required next move before Step 3: eliminate/strictly boundary-localize the remaining operation/history legacy-primary contract class and demote `/api/items*` to explicit secondary compatibility route semantics.
+
+## Update after targeted residual sealing (Шаг 2.12 / 2026-03-09)
+
+### Что переклассифицировано
+
+- **Бывший blocking residual operation/history class** переведён в canonical-primary состояние в затронутых primary flows:
+  - operation row-state и correction payload больше не построены вокруг `purpose*`/`SINGLE_PURPOSE` как structural primary модели;
+  - history consumers перешли на canonical anchors (`accountingPositionId`, `sectionId`) как default usage.
+- **Route-primary inversion выполнен:**
+  - primary consumers и e2e checks используют `/api/accounting-positions*`;
+  - `/api/items*` оставлен как explicit compatibility alias route family.
+
+### Текущий residual state
+
+1. **Eliminated as blocking class:**
+   - operation/history dual-primary contract backbone (`item/purpose` as default model language).
+2. **Localized acceptable residue (non-blocking):**
+   - `/api/items*` compatibility route family c explicit deprecation semantics;
+   - storage-level legacy field names (`itemId`, `defaultPurposeId`) на persistence boundary через mapping.
+
+### Closure implication for Step 2
+
+- После 2.12 в карте не остаётся известного **product-surface blocking legacy-primary class**.
+- Оставшийся compatibility residue — узкий, явный и не-default; он не должен блокировать deep-closure gate Шага 2.

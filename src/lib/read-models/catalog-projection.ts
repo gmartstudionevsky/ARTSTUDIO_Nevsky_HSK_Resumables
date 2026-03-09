@@ -9,7 +9,7 @@ export interface PositionCatalogProjectionQuery {
   q?: string;
   categoryId?: string;
   expenseArticleId?: string;
-  purposeId?: string;
+  sectionId?: string;
   active?: 'true' | 'false' | 'all';
   limit?: number;
   offset?: number;
@@ -63,7 +63,7 @@ function toWhere(query: PositionCatalogProjectionQuery): Prisma.AccountingPositi
     ...(activeFilter === undefined ? {} : { isActive: activeFilter }),
     ...(query.categoryId ? { categoryId: query.categoryId } : {}),
     ...(query.expenseArticleId ? { defaultExpenseArticleId: query.expenseArticleId } : {}),
-    ...(query.purposeId ? { defaultPurposeId: query.purposeId } : {}),
+    ...(query.sectionId ? { defaultPurposeId: query.sectionId } : {}),
     ...(q
       ? {
           OR: [

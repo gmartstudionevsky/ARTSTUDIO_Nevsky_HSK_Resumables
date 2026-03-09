@@ -50,8 +50,8 @@ export function ResultView({
         <div data-testid="op-result-lines">
           {lines.map((line) => (
             <div key={line.id} className="mb-2 rounded-md border border-border p-3 text-sm" data-testid={`op-result-line-${line.id}`}>
-              <p>{line.item.code} — {line.item.name}</p>
-              <p className="text-muted">{line.qtyInput} {line.unit.name} · {line.expenseArticle.code} · {line.purpose.code} · {line.status}</p>
+              <p>{line.accountingPosition.code} — {line.accountingPosition.name}</p>
+              <p className="text-muted">{line.qtyInput} {line.unit.name} · {line.expenseArticle.code} · {line.section.code} · {line.status}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={() => onHydrateLineForCorrection(line)} data-testid={`op-correct-last-${line.id}`}>Исправить в рабочем поле</Button>
                 <Button size="sm" variant="secondary" onClick={() => onCancelLine(line.id)}>Отменить строку</Button>

@@ -11,15 +11,15 @@ interface Props {
   open: boolean;
   categories: RefOption[];
   expenseArticles: RefOption[];
-  purposes: RefOption[];
+  sections: RefOption[];
   units: RefOption[];
   onClose: () => void;
   onCreated: (result: { id: string; initialStockNote: string; transactionId?: string }) => void;
 }
 
-export function ItemFormModal({ open, categories, expenseArticles, purposes, units, onClose, onCreated }: Props): JSX.Element | null {
+export function ItemFormModal({ open, categories, expenseArticles, sections, units, onClose, onCreated }: Props): JSX.Element | null {
   const baseUnitId = units[0]?.id ?? '';
-  const [form, setForm] = useState({ name: '', categoryId: categories[0]?.id ?? '', defaultExpenseArticleId: expenseArticles[0]?.id ?? '', defaultPurposeId: purposes[0]?.id ?? '', baseUnitId, defaultInputUnitId: baseUnitId, reportUnitId: baseUnitId, minQtyBase: '', synonyms: '', note: '' });
+  const [form, setForm] = useState({ name: '', categoryId: categories[0]?.id ?? '', defaultExpenseArticleId: expenseArticles[0]?.id ?? '', defaultSectionId: sections[0]?.id ?? '', baseUnitId, defaultInputUnitId: baseUnitId, reportUnitId: baseUnitId, minQtyBase: '', synonyms: '', note: '' });
   const [openingEnabled, setOpeningEnabled] = useState(false);
   const [openingQty, setOpeningQty] = useState('');
   const [openingUnitId, setOpeningUnitId] = useState(baseUnitId);
@@ -28,13 +28,13 @@ export function ItemFormModal({ open, categories, expenseArticles, purposes, uni
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setForm({ name: '', categoryId: categories[0]?.id ?? '', defaultExpenseArticleId: expenseArticles[0]?.id ?? '', defaultPurposeId: purposes[0]?.id ?? '', baseUnitId: units[0]?.id ?? '', defaultInputUnitId: units[0]?.id ?? '', reportUnitId: units[0]?.id ?? '', minQtyBase: '', synonyms: '', note: '' });
+    setForm({ name: '', categoryId: categories[0]?.id ?? '', defaultExpenseArticleId: expenseArticles[0]?.id ?? '', defaultSectionId: sections[0]?.id ?? '', baseUnitId: units[0]?.id ?? '', defaultInputUnitId: units[0]?.id ?? '', reportUnitId: units[0]?.id ?? '', minQtyBase: '', synonyms: '', note: '' });
     setOpeningUnitId(units[0]?.id ?? '');
     setOpeningEnabled(false);
     setOpeningQty('');
     setOpeningComment('');
     setError('');
-  }, [open, categories, expenseArticles, purposes, units]);
+  }, [open, categories, expenseArticles, sections, units]);
 
   const selectedOpeningUnitName = useMemo(() => units.find((item) => item.id === openingUnitId)?.name ?? '', [openingUnitId, units]);
   const isOpeningQtyValid = !openingEnabled || (Number(openingQty) > 0 && Number.isFinite(Number(openingQty)));
@@ -43,7 +43,7 @@ export function ItemFormModal({ open, categories, expenseArticles, purposes, uni
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault();
-    if (!form.name.trim() || !form.categoryId || !form.defaultExpenseArticleId || !form.defaultPurposeId || !form.baseUnitId || !form.defaultInputUnitId || !form.reportUnitId) {
+    if (!form.name.trim() || !form.categoryId || !form.defaultExpenseArticleId || !form.defaultSectionId || !form.baseUnitId || !form.defaultInputUnitId || !form.reportUnitId) {
       setError('Заполните обязательные поля');
       return;
     }
@@ -54,7 +54,7 @@ export function ItemFormModal({ open, categories, expenseArticles, purposes, uni
 
     setLoading(true);
     setError('');
-    const response = await fetch('/api/items', {
+    const response = await fetch('/api/accounting-positions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -91,7 +91,7 @@ export function ItemFormModal({ open, categories, expenseArticles, purposes, uni
           <Input label="Название" data-testid="item-name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
           <Select label="Раздел" data-testid="item-category" value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
           <Select label="Статья затрат" data-testid="item-expense-article" value={form.defaultExpenseArticleId} onChange={(e) => setForm((p) => ({ ...p, defaultExpenseArticleId: e.target.value }))}>{expenseArticles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
-          <Select label="Раздел" data-testid="item-purpose" value={form.defaultPurposeId} onChange={(e) => setForm((p) => ({ ...p, defaultPurposeId: e.target.value }))}>{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
+          <Select label="Раздел" data-testid="item-section" value={form.defaultSectionId} onChange={(e) => setForm((p) => ({ ...p, defaultSectionId: e.target.value }))}>{sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
           <Select label="Базовая единица" data-testid="item-base-unit" value={form.baseUnitId} onChange={(e) => setForm((p) => ({ ...p, baseUnitId: e.target.value, defaultInputUnitId: e.target.value, reportUnitId: e.target.value }))}>{units.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
           <Select label="Ед. отчётности" data-testid="item-report-unit" value={form.reportUnitId} onChange={(e) => setForm((p) => ({ ...p, reportUnitId: e.target.value }))}>{units.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
           <Select label="Ед. ввода" data-testid="item-default-input-unit" value={form.defaultInputUnitId} onChange={(e) => setForm((p) => ({ ...p, defaultInputUnitId: e.target.value }))}>{units.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>

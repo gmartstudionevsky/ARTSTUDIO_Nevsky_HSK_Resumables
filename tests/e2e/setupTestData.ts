@@ -4,9 +4,6 @@ export type TestData = {
   accountingPositionId: string;
   accountingPositionName: string;
   sectionId: string;
-  itemId: string;
-  itemName: string;
-  purposeId: string;
 };
 
 export async function setupTestData(): Promise<TestData> {
@@ -91,9 +88,6 @@ export async function setupTestData(): Promise<TestData> {
       accountingPositionId: accountingPosition.id,
       accountingPositionName,
       sectionId: section.id,
-      itemId: accountingPosition.id,
-      itemName: accountingPositionName,
-      purposeId: section.id,
     };
   } finally {
     await prisma.$disconnect();

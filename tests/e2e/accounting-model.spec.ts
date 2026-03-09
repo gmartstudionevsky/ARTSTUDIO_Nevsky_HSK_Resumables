@@ -22,7 +22,7 @@ test('accounting model: OPENING + INVENTORY_APPLY affect stock as specified', as
   await page.goto('/stock');
   await expect(page).toHaveURL(/\/(stock|operation)$/);
 
-  const itemsRes = await apiJson<{ items: Array<{ id: string; code: string }> }>(page, '/api/items?active=all');
+  const itemsRes = await apiJson<{ items: Array<{ id: string; code: string }> }>(page, '/api/accounting-positions?active=all');
   expect(itemsRes.ok, `items status=${itemsRes.status}`).toBeTruthy();
   const item = itemsRes.json.items.find((entry) => entry.code === 'ITM-TEST');
   expect(item).toBeTruthy();

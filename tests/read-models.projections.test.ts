@@ -45,7 +45,7 @@ test('catalog projection: includes availability and eligibility semantics', asyn
 
 test('stock projection: keeps state model with eligibility payload', () => {
   const mapped = mapStockProjectionRow({
-    itemId: 'i-1',
+    accountingPositionId: 'i-1',
     code: 'IT-1',
     name: 'Item',
     categoryId: 'cat-1',
@@ -53,9 +53,9 @@ test('stock projection: keeps state model with eligibility payload', () => {
     expenseArticleId: 'ea-1',
     expenseArticleCode: 'EA',
     expenseArticleName: 'Expense',
-    purposeId: 'p-1',
-    purposeCode: 'P',
-    purposeName: 'Purpose',
+    sectionId: 'p-1',
+    sectionCode: 'P',
+    sectionName: 'Purpose',
     reportUnitId: 'u-1',
     reportUnitName: 'шт',
     qtyBase: { toString: () => '5' } as never,
@@ -164,16 +164,16 @@ test('projection contracts: register update from write-side handoff', () => {
 });
 
 test('catalog projection: section filter is passed through canonical read-model query', async () => {
-  let seenPurposeId: string | undefined;
+  let seenSectionId: string | undefined;
   await getPositionCatalogProjection(
     {
-      purposeId: '00000000-0000-0000-0000-000000000777',
+      sectionId: '00000000-0000-0000-0000-000000000777',
       active: 'true',
     },
     {
       itemReader: {
         findMany: async (args: any) => {
-          seenPurposeId = args.where.defaultPurposeId;
+          seenSectionId = args.where.defaultPurposeId;
           return [];
         },
         count: async () => 0,
@@ -181,5 +181,5 @@ test('catalog projection: section filter is passed through canonical read-model 
     },
   );
 
-  assert.equal(seenPurposeId, '00000000-0000-0000-0000-000000000777');
+  assert.equal(seenSectionId, '00000000-0000-0000-0000-000000000777');
 });
