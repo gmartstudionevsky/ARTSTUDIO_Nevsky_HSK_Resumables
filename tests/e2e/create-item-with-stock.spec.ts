@@ -28,15 +28,15 @@ test('catalog: create item with initial stock creates IN transaction and affects
 
   const purposesRes = await apiGet<{ items: Array<{ id: string; code: string }> }>(page, '/api/lookup/purposes?active=true');
   expect(purposesRes.ok, `purposes status=${purposesRes.status}`).toBeTruthy();
-  const purposeId = purposesRes.json.items.find((entry) => entry.code === '2.1.4')?.id;
-  expect(purposeId).toBeTruthy();
+  const sectionId = purposesRes.json.items.find((entry) => entry.code === '2.1.4')?.id;
+  expect(sectionId).toBeTruthy();
 
   await page.getByTestId('catalog-add-item').click();
 
   await page.getByTestId('item-name').fill(itemName);
   await page.getByTestId('item-category').selectOption(categoryId!);
   await page.getByTestId('item-expense-article').selectOption(expenseArticleId!);
-  await page.getByTestId('item-purpose').selectOption(purposeId!);
+  await page.getByTestId('item-section').selectOption(sectionId!);
 
   const baseUnitSelect = page.getByTestId('item-base-unit');
   await expect(baseUnitSelect).toBeVisible();
@@ -59,7 +59,7 @@ test('catalog: create item with initial stock creates IN transaction and affects
   await page.waitForURL(/\/catalog\/[0-9a-f-]+\?transactionId=[0-9a-f-]+/);
   await expect(page.getByRole('link', { name: 'Открыть историю прихода' })).toBeVisible();
 
-  const stockRes = await apiGet<{ items: Array<{ itemId: string; qtyReport: string }> }>(page, `/api/stock?q=${encodeURIComponent(itemName)}`);
+  const stockRes = await apiGet<{ items: Array<{ accountingPositionId: string; qtyReport: string }> }>(page, `/api/stock?q=${encodeURIComponent(itemName)}`);
   expect(stockRes.ok).toBeTruthy();
   expect(stockRes.json.items[0]).toBeTruthy();
   expect(stockRes.json.items[0]?.qtyReport ?? '').toMatch(/^7(\.0+)?$/);

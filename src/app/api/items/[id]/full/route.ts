@@ -7,7 +7,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
   const authError = await requireManagerOrAdminApi();
   if (authError) return authError;
 
-  const [item, categories, expenseArticles, purposes, units] = await Promise.all([
+  const [item, categories, expenseArticles, sections, units] = await Promise.all([
     prisma.accountingPosition.findUnique({ where: { id: params.id } }),
     prisma.category.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
     prisma.expenseArticle.findMany({ where: { isActive: true }, select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } }),
@@ -16,5 +16,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
   ]);
 
   if (!item) return NextResponse.json({ error: 'Позиция не найдена' }, { status: 404 });
-  return NextResponse.json({ item, refs: { categories, expenseArticles, purposes, units } });
+  return NextResponse.json({
+    item: { ...item, defaultSectionId: item.defaultPurposeId },
+    refs: { categories, expenseArticles, sections, purposes: sections, units },
+  });
 }

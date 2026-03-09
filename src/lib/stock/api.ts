@@ -7,7 +7,7 @@ export async function fetchStockList(query: StockListQuery): Promise<StockListRe
   if (query.q) params.set('q', query.q);
   if (query.categoryId) params.set('categoryId', query.categoryId);
   if (query.expenseArticleId) params.set('expenseArticleId', query.expenseArticleId);
-  if (query.purposeId) params.set('purposeId', query.purposeId);
+  if (query.sectionId) params.set('sectionId', query.sectionId);
   if (query.status) params.set('status', query.status);
   if (query.active) params.set('active', query.active);
   params.set('limit', String(query.limit ?? 50));

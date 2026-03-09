@@ -28,8 +28,10 @@ export interface HistoryQuery {
   type?: HistoryMovementType | 'all';
   status?: HistoryBatchStatusFilter;
   q?: string;
+  accountingPositionId?: string;
   itemId?: string;
   expenseArticleId?: string;
+  sectionId?: string;
   purposeId?: string;
   categoryId?: string;
   limit?: number;
@@ -38,12 +40,14 @@ export interface HistoryQuery {
 
 export interface HistoryLine {
   id: string;
-  item: { id: string; code: string; name: string };
+  accountingPosition: { id: string; code: string; name: string };
+  item?: { id: string; code: string; name: string };
   qtyInput: string;
   unit: { id: string; name: string };
   qtyBase: string;
   expenseArticle: { id: string; code: string; name: string };
-  purpose: { id: string; code: string; name: string };
+  section: { id: string; code: string; name: string };
+  purpose?: { id: string; code: string; name: string };
   comment: string | null;
   status: 'ACTIVE' | 'CANCELLED';
   cancelledAt: string | null;

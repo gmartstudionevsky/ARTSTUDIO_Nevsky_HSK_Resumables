@@ -27,10 +27,10 @@ export function normalizeTxResult(result: TxResult): TxResult {
     ...result,
     lines: result.lines.map((line) => ({
       ...line,
-      item: line.item ?? { id: '', code: '—', name: 'Неизвестная позиция' },
+      accountingPosition: line.accountingPosition ?? { id: '', code: '—', name: 'Неизвестная позиция' },
       unit: line.unit ?? { id: '', name: '—' },
       expenseArticle: line.expenseArticle ?? { id: '', code: '—', name: '—' },
-      purpose: line.purpose ?? { id: '', code: '—', name: '—' },
+      section: line.section ?? { id: '', code: '—', name: '—' },
     })),
   };
 }
@@ -50,9 +50,9 @@ export function resolveParticipatingItemIds(params: {
 
 export function OperationForm(): JSX.Element {
   const [type, setType] = useState<OperationType>('IN');
-  const [intakeMode, setIntakeMode] = useState<IntakeMode>('SINGLE_PURPOSE');
+  const [intakeMode, setIntakeMode] = useState<IntakeMode>('SINGLE_SECTION');
   const [dateInput, setDateInput] = useState(nowText());
-  const [headerPurposeId, setHeaderPurposeId] = useState('');
+  const [headerSectionId, setHeaderSectionId] = useState('');
   const [workspaceSectionId, setWorkspaceSectionId] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +61,7 @@ export function OperationForm(): JSX.Element {
   const [rowDrafts, setRowDrafts] = useState<Record<string, ActionRowDraft>>({});
   const [correctUnits, setCorrectUnits] = useState<UnitOption[]>([]);
   const [articles, setArticles] = useState<LookupItem[]>([]);
-  const [purposes, setPurposes] = useState<LookupItem[]>([]);
+  const [sections, setSections] = useState<LookupItem[]>([]);
   const [reasons, setReasons] = useState<LookupItem[]>([]);
   const [loadingWorkspace, setLoadingWorkspace] = useState(false);
   const [workspaceError, setWorkspaceError] = useState('');
@@ -71,26 +71,26 @@ export function OperationForm(): JSX.Element {
   const [cancelLineId, setCancelLineId] = useState('');
   const [correctLineItem, setCorrectLineItem] = useState<TxLineView | null>(null);
   const [policies, setPolicies] = useState({ supervisorBackdateDays: 3, requireReasonOnCancel: true, allowNegativeStock: true, displayDecimals: 2, enablePeriodLocks: false });
-  const [warnings, setWarnings] = useState<Array<{ message: string; itemName: string }>>([]);
+  const [warnings, setWarnings] = useState<NonNullable<TxResult['warnings']>>([]);
   const [rollbackBusy, setRollbackBusy] = useState(false);
 
   const actionContext = useMemo<ActionRowContext>(() => ({
     type,
     intakeMode,
-    headerPurposeId,
+    headerSectionId,
     workspaceSectionId,
-  }), [headerPurposeId, intakeMode, type, workspaceSectionId]);
+  }), [headerSectionId, intakeMode, type, workspaceSectionId]);
 
   const loadLookups = useCallback(async () => {
-    const [articleRows, purposeRows, reasonRows] = await Promise.all([fetchLookup('expense-articles'), fetchLookup('purposes'), fetchLookup('reasons')]);
+    const [articleRows, sectionRows, reasonRows] = await Promise.all([fetchLookup('expense-articles'), fetchLookup('purposes'), fetchLookup('reasons')]);
     setArticles(articleRows);
-    setPurposes(purposeRows);
+    setSections(sectionRows);
     setReasons(reasonRows);
-    if (!headerPurposeId && purposeRows[0]) {
-      setHeaderPurposeId(purposeRows[0].id);
-      setWorkspaceSectionId(purposeRows[0].id);
+    if (!headerSectionId && sectionRows[0]) {
+      setHeaderSectionId(sectionRows[0].id);
+      setWorkspaceSectionId(sectionRows[0].id);
     }
-  }, [headerPurposeId]);
+  }, [headerSectionId]);
 
   const loadWorkspaceItems = useCallback(async () => {
     setLoadingWorkspace(true);
@@ -121,9 +121,9 @@ export function OperationForm(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (!purposes.length) return;
+    if (!sections.length) return;
     void loadWorkspaceItems();
-  }, [loadWorkspaceItems, purposes.length]);
+  }, [loadWorkspaceItems, sections.length]);
 
   async function ensureItemRowReady(item: ItemOption): Promise<void> {
     if (rowDrafts[item.id]?.unitId && unitsByItemId[item.id]) return;
@@ -131,7 +131,7 @@ export function OperationForm(): JSX.Element {
     setRowDrafts((prev) => ({
       ...prev,
       [item.id]: {
-        ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: '', purposeId: '', comment: '', expanded: false, secondLayerExpanded: false, showEligibilityHint: false, showControlledParameters: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
+        ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: '', sectionId: '', comment: '', expanded: false, secondLayerExpanded: false, showEligibilityHint: false, showControlledParameters: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
         loadingUnits: true,
       } as ActionRowDraft,
     }));
@@ -152,7 +152,7 @@ export function OperationForm(): JSX.Element {
       setRowDrafts((prev) => ({
         ...prev,
         [item.id]: {
-          ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: item.defaultExpenseArticle.id, purposeId: item.defaultPurpose.id, comment: '', expanded: false, secondLayerExpanded: false, showEligibilityHint: false, showControlledParameters: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
+          ...(prev[item.id] ?? { qtyInput: '', unitId: '', expenseArticleId: item.defaultExpenseArticle.id, sectionId: item.defaultSection.id, comment: '', expanded: false, secondLayerExpanded: false, showEligibilityHint: false, showControlledParameters: false, loadingUnits: false, isSubmitting: false, error: '', distributions: [] }),
           loadingUnits: false,
           error: 'Не удалось загрузить единицы этой позиции',
         },
@@ -208,8 +208,8 @@ export function OperationForm(): JSX.Element {
       const saved = await createTransaction({
         type,
         occurredAt: occurredAt.toISOString(),
-        intakeMode: intakeMode === 'SINGLE_PURPOSE' ? 'SINGLE_SECTION' : 'DISTRIBUTE_SECTIONS',
-        headerSectionId: headerPurposeId,
+        intakeMode: intakeMode === 'SINGLE_SECTION' ? 'SINGLE_SECTION' : 'DISTRIBUTE_SECTIONS',
+        headerSectionId: headerSectionId,
         lines: participatingItemIds.map((itemId) => {
           const row = rowDrafts[itemId]!;
           return {
@@ -217,9 +217,9 @@ export function OperationForm(): JSX.Element {
             qtyInput: row.qtyInput,
             unitId: row.unitId,
             expenseArticleId: row.expenseArticleId,
-            sectionId: row.purposeId,
+            sectionId: row.sectionId,
             comment: row.comment,
-            sectionDistributions: row.distributions.map((d) => ({ sectionId: d.purposeId, qtyInput: d.qtyInput })),
+            sectionDistributions: row.distributions.map((d) => ({ sectionId: d.sectionId, qtyInput: d.qtyInput })),
           };
         }),
       });
@@ -282,7 +282,7 @@ export function OperationForm(): JSX.Element {
   }
 
   async function openCorrectModal(line: TxLineView): Promise<void> {
-    const lineUnits = await fetchItemUnits(line.item.id);
+    const lineUnits = await fetchItemUnits(line.accountingPosition.id);
     setCorrectUnits(lineUnits);
     setCorrectLineItem(line);
   }
@@ -309,11 +309,11 @@ export function OperationForm(): JSX.Element {
       return;
     }
 
-    const workspaceItem = items.find((item) => item.id === line.item.id);
+    const workspaceItem = items.find((item) => item.id === line.accountingPosition.id);
     if (!workspaceItem) return;
 
     await ensureItemRowReady(workspaceItem);
-    patchRowDraft(line.item.id, buildCorrectionPatch(line));
+    patchRowDraft(line.accountingPosition.id, buildCorrectionPatch(line));
     setToast('Строка перенесена в рабочее поле для коррекции');
   }
 
@@ -328,10 +328,10 @@ export function OperationForm(): JSX.Element {
         <CardContent className="space-y-3">
           <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} getItemTestId={(item) => (item.value === 'IN' ? 'op-tab-in' : item.value === 'OUT' ? 'op-tab-out' : 'op-tab-adjust')} />
           <Input label="Дата и время" value={dateInput} onChange={(event) => setDateInput(event.target.value)} helperText="Примеры: 1.3.26 или 01.03.2026 12:30" data-testid="op-datetime" />
-          {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_PURPOSE', label: 'Один раздел' }, { value: 'DISTRIBUTE_PURPOSES', label: 'Распределить' }]} getItemTestId={(item) => (item.value === 'SINGLE_PURPOSE' ? 'op-intake-single' : 'op-intake-distribute')} /> : null}
-          {type === 'IN' && intakeMode === 'SINGLE_PURPOSE' ? <Select label="Раздел для прихода" value={headerPurposeId} onChange={(event) => setHeaderPurposeId(event.target.value)} data-testid="op-header-purpose">{purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
+          {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_SECTION', label: 'Один раздел' }, { value: 'DISTRIBUTE_SECTIONS', label: 'Распределить' }]} getItemTestId={(item) => (item.value === 'SINGLE_SECTION' ? 'op-intake-single' : 'op-intake-distribute')} /> : null}
+          {type === 'IN' && intakeMode === 'SINGLE_SECTION' ? <Select label="Раздел для прихода" value={headerSectionId} onChange={(event) => setHeaderSectionId(event.target.value)} data-testid="op-header-section">{sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
           <Select label="Раздел рабочего поля" value={workspaceSectionId} onChange={(event) => setWorkspaceSectionId(event.target.value)} data-testid="movements-section-select">
-            {purposes.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
+            {sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
           </Select>
         </CardContent>
       </Card>
@@ -429,8 +429,8 @@ export function OperationForm(): JSX.Element {
                       <Select label="Статья затрат" value={row.expenseArticleId} onChange={(event) => patchRowDraft(item.id, { expenseArticleId: event.target.value })}>
                         {articles.map((article) => <option key={article.id} value={article.id}>{article.code} — {article.name}</option>)}
                       </Select>
-                      <Select label="Раздел" value={row.purposeId} onChange={(event) => patchRowDraft(item.id, { purposeId: event.target.value })}>
-                        {purposes.map((purpose) => <option key={purpose.id} value={purpose.id}>{purpose.code} — {purpose.name}</option>)}
+                      <Select label="Раздел" value={row.sectionId} onChange={(event) => patchRowDraft(item.id, { sectionId: event.target.value })}>
+                        {sections.map((purpose) => <option key={purpose.id} value={purpose.id}>{purpose.code} — {purpose.name}</option>)}
                       </Select>
                       <Input className="md:col-span-2" label="Комментарий" value={row.comment} onChange={(event) => patchRowDraft(item.id, { comment: event.target.value })} />
                     </div>
@@ -510,7 +510,7 @@ export function OperationForm(): JSX.Element {
 
       {workspaceError ? <p className="text-sm text-critical">{workspaceError}</p> : null}
       <Button onClick={() => { void submitParticipatingRows(); }} data-testid="op-save">Провести заполненные строки</Button>
-      {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.itemName}>{w.itemName}</li>)}</ul></div> : null}
+      {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.accountingPositionName}>{w.accountingPositionName}</li>)}</ul></div> : null}
 
       {postAction ? (
         <ResultView
@@ -530,7 +530,7 @@ export function OperationForm(): JSX.Element {
       {toast ? <Toast message={toast} onClose={() => setToast('')} /> : null}
 
       <CancelModal open={cancelOpen} reasons={reasons} requireReason={policies.requireReasonOnCancel} onClose={() => { setCancelOpen(false); setCancelLineId(''); }} onSubmit={(payload) => { void submitCancel(payload); }} />
-      <LineEditorModal open={Boolean(correctLineItem)} mode="correct" units={correctUnits} articles={articles} purposes={purposes} reasons={reasons} requireReason={policies.requireReasonOnCancel} initial={correctLineItem ? { qtyInput: String(correctLineItem.qtyInput), unitId: correctLineItem.unit.id, expenseArticleId: correctLineItem.expenseArticle.id, purposeId: correctLineItem.purpose.id, comment: correctLineItem.comment ?? '' } : {}} onClose={() => setCorrectLineItem(null)} onSubmit={(payload) => { void submitCorrection(payload); }} />
+      <LineEditorModal open={Boolean(correctLineItem)} mode="correct" units={correctUnits} articles={articles} sections={sections} reasons={reasons} requireReason={policies.requireReasonOnCancel} initial={correctLineItem ? { qtyInput: String(correctLineItem.qtyInput), unitId: correctLineItem.unit.id, expenseArticleId: correctLineItem.expenseArticle.id, sectionId: correctLineItem.section.id, comment: correctLineItem.comment ?? '' } : {}} onClose={() => setCorrectLineItem(null)} onSubmit={(payload) => { void submitCorrection(payload); }} />
     </section>
   );
 }

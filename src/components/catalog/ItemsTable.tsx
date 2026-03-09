@@ -25,7 +25,7 @@ export function ItemsTable({ items, canManage, onToggle }: ItemsTableProps): JSX
               <td className="px-3 py-2"><p className="font-medium">{canManage ? `${item.code} — ${item.name}` : item.name}</p></td>
               <td className="px-3 py-2">{item.category.name}</td>
               <td className="px-3 py-2">{item.defaultExpenseArticle.code} — {item.defaultExpenseArticle.name}</td>
-              <td className="px-3 py-2">{item.defaultPurpose.code} — {item.defaultPurpose.name}</td>
+              <td className="px-3 py-2">{item.defaultSection.code} — {item.defaultSection.name}</td>
               <td className="px-3 py-2"><Badge variant={item.isActive ? 'ok' : 'neutral'}>{item.isActive ? 'Активна' : 'Архив'}</Badge></td>
               <td className="px-3 py-2"><div className="flex gap-2"><Link href={`/catalog/${item.id}`} className="text-accent underline">Открыть</Link>{canManage ? <Button size="sm" variant="secondary" onClick={() => void onToggle(item)}>{item.isActive ? 'В архив' : 'Вернуть'}</Button> : null}</div></td>
             </tr>

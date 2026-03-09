@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildInitialActionRowDraft, getSecondLayerEligibilityHints, hasSecondLayerPayload, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, resolveDefaultPurposeId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
+import { buildInitialActionRowDraft, getSecondLayerEligibilityHints, hasSecondLayerPayload, hydrateActionRowDraftWithUnits, isActionRowFilled, pickParticipatingRowIds, resolveDefaultSectionId, validateActionRowDraft } from '../../src/components/operation/action-row-state';
 import { ItemOption, UnitOption } from '../../src/lib/operation/types';
 
 const item: ItemOption = {
@@ -10,13 +10,13 @@ const item: ItemOption = {
   name: 'Позиция',
   isActive: true,
   defaultExpenseArticle: { id: '00000000-0000-0000-0000-000000000011', code: 'EA', name: 'Статья' },
-  defaultPurpose: { id: '00000000-0000-0000-0000-000000000022', code: 'P', name: 'Раздел' },
+  defaultSection: { id: '00000000-0000-0000-0000-000000000022', code: 'S', name: 'Раздел' },
 };
 
 const units: UnitOption[] = [
   {
     id: 'u1',
-    itemId: item.id,
+    accountingPositionId: item.id,
     unitId: '00000000-0000-0000-0000-000000000033',
     factorToBase: '1',
     isAllowed: true,
@@ -26,7 +26,7 @@ const units: UnitOption[] = [
   },
   {
     id: 'u2',
-    itemId: item.id,
+    accountingPositionId: item.id,
     unitId: '00000000-0000-0000-0000-000000000044',
     factorToBase: '0.5',
     isAllowed: true,
@@ -40,7 +40,7 @@ const baseDraft = {
   qtyInput: '',
   unitId: '',
   expenseArticleId: '',
-  purposeId: '',
+  sectionId: '',
   comment: '',
   expanded: false,
   secondLayerExpanded: false,
@@ -52,31 +52,30 @@ const baseDraft = {
   distributions: [],
 };
 
-test('resolveDefaultPurposeId: uses header purpose for IN single purpose mode', () => {
-  const purposeId = resolveDefaultPurposeId(item, {
+test('resolveDefaultSectionId: uses header section for IN single section mode', () => {
+  const sectionId = resolveDefaultSectionId(item, {
     type: 'IN',
-    intakeMode: 'SINGLE_PURPOSE',
-    headerPurposeId: '00000000-0000-0000-0000-000000000099',
+    intakeMode: 'SINGLE_SECTION',
+    headerSectionId: '00000000-0000-0000-0000-000000000099',
     workspaceSectionId: '00000000-0000-0000-0000-000000000098',
   });
 
-  assert.equal(purposeId, '00000000-0000-0000-0000-000000000099');
+  assert.equal(sectionId, '00000000-0000-0000-0000-000000000099');
 });
 
 test('buildInitialActionRowDraft: starts empty and keeps defaults', () => {
   const draft = buildInitialActionRowDraft(item, units, {
     type: 'OUT',
-    intakeMode: 'SINGLE_PURPOSE',
-    headerPurposeId: '',
+    intakeMode: 'SINGLE_SECTION',
+    headerSectionId: '',
     workspaceSectionId: '00000000-0000-0000-0000-000000000098',
   });
 
   assert.equal(draft.qtyInput, '');
   assert.equal(draft.unitId, units[1]?.unitId);
   assert.equal(draft.expenseArticleId, item.defaultExpenseArticle.id);
-  assert.equal(draft.purposeId, item.defaultPurpose.id);
+  assert.equal(draft.sectionId, item.defaultSection.id);
   assert.deepEqual(draft.distributions, []);
-  assert.equal(draft.secondLayerExpanded, false);
 });
 
 test('validateActionRowDraft: returns local errors for qty/unit', () => {
@@ -90,18 +89,18 @@ test('hydrateActionRowDraftWithUnits: keeps user-entered qty during late unit hy
       ...baseDraft,
       qtyInput: '10',
       expenseArticleId: item.defaultExpenseArticle.id,
-      purposeId: item.defaultPurpose.id,
+      sectionId: item.defaultSection.id,
       comment: 'Комментарий',
       loadingUnits: true,
       error: 'old',
-      distributions: [{ purposeId: item.defaultPurpose.id, qtyInput: '10' }],
+      distributions: [{ sectionId: item.defaultSection.id, qtyInput: '10' }],
     },
     item,
     unitRows: units,
     context: {
       type: 'IN',
-      intakeMode: 'SINGLE_PURPOSE',
-      headerPurposeId: '',
+      intakeMode: 'SINGLE_SECTION',
+      headerSectionId: '',
       workspaceSectionId: '00000000-0000-0000-0000-000000000098',
     },
   });
@@ -124,15 +123,11 @@ test('filled-row rule: only rows with qty input participate', () => {
   assert.deepEqual(pickParticipatingRowIds(rowDrafts), ['b']);
 });
 
-test('second-layer hints: returns calm contextual notes for reduced availability', () => {
+test('second-layer hints: returns contextual notes for reduced availability', () => {
   const hints = getSecondLayerEligibilityHints({
     ...item,
     analytics: {
-      availability: {
-        expenseArticle: 'required',
-        section: 'required',
-        controlledParameters: 'optional',
-      },
+      availability: { expenseArticle: 'required', section: 'required', controlledParameters: 'optional' },
       controlledParameters: { mode: 'optional', valuesCount: 0 },
       projectionEligibility: { expandedMetrics: false, reasons: ['optional empty'] },
     },

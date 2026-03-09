@@ -4,7 +4,7 @@ export type ActionRowDraft = {
   qtyInput: string;
   unitId: string;
   expenseArticleId: string;
-  purposeId: string;
+  sectionId: string;
   comment: string;
   expanded: boolean;
   secondLayerExpanded: boolean;
@@ -19,16 +19,16 @@ export type ActionRowDraft = {
 export type ActionRowContext = {
   type: OperationType;
   intakeMode: IntakeMode;
-  headerPurposeId: string;
+  headerSectionId: string;
   workspaceSectionId: string;
 };
 
-export function resolveDefaultPurposeId(item: ItemOption, context: ActionRowContext): string {
-  if (context.type === 'IN' && context.intakeMode === 'SINGLE_PURPOSE' && context.headerPurposeId) {
-    return context.headerPurposeId;
+export function resolveDefaultSectionId(item: ItemOption, context: ActionRowContext): string {
+  if (context.type === 'IN' && context.intakeMode === 'SINGLE_SECTION' && context.headerSectionId) {
+    return context.headerSectionId;
   }
 
-  return item.defaultPurpose.id || context.workspaceSectionId;
+  return item.defaultSection.id || context.workspaceSectionId;
 }
 
 export function buildInitialActionRowDraft(item: ItemOption, unitRows: UnitOption[], context: ActionRowContext): ActionRowDraft {
@@ -38,7 +38,7 @@ export function buildInitialActionRowDraft(item: ItemOption, unitRows: UnitOptio
     qtyInput: '',
     unitId: defaultUnitId,
     expenseArticleId: item.defaultExpenseArticle.id,
-    purposeId: resolveDefaultPurposeId(item, context),
+    sectionId: resolveDefaultSectionId(item, context),
     comment: '',
     expanded: false,
     secondLayerExpanded: false,
@@ -67,7 +67,7 @@ export function hydrateActionRowDraftWithUnits(params: {
     qtyInput: currentDraft.qtyInput,
     unitId: currentDraft.unitId || fallback.unitId,
     expenseArticleId: currentDraft.expenseArticleId || fallback.expenseArticleId,
-    purposeId: currentDraft.purposeId || fallback.purposeId,
+    sectionId: currentDraft.sectionId || fallback.sectionId,
     distributions: currentDraft.distributions ?? [],
     loadingUnits: false,
     error: '',

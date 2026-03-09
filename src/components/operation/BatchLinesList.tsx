@@ -13,8 +13,8 @@ export function BatchLinesList({ lines, onEdit, onDelete }: { lines: BatchLineDr
       <CardContent className="space-y-2">
         {lines.map((line) => (
           <div key={line.localId} className="rounded-md border border-border p-3 text-sm">
-            <p className="font-medium">{line.itemLabel}</p>
-            <p className="text-muted">{line.qtyInput} {line.unitName} · {line.expenseArticleLabel} · {line.purposeLabel}</p>
+            <p className="font-medium">{line.accountingPositionLabel}</p>
+            <p className="text-muted">{line.qtyInput} {line.unitName} · {line.expenseArticleLabel} · {line.sectionLabel}</p>
             <div className="mt-2 flex gap-2">
               <Button size="sm" variant="secondary" onClick={() => onEdit(line)}>Редактировать</Button>
               <Button size="sm" variant="ghost" onClick={() => onDelete(line.localId)}>Удалить из batch</Button>

@@ -23,13 +23,13 @@ const createSchema = z.object({
   headerSectionId: z.string().uuid().nullable().optional(),
   lines: z.array(
     z.object({
-      itemId: z.string().uuid().optional(),
       accountingPositionId: z.string().uuid().optional(),
+      itemId: z.string().uuid().optional(),
       qtyInput: numberInputSchema,
       unitId: z.string().uuid(),
       expenseArticleId: z.string().uuid().nullable().optional(),
-      purposeId: z.string().uuid().nullable().optional(),
       sectionId: z.string().uuid().nullable().optional(),
+      purposeId: z.string().uuid().nullable().optional(),
       comment: z.string().trim().nullable().optional(),
       distributions: z.array(z.object({ purposeId: z.string().uuid(), qtyInput: numberInputSchema })).optional(),
       sectionDistributions: z.array(z.object({ sectionId: z.string().uuid(), qtyInput: numberInputSchema })).optional(),
@@ -45,8 +45,10 @@ const listSchema = z.object({
   type: z.enum(['IN', 'OUT', 'ADJUST', 'OPENING', 'INVENTORY_APPLY', 'all']).optional().default('all'),
   status: z.enum(['active', 'cancelled', 'all']).optional().default('all'),
   q: z.string().trim().optional(),
+  accountingPositionId: z.string().uuid().optional(),
   itemId: z.string().uuid().optional(),
   expenseArticleId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
   purposeId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
   limit: z.coerce.number().int().min(1).max(100).optional().default(30),
@@ -59,7 +61,7 @@ export async function GET(request: Request): Promise<NextResponse> {
 
   try {
     const query = listSchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
-    const payload = await getHistoryProjection(query);
+    const payload = await getHistoryProjection({ ...query, itemId: query.accountingPositionId ?? query.itemId, purposeId: query.sectionId ?? query.purposeId });
     return NextResponse.json(payload);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -147,6 +149,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       ...line,
       accountingPosition: line.item,
       section: line.purpose,
+      item: line.item,
+      purpose: line.purpose,
     }));
 
     return NextResponse.json({

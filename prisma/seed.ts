@@ -49,11 +49,14 @@ async function seedReferenceData(): Promise<void> {
     update: { name: 'Тест', isActive: true },
   });
 
+  const accountingPositionCode = 'AP-TEST';
+  const accountingPositionName = 'Тестовая позиция';
+
   const accountingPosition = await prisma.accountingPosition.upsert({
-    where: { code: 'ITM-TEST' },
+    where: { code: accountingPositionCode },
     create: {
-      code: 'ITM-TEST',
-      name: 'Тестовая позиция',
+      code: accountingPositionCode,
+      name: accountingPositionName,
       categoryId: category.id,
       defaultExpenseArticleId: expenseArticle.id,
       defaultPurposeId: section.id,
@@ -63,7 +66,7 @@ async function seedReferenceData(): Promise<void> {
       isActive: true,
     },
     update: {
-      name: 'Тестовая позиция',
+      name: accountingPositionName,
       categoryId: category.id,
       defaultExpenseArticleId: expenseArticle.id,
       defaultPurposeId: section.id,

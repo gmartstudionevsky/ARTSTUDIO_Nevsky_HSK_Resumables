@@ -16,7 +16,7 @@ export function buildPostActionState(result: TxResult, participatingItemIds: str
 }
 
 export function canPrepareCorrection(line: TxLineView, rowDrafts: Record<string, ActionRowDraft>): boolean {
-  return Boolean(rowDrafts[line.item.id]);
+  return Boolean(rowDrafts[line.accountingPosition.id]);
 }
 
 export function buildCorrectionPatch(line: TxLineView): Partial<ActionRowDraft> {
@@ -24,7 +24,7 @@ export function buildCorrectionPatch(line: TxLineView): Partial<ActionRowDraft> 
     qtyInput: line.qtyInput,
     unitId: line.unit.id,
     expenseArticleId: line.expenseArticle.id,
-    purposeId: line.purpose.id,
+    sectionId: line.section.id,
     comment: line.comment ?? '',
     expanded: true,
     secondLayerExpanded: true,

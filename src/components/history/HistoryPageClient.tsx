@@ -16,7 +16,7 @@ type FiltersState = {
   type: 'all' | 'IN' | 'OUT' | 'ADJUST' | 'OPENING' | 'INVENTORY_APPLY';
   status: 'all' | 'active' | 'cancelled';
   q: string;
-  itemId: string;
+  accountingPositionId: string;
   expenseArticleId: string;
   categoryId: string;
 };
@@ -24,7 +24,7 @@ type FiltersState = {
 const limit = 30;
 
 export function HistoryPageClient(): JSX.Element {
-  const [filters, setFilters] = useState<FiltersState>({ from: '', to: '', type: 'all', status: 'all', q: '', itemId: '', expenseArticleId: '', categoryId: '' });
+  const [filters, setFilters] = useState<FiltersState>({ from: '', to: '', type: 'all', status: 'all', q: '', accountingPositionId: '', expenseArticleId: '', categoryId: '' });
   const [debouncedQ, setDebouncedQ] = useState('');
   const [items, setItems] = useState<HistoryListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -57,7 +57,7 @@ export function HistoryPageClient(): JSX.Element {
       type: filters.type,
       status: filters.status,
       q: debouncedQ,
-      itemId: filters.itemId,
+      accountingPositionId: filters.accountingPositionId,
       expenseArticleId: filters.expenseArticleId,
       categoryId: filters.categoryId,
       limit,
@@ -67,7 +67,7 @@ export function HistoryPageClient(): JSX.Element {
       setTotal(payload.total);
       setLoading(false);
     }).catch(() => setLoading(false));
-  }, [filters.type, filters.status, filters.itemId, filters.expenseArticleId, filters.categoryId, filters.from, filters.to, debouncedQ, offset]);
+  }, [filters.type, filters.status, filters.accountingPositionId, filters.expenseArticleId, filters.categoryId, filters.from, filters.to, debouncedQ, offset]);
 
   const fromTo = useMemo(() => {
     const from = total === 0 ? 0 : offset + 1;

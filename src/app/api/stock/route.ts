@@ -8,7 +8,7 @@ const querySchema = z.object({
   q: z.string().trim().optional(),
   categoryId: z.string().uuid().optional(),
   expenseArticleId: z.string().uuid().optional(),
-  purposeId: z.string().uuid().optional(),
+  sectionId: z.string().uuid().optional(),
   status: z.enum(['ok', 'belowMin', 'zero', 'all']).optional().default('all'),
   active: z.enum(['true', 'false', 'all']).optional().default('true'),
   limit: z.coerce.number().int().min(1).max(200).optional().default(50),

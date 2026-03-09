@@ -12,7 +12,7 @@ import { CatalogItem, RefOption } from '@/components/catalog/types';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Toast } from '@/components/ui/Toast';
 
-export function CatalogPageClient({ categories, expenseArticles, purposes, units, canManage }: { categories: RefOption[]; expenseArticles: RefOption[]; purposes: RefOption[]; units: RefOption[]; canManage: boolean }): JSX.Element {
+export function CatalogPageClient({ categories, expenseArticles, sections, units, canManage }: { categories: RefOption[]; expenseArticles: RefOption[]; sections: RefOption[]; units: RefOption[]; canManage: boolean }): JSX.Element {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -21,7 +21,7 @@ export function CatalogPageClient({ categories, expenseArticles, purposes, units
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ ...filters, limit: '100', offset: '0' });
-    const response = await fetch(`/api/items?${params.toString()}`, { cache: 'no-store' });
+    const response = await fetch(`/api/accounting-positions?${params.toString()}`, { cache: 'no-store' });
     const payload = (await response.json()) as { items: CatalogItem[] };
     if (response.ok) setItems(payload.items ?? []);
   }, [filters]);
@@ -31,7 +31,7 @@ export function CatalogPageClient({ categories, expenseArticles, purposes, units
   }, [load]);
 
   async function toggle(item: CatalogItem): Promise<void> {
-    const response = await fetch(`/api/items/${item.id}/toggle-active`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !item.isActive }) });
+    const response = await fetch(`/api/accounting-positions/${item.id}/toggle-active`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isActive: !item.isActive }) });
     if (!response.ok) return;
     setToast(item.isActive ? 'Позиция в архиве' : 'Позиция восстановлена');
     await load();
@@ -55,7 +55,7 @@ export function CatalogPageClient({ categories, expenseArticles, purposes, units
         open={open}
         categories={categories}
         expenseArticles={expenseArticles}
-        purposes={purposes}
+        sections={sections}
         units={units}
         onClose={() => setOpen(false)}
         onCreated={({ id, initialStockNote, transactionId }) => {

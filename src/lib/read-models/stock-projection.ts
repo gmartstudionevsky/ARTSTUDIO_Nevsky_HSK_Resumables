@@ -5,7 +5,7 @@ import { evaluateAccountingPositionInvariants, mapItemRecordToAccountingPosition
 import { StockItemSnapshot, StockListItem, StockListQuery, StockListResponse, StockStatusFilter } from '@/lib/stock/types';
 
 type StockRow = {
-  itemId: string;
+  accountingPositionId: string;
   code: string;
   name: string;
   categoryId: string;
@@ -13,9 +13,9 @@ type StockRow = {
   expenseArticleId: string;
   expenseArticleCode: string;
   expenseArticleName: string;
-  purposeId: string;
-  purposeCode: string;
-  purposeName: string;
+  sectionId: string;
+  sectionCode: string;
+  sectionName: string;
   reportUnitId: string;
   reportUnitName: string;
   qtyBase: Prisma.Decimal;
@@ -48,7 +48,7 @@ function buildFilters(query: Required<Pick<StockListQuery, 'status' | 'active'>>
   if (query.active !== 'all') filters.push(Prisma.sql`AND i."isActive" = ${query.active === 'true'}`);
   if (query.categoryId) filters.push(Prisma.sql`AND i."categoryId" = ${query.categoryId}::uuid`);
   if (query.expenseArticleId) filters.push(Prisma.sql`AND i."defaultExpenseArticleId" = ${query.expenseArticleId}::uuid`);
-  if (query.purposeId) filters.push(Prisma.sql`AND i."defaultPurposeId" = ${query.purposeId}::uuid`);
+  if (query.sectionId) filters.push(Prisma.sql`AND i."defaultPurposeId" = ${query.sectionId}::uuid`);
   if (query.q) {
     const pattern = `%${query.q}%`;
     filters.push(Prisma.sql`AND (i.code ILIKE ${pattern} OR i.name ILIKE ${pattern} OR COALESCE(i.synonyms, '') ILIKE ${pattern})`);
@@ -74,7 +74,7 @@ WITH line_agg AS (
   GROUP BY tl."itemId"
 ), stock AS (
   SELECT
-    i.id AS "itemId",
+    i.id AS "accountingPositionId",
     i.code,
     i.name,
     c.id AS "categoryId",
@@ -82,9 +82,9 @@ WITH line_agg AS (
     ea.id AS "expenseArticleId",
     ea.code AS "expenseArticleCode",
     ea.name AS "expenseArticleName",
-    p.id AS "purposeId",
-    p.code AS "purposeCode",
-    p.name AS "purposeName",
+    p.id AS "sectionId",
+    p.code AS "sectionCode",
+    p.name AS "sectionName",
     ru.id AS "reportUnitId",
     ru.name AS "reportUnitName",
     COALESCE(la."qtyBase", 0)::numeric AS "qtyBase",
@@ -108,7 +108,7 @@ WITH line_agg AS (
 export function mapStockProjectionRow(row: StockRow): StockListItem {
   const position = mapItemRecordToAccountingPosition(
     {
-      id: row.itemId,
+      id: row.accountingPositionId,
       code: row.code,
       name: row.name,
       isActive: row.isActive,
@@ -117,7 +117,7 @@ export function mapStockProjectionRow(row: StockRow): StockListItem {
       note: null,
       category: { id: row.categoryId, name: row.categoryName },
       defaultExpenseArticle: { id: row.expenseArticleId, code: row.expenseArticleCode, name: row.expenseArticleName },
-      defaultPurpose: { id: row.purposeId, code: row.purposeCode, name: row.purposeName },
+      defaultPurpose: { id: row.sectionId, code: row.sectionCode, name: row.sectionName },
       baseUnit: { id: row.reportUnitId, name: row.reportUnitName },
       defaultInputUnit: { id: row.reportUnitId, name: row.reportUnitName },
       reportUnit: { id: row.reportUnitId, name: row.reportUnitName },
@@ -127,12 +127,12 @@ export function mapStockProjectionRow(row: StockRow): StockListItem {
   const invariants = evaluateAccountingPositionInvariants(position);
 
   return {
-    itemId: row.itemId,
+    accountingPositionId: row.accountingPositionId,
     code: row.code,
     name: row.name,
     category: { id: row.categoryId, name: row.categoryName },
     defaultExpenseArticle: { id: row.expenseArticleId, code: row.expenseArticleCode, name: row.expenseArticleName },
-    defaultPurpose: { id: row.purposeId, code: row.purposeCode, name: row.purposeName },
+    defaultSection: { id: row.sectionId, code: row.sectionCode, name: row.sectionName },
     reportUnit: { id: row.reportUnitId, name: row.reportUnitName },
     qtyBase: toDecimalString(row.qtyBase) ?? '0',
     qtyReport: toDecimalString(row.qtyReport) ?? '0',
@@ -172,9 +172,9 @@ export async function getStockProjection(rawQuery: StockListQuery): Promise<Stoc
   return { items: rows.map(mapStockProjectionRow), total: Number(totalRows[0]?.total ?? 0) };
 }
 
-export async function getStockSnapshotProjection(itemId: string): Promise<StockItemSnapshot | null> {
+export async function getStockSnapshotProjection(accountingPositionId: string): Promise<StockItemSnapshot | null> {
   const rows = await prisma.$queryRaw<StockRow[]>(Prisma.sql`
-    ${baseCte(Prisma.sql`AND i.id = ${itemId}::uuid`)}
+    ${baseCte(Prisma.sql`AND i.id = ${accountingPositionId}::uuid`)}
     SELECT
       stock.*,
       (stock."qtyBase" / NULLIF(stock."reportFactorToBase", 0))::numeric AS "qtyReport",
