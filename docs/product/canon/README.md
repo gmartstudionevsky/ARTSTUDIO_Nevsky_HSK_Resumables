@@ -9,6 +9,7 @@
 - [Типы движения](./movement-types.md)
 - [Write-side модель](./write-side-model.md)
 - [Read-side модель](./read-side-model.md)
+- [Recovery-контур](./recovery-contour.md)
 - [Сущности и границы](./entities-and-boundaries.md)
 - [Аналитические оси](./analytic-axes.md)
 - [Нативная синхронность](./native-synchronicity.md)
