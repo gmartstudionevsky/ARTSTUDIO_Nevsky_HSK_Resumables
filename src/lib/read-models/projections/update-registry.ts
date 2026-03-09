@@ -1,4 +1,4 @@
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 
 import { ProjectionUpdateContract, ProjectionUpdateReceipt, ReadModelRecoveryContract, ReadProjectionKind } from '@/lib/read-models/projections/contracts';
 
@@ -11,7 +11,7 @@ const projectionKindMap: Record<ProjectionUpdateContract['projectionKinds'][numb
 
 const projectionReceipts = new Map<ReadProjectionKind, ProjectionUpdateReceipt>();
 
-function markProjectionUpdated(kind: ReadProjectionKind, eventType: TxType | null, transactionId: string | null): ProjectionUpdateReceipt {
+function markProjectionUpdated(kind: ReadProjectionKind, eventType: MovementType | null, transactionId: string | null): ProjectionUpdateReceipt {
   const receipt: ProjectionUpdateReceipt = {
     kind,
     lastEventType: eventType,
@@ -29,7 +29,7 @@ export function registerProjectionUpdate(contract: ProjectionUpdateContract): Pr
   );
 }
 
-export function setProjectionReceipt(kind: ReadProjectionKind, eventType: TxType | null, transactionId: string | null): ProjectionUpdateReceipt {
+export function setProjectionReceipt(kind: ReadProjectionKind, eventType: MovementType | null, transactionId: string | null): ProjectionUpdateReceipt {
   return markProjectionUpdated(kind, eventType, transactionId);
 }
 

@@ -1,4 +1,4 @@
-import { InventoryMode, InventoryStatus, Prisma, RecordStatus, TxType } from '@prisma/client';
+import { InventoryMode, InventoryStatus, Prisma, RecordStatus, MovementType } from '@prisma/client';
 
 import {
   AccountingEventUseCaseResult,
@@ -6,6 +6,7 @@ import {
   ApplyInventoryResultCommand,
   CreateAccountingMovementCommand,
   CreateOpeningEventCommand,
+  EventWriteFlowLineInput,
   InventoryApplyInterpretationMode,
 } from '@/lib/application/accounting-event/contracts';
 import { WriteFlowContext, WriteFlowFailureKind } from '@/lib/application/write-flow/types';
@@ -49,8 +50,23 @@ function parseOccurredAt(raw?: string | null): Date | null {
   return date;
 }
 
-function resolveInventoryEventType(mode: InventoryMode): TxType {
-  return mode === InventoryMode.OPENING ? TxType.OPENING : TxType.INVENTORY_APPLY;
+function normalizeIntakeMode(mode: CreateAccountingMovementCommand['intakeMode']): 'SINGLE_PURPOSE' | 'DISTRIBUTE_PURPOSES' | undefined {
+  if (!mode) return undefined;
+  if (mode === 'SINGLE_SECTION') return 'SINGLE_PURPOSE';
+  if (mode === 'DISTRIBUTE_SECTIONS') return 'DISTRIBUTE_PURPOSES';
+  return mode;
+}
+
+function normalizeLine(line: EventWriteFlowLineInput): EventWriteFlowLineInput {
+  const itemId = line.itemId ?? line.accountingPositionId;
+  const purposeId = line.purposeId ?? line.sectionId;
+  const distributions = line.distributions ?? line.sectionDistributions?.map((d) => ({ purposeId: d.sectionId, qtyInput: d.qtyInput }));
+  if (!itemId) return line;
+  return { ...line, itemId, purposeId, distributions };
+}
+
+function resolveInventoryEventType(mode: InventoryMode): MovementType {
+  return mode === InventoryMode.OPENING ? MovementType.OPENING : MovementType.INVENTORY_APPLY;
 }
 
 type TransactionClient = Prisma.TransactionClient;
@@ -58,7 +74,7 @@ type TransactionClient = Prisma.TransactionClient;
 interface AccountingEventWriteServiceDeps {
   db: {
     $transaction<T>(fn: (tx: TransactionClient) => Promise<T>): Promise<T>;
-    itemUnit: typeof prisma.itemUnit;
+    accountingPositionUnit: typeof prisma.accountingPositionUnit;
     inventorySession: typeof prisma.inventorySession;
   };
   getSettings: typeof getSettings;
@@ -77,7 +93,7 @@ async function loadActiveItems(
     compatibilityMap: Map<string, { expenseArticleId: string | null; purposeId: string | null }>;
   }
 > {
-  const unitsByItem = await tx.itemUnit.findMany({
+  const unitsByItem = await tx.accountingPositionUnit.findMany({
     where: { itemId: { in: itemIds }, isAllowed: true },
     include: {
       item: {
@@ -167,7 +183,7 @@ async function buildResult(
 
   return {
     ok: true,
-    scenario: inventoryMeta ? APPLY_INVENTORY_SCENARIO : createdTx.type === TxType.OPENING ? OPENING_SCENARIO : MOVEMENT_SCENARIO,
+    scenario: inventoryMeta ? APPLY_INVENTORY_SCENARIO : createdTx.type === MovementType.OPENING ? OPENING_SCENARIO : MOVEMENT_SCENARIO,
     context,
     data: {
       transaction: {
@@ -179,14 +195,17 @@ async function buildResult(
       lines: lines.map((line) => ({
         id: line.id,
         itemId: line.itemId,
+        accountingPositionId: line.itemId,
         qtyInput: line.qtyInput.toString(),
         qtyBase: line.qtyBase.toString(),
         unitId: line.unitId,
         expenseArticleId: line.expenseArticleId,
         purposeId: line.purposeId,
+        sectionId: line.purposeId,
         compatibility: {
           expenseArticleId: line.expenseArticleId,
           purposeId: line.purposeId,
+          sectionId: line.purposeId,
         },
       })),
       ...(warnings && warnings.length > 0 ? { warnings } : {}),
@@ -195,6 +214,7 @@ async function buildResult(
         eventType: createdTx.type,
         analyticsImpact: interpretationMode === 'STOCK_ONLY' ? 'stock_only' : 'full',
         itemIds,
+        accountingPositionIds: itemIds,
         transactionId,
       },
       recovery: {
@@ -217,6 +237,9 @@ export function createAccountingEventWriteService(
 ): AccountingEventWriteService {
   return {
     async createMovement(command: CreateAccountingMovementCommand): Promise<AccountingEventUseCaseResult> {
+      const normalizedLines = command.lines.map(normalizeLine);
+      const normalizedIntakeMode = normalizeIntakeMode(command.intakeMode);
+      const normalizedHeaderPurposeId = command.headerPurposeId ?? command.headerSectionId;
       const occurredAt = parseOccurredAt(command.occurredAt);
       if (!occurredAt) return failure(MOVEMENT_SCENARIO, 'validation', 'Некорректная дата события', command.context);
       if (!command.context?.actorId) return failure(MOVEMENT_SCENARIO, 'validation', 'Для создания движения требуется actorId', command.context);
@@ -224,7 +247,7 @@ export function createAccountingEventWriteService(
       if (!['IN', 'OUT', 'ADJUST'].includes(command.movementType)) {
         return failure(MOVEMENT_SCENARIO, 'domain_semantic', 'Для обычного движения разрешены только IN / OUT / ADJUST', command.context);
       }
-      if (!command.lines.length) return failure(MOVEMENT_SCENARIO, 'validation', 'Добавьте хотя бы одну строку', command.context);
+      if (!normalizedLines.length) return failure(MOVEMENT_SCENARIO, 'validation', 'Добавьте хотя бы одну строку', command.context);
 
       const locked = await deps.isDateLocked(occurredAt, deps.db as unknown as typeof prisma);
       if (locked && command.context?.actorRole !== 'ADMIN') {
@@ -234,12 +257,12 @@ export function createAccountingEventWriteService(
       try {
         const settings = await deps.getSettings(deps.db as unknown as typeof prisma);
         const result = await deps.db.$transaction(async (tx) => {
-          const itemIds = [...new Set(command.lines.map((line) => line.itemId))];
+          const itemIds = [...new Set(normalizedLines.map((line) => line.itemId))];
           const { itemMap, unitFactorMap } = await loadActiveItems(tx, itemIds, command.availability);
 
           const payloadLines: Array<{ itemId: string; qtyInput: Prisma.Decimal; unitId: string; qtyBase: Prisma.Decimal; expenseArticleId: string; purposeId: string; comment: string | null }> = [];
 
-          for (const line of command.lines) {
+          for (const line of normalizedLines) {
             if (line.qtyInput <= 0) {
               return failure(MOVEMENT_SCENARIO, 'validation', 'Количество должно быть больше нуля', command.context);
             }
@@ -254,9 +277,9 @@ export function createAccountingEventWriteService(
             }
 
             const expenseArticleId = line.expenseArticleId ?? item.defaultExpenseArticleId;
-            const basePurposeId = line.purposeId ?? (command.intakeMode === 'SINGLE_PURPOSE' && command.headerPurposeId ? command.headerPurposeId : item.defaultPurposeId);
+            const basePurposeId = line.purposeId ?? (normalizedIntakeMode === 'SINGLE_PURPOSE' && normalizedHeaderPurposeId ? normalizedHeaderPurposeId : item.defaultPurposeId);
 
-            if (command.movementType === TxType.IN && command.intakeMode === 'DISTRIBUTE_PURPOSES') {
+            if (command.movementType === MovementType.IN && normalizedIntakeMode === 'DISTRIBUTE_PURPOSES') {
               if (!line.distributions?.length) return failure(MOVEMENT_SCENARIO, 'validation', 'Добавьте распределение по разделам', command.context);
               const sum = line.distributions.reduce((acc, entry) => acc + entry.qtyInput, 0);
               if (Math.abs(sum - line.qtyInput) > 0.0001) return failure(MOVEMENT_SCENARIO, 'validation', 'Сумма распределений должна совпадать с количеством строки', command.context);
@@ -285,8 +308,8 @@ export function createAccountingEventWriteService(
             }
           }
 
-          const warnings: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string }> = [];
-          if (command.movementType === TxType.OUT) {
+          const warnings: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string; accountingPositionId?: string; accountingPositionName?: string }> = [];
+          if (command.movementType === MovementType.OUT) {
             const currentQty = await deps.getCurrentQtyBaseByItemIds(itemIds);
             const requested = new Map<string, Prisma.Decimal>();
             for (const line of payloadLines) {
@@ -302,7 +325,7 @@ export function createAccountingEventWriteService(
               const wouldBe = current.sub(req);
               if (wouldBe.lt(0)) {
                 if (!settings.allowNegativeStock) insufficient.push(itemId);
-                else warnings.push({ code: 'NEGATIVE_STOCK', message: `После списания остаток по позиции «${item.name}» станет отрицательным.`, itemId, itemName: item.name });
+                else warnings.push({ code: 'NEGATIVE_STOCK', message: `После списания остаток по позиции «${item.name}» станет отрицательным.`, itemId, itemName: item.name, accountingPositionId: itemId, accountingPositionName: item.name });
               }
             }
             if (insufficient.length > 0) {
@@ -377,7 +400,7 @@ export function createAccountingEventWriteService(
           const createdTx = await tx.transaction.create({
             data: {
               batchId: makeBatchId(),
-              type: TxType.OPENING,
+              type: MovementType.OPENING,
               occurredAt,
               createdById: actorId,
               note: command.note ?? null,
@@ -392,7 +415,7 @@ export function createAccountingEventWriteService(
               action: 'CREATE_TX',
               entity: 'Transaction',
               entityId: createdTx.id,
-              payload: { scenario: OPENING_SCENARIO, type: TxType.OPENING, movementClass: 'opening', source: command.source, linesCount: payloadLines.length },
+              payload: { scenario: OPENING_SCENARIO, type: MovementType.OPENING, movementClass: 'opening', source: command.source, linesCount: payloadLines.length },
             },
           });
 

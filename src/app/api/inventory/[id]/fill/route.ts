@@ -21,11 +21,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (session.status !== InventoryStatus.DRAFT) return NextResponse.json({ error: 'Инвентаризация уже применена' }, { status: 409 });
     if (session._count.lines > 0) return NextResponse.json({ error: 'Строки уже сформированы' }, { status: 409 });
 
-    const where: Prisma.ItemWhereInput = { isActive: true };
+    const where: Prisma.AccountingPositionWhereInput = { isActive: true };
     if (data.scope === 'CATEGORY') where.categoryId = data.categoryId;
     if (data.scope === 'ITEMS') where.id = { in: data.itemIds };
 
-    const items = await prisma.item.findMany({ where, select: { id: true, defaultInputUnitId: true } });
+    const items = await prisma.accountingPosition.findMany({ where, select: { id: true, defaultInputUnitId: true } });
     if (items.length === 0) return NextResponse.json({ ok: true, count: 0 });
 
     const stockByItemId = await getStockQtyBaseByItemIds(items.map((item) => item.id));

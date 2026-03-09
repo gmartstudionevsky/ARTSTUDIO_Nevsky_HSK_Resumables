@@ -1,4 +1,4 @@
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 
 import { CommitOptions, ImportIssue, ImportSummary, ImportSyncPlanRow, NormalizedImportPayload } from '@/lib/import/types';
 import { ProjectionUpdateReceipt } from '@/lib/read-models/projections/contracts';
@@ -31,7 +31,7 @@ export interface ImportApplyResult {
   warnings: ImportIssue[];
   opening: {
     created: boolean;
-    mode: TxType | null;
+    mode: MovementType | null;
     lines: number;
   };
   projections: ProjectionUpdateReceipt[];

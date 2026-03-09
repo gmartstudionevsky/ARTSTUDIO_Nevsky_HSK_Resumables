@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 
 export type TestData = {
+  accountingPositionId: string;
+  accountingPositionName: string;
+  sectionId: string;
   itemId: string;
   itemName: string;
   purposeId: string;
@@ -28,7 +31,7 @@ export async function setupTestData(): Promise<TestData> {
       update: { name: '2.1.4', isActive: true },
     });
 
-    const purpose = await prisma.purpose.upsert({
+    const section = await prisma.section.upsert({
       where: { code: '2.1.4' },
       create: { code: '2.1.4', name: '2.1.4', isActive: true },
       update: { name: '2.1.4', isActive: true },
@@ -40,25 +43,25 @@ export async function setupTestData(): Promise<TestData> {
       update: { name: 'Тест', isActive: true },
     });
 
-    const itemName = 'Тестовая позиция CORE';
-    const item = await prisma.item.upsert({
+    const accountingPositionName = 'Тестовая позиция CORE';
+    const accountingPosition = await prisma.accountingPosition.upsert({
       where: { code: 'ITM-CORE' },
       create: {
         code: 'ITM-CORE',
-        name: itemName,
+        name: accountingPositionName,
         categoryId: category.id,
         defaultExpenseArticleId: expenseArticle.id,
-        defaultPurposeId: purpose.id,
+        defaultPurposeId: section.id,
         baseUnitId: unit.id,
         defaultInputUnitId: unit.id,
         reportUnitId: unit.id,
         isActive: true,
       },
       update: {
-        name: itemName,
+        name: accountingPositionName,
         categoryId: category.id,
         defaultExpenseArticleId: expenseArticle.id,
-        defaultPurposeId: purpose.id,
+        defaultPurposeId: section.id,
         baseUnitId: unit.id,
         defaultInputUnitId: unit.id,
         reportUnitId: unit.id,
@@ -66,10 +69,10 @@ export async function setupTestData(): Promise<TestData> {
       },
     });
 
-    await prisma.itemUnit.upsert({
-      where: { itemId_unitId: { itemId: item.id, unitId: unit.id } },
+    await prisma.accountingPositionUnit.upsert({
+      where: { itemId_unitId: { itemId: accountingPosition.id, unitId: unit.id } },
       create: {
-        itemId: item.id,
+        itemId: accountingPosition.id,
         unitId: unit.id,
         factorToBase: 1,
         isAllowed: true,
@@ -84,7 +87,14 @@ export async function setupTestData(): Promise<TestData> {
       },
     });
 
-    return { itemId: item.id, itemName, purposeId: purpose.id };
+    return {
+      accountingPositionId: accountingPosition.id,
+      accountingPositionName,
+      sectionId: section.id,
+      itemId: accountingPosition.id,
+      itemName: accountingPositionName,
+      purposeId: section.id,
+    };
   } finally {
     await prisma.$disconnect();
   }

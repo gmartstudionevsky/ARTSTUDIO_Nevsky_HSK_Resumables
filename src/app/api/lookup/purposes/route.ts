@@ -17,8 +17,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     const activeFilter = query.active === 'all' ? undefined : query.active === 'true';
     const where = activeFilter === undefined ? {} : { isActive: activeFilter };
     const [items, total] = await Promise.all([
-      prisma.purpose.findMany({ where, orderBy: { code: 'asc' }, select: { id: true, code: true, name: true, isActive: true } }),
-      prisma.purpose.count({ where }),
+      prisma.section.findMany({ where, orderBy: { code: 'asc' }, select: { id: true, code: true, name: true, isActive: true } }),
+      prisma.section.count({ where }),
     ]);
     return NextResponse.json({ items, total });
   } catch {

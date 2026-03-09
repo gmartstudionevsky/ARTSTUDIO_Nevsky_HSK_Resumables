@@ -1,4 +1,4 @@
-import { InventoryMode, TxType } from '@prisma/client';
+import { InventoryMode, MovementType } from '@prisma/client';
 
 import { WriteFlowContext, WriteFlowResult } from '@/lib/application/write-flow/types';
 import { AccountingAnalyticsAvailabilityDraft } from '@/lib/domain/accounting-position';
@@ -9,13 +9,19 @@ export type InventoryApplyInterpretationMode = 'AFFECT_ANALYTICS' | 'STOCK_ONLY'
 
 export interface EventWriteFlowLineInput {
   itemId: string;
+  accountingPositionId?: string;
   qtyInput: number;
   unitId: string;
   expenseArticleId?: string | null;
   purposeId?: string | null;
+  sectionId?: string | null;
   comment?: string | null;
   distributions?: Array<{
     purposeId: string;
+    qtyInput: number;
+  }>;
+  sectionDistributions?: Array<{
+    sectionId: string;
     qtyInput: number;
   }>;
 }
@@ -25,8 +31,9 @@ export interface CreateAccountingMovementCommand {
   occurredAt?: string | null;
   note?: string | null;
   reasonId?: string | null;
-  intakeMode?: 'SINGLE_PURPOSE' | 'DISTRIBUTE_PURPOSES';
+  intakeMode?: 'SINGLE_PURPOSE' | 'DISTRIBUTE_PURPOSES' | 'SINGLE_SECTION' | 'DISTRIBUTE_SECTIONS';
   headerPurposeId?: string | null;
+  headerSectionId?: string | null;
   lines: EventWriteFlowLineInput[];
   availability?: AccountingAnalyticsAvailabilityDraft;
   context?: WriteFlowContext;
@@ -53,9 +60,10 @@ export interface ApplyInventoryResultCommand {
 
 export interface ProjectionUpdatePayload {
   projectionKinds: Array<'stock' | 'history' | 'reports' | 'signals'>;
-  eventType: TxType;
+  eventType: MovementType;
   analyticsImpact: 'full' | 'stock_only';
   itemIds: string[];
+  accountingPositionIds?: string[];
   transactionId: string;
 }
 
@@ -69,23 +77,26 @@ export interface AccountingEventWriteResult {
   transaction: {
     id: string;
     batchId: string;
-    type: TxType;
+    type: MovementType;
     occurredAt: Date;
   };
   lines: Array<{
     id: string;
     itemId: string;
+    accountingPositionId?: string;
     qtyInput: string;
     qtyBase: string;
     unitId: string;
     expenseArticleId: string;
     purposeId: string;
+    sectionId?: string;
     compatibility: {
       expenseArticleId: string | null;
       purposeId: string | null;
+      sectionId?: string | null;
     };
   }>;
-  warnings?: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string }>;
+  warnings?: Array<{ code: 'NEGATIVE_STOCK'; message: string; itemId: string; itemName: string; accountingPositionId?: string; accountingPositionName?: string }>;
   projection: ProjectionUpdatePayload;
   recovery: RecoveryTrace;
   inventory?: {

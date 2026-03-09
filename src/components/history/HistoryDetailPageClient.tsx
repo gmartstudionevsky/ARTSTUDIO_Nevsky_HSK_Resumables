@@ -77,7 +77,7 @@ export function HistoryDetailPageClient(): JSX.Element {
     <section className="space-y-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Операция {detail.transaction.batchId}</h1>
+          <h1 className="text-2xl font-semibold">Движение {detail.transaction.batchId}</h1>
           <p className="text-sm text-muted">{formatRuDateTime(detail.transaction.occurredAt)}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -89,11 +89,11 @@ export function HistoryDetailPageClient(): JSX.Element {
       <Card>
         <CardHeader><CardTitle>Сводка</CardTitle></CardHeader>
         <CardContent>
-          <p className="text-sm">Дата операции: <span className="font-medium">{formatRuDateTime(detail.transaction.occurredAt)}</span></p>
+          <p className="text-sm">Дата движения: <span className="font-medium">{formatRuDateTime(detail.transaction.occurredAt)}</span></p>
           <p className="text-sm">Создал: <span className="font-medium">{detail.transaction.createdBy.login}</span></p>
           <p className="text-sm">Статус: <span className="font-medium">{detail.uiStatus}</span></p>
           <p className="text-sm">Примечание: <span className="font-medium">{detail.transaction.note || '—'}</span></p>
-          {detail.uiStatus !== 'CANCELLED' ? <Button className="mt-3" variant="danger" onClick={() => { setCancelLine(null); setCancelOpen(true); }}>Отменить операцию</Button> : null}
+          {detail.uiStatus !== 'CANCELLED' ? <Button className="mt-3" variant="danger" onClick={() => { setCancelLine(null); setCancelOpen(true); }}>Отменить движение</Button> : null}
         </CardContent>
       </Card>
 

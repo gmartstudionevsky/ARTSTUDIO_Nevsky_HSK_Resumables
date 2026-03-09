@@ -24,11 +24,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const now = new Date();
 
     const transaction = await prisma.transaction.findUnique({ where: { id: params.id }, include: { lines: true } });
-    if (!transaction) return NextResponse.json({ error: 'Операция не найдена' }, { status: 404 });
+    if (!transaction) return NextResponse.json({ error: 'Движение не найдено' }, { status: 404 });
     if (transaction.status === RecordStatus.CANCELLED) return NextResponse.json({ ok: true });
     const locked = await isDateLocked(transaction.occurredAt, prisma);
     if (locked && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Период закрыт. Отмена операции недоступна, обратитесь к администратору.' }, { status: 403 });
+      return NextResponse.json({ error: 'Период закрыт. Отмена движения недоступна, обратитесь к администратору.' }, { status: 403 });
     }
 
     await prisma.$transaction(async (tx) => {

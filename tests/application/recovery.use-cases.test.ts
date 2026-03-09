@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { RecordStatus, TxType } from '@prisma/client';
+import { RecordStatus, MovementType } from '@prisma/client';
 
 import { createRecoveryService } from '../../src/lib/application/recovery';
 import { clearProjectionReceipts, setProjectionReceipt } from '../../src/lib/read-models';
 
 type FakeTx = {
   id: string;
-  type: TxType;
+  type: MovementType;
   status: RecordStatus;
   createdAt: Date;
   occurredAt: Date;
@@ -85,7 +85,7 @@ function createFakeDeps(seed?: { transactions?: FakeTx[]; items?: FakeItem[]; li
 
 test('rollback movement cancels records but preserves history', async () => {
   const deps = createFakeDeps({
-    transactions: [{ id: 'tx-1', type: TxType.OUT, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
+    transactions: [{ id: 'tx-1', type: MovementType.OUT, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
     lines: [
       { id: 'ln-1', transactionId: 'tx-1', status: RecordStatus.ACTIVE },
       { id: 'ln-2', transactionId: 'tx-1', status: RecordStatus.ACTIVE },
@@ -105,7 +105,7 @@ test('rollback movement cancels records but preserves history', async () => {
 
 test('rollback blocks non-movement transaction types', async () => {
   const deps = createFakeDeps({
-    transactions: [{ id: 'tx-opening', type: TxType.OPENING, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
+    transactions: [{ id: 'tx-opening', type: MovementType.OPENING, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
   });
   const service = createRecoveryService(deps as never);
   const result = await service.rollbackMovement({ transactionId: 'tx-opening', context: { actorId: 'u-1', entryPoint: 'test' } });
@@ -116,10 +116,10 @@ test('rollback blocks non-movement transaction types', async () => {
 
 test('reset and resync projection receipts', async () => {
   clearProjectionReceipts(['catalog', 'stock', 'history', 'reports', 'admin', 'signals']);
-  setProjectionReceipt('stock', TxType.IN, 'tx-old');
+  setProjectionReceipt('stock', MovementType.IN, 'tx-old');
 
   const deps = createFakeDeps({
-    transactions: [{ id: 'tx-new', type: TxType.OUT, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
+    transactions: [{ id: 'tx-new', type: MovementType.OUT, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
     items: [{ id: 'item-1', code: 'I1', name: 'Item', updatedAt: new Date(), isActive: true }],
   });
   const service = createRecoveryService(deps as never);
@@ -147,11 +147,11 @@ test('consistency checker detects blocking inconsistencies', async () => {
 
 test('consistency checker returns reduced eligibility as non-blocking informational state', async () => {
   clearProjectionReceipts(['catalog', 'stock', 'history', 'reports', 'admin', 'signals']);
-  setProjectionReceipt('stock', TxType.OUT, 'tx-1');
-  setProjectionReceipt('history', TxType.OUT, 'tx-1');
-  setProjectionReceipt('reports', TxType.OUT, 'tx-1');
+  setProjectionReceipt('stock', MovementType.OUT, 'tx-1');
+  setProjectionReceipt('history', MovementType.OUT, 'tx-1');
+  setProjectionReceipt('reports', MovementType.OUT, 'tx-1');
   const deps = createFakeDeps({
-    transactions: [{ id: 'tx-1', type: TxType.OUT, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
+    transactions: [{ id: 'tx-1', type: MovementType.OUT, status: RecordStatus.ACTIVE, createdAt: new Date(), occurredAt: new Date() }],
     queryRows: [{ itemId: 'item-1', itemCode: 'IT-1', itemName: 'Item', reportUnitAllowed: false }],
   });
   const service = createRecoveryService(deps as never);

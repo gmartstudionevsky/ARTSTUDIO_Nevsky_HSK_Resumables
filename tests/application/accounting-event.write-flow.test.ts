@@ -1,13 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { InventoryMode, InventoryStatus, Prisma, TxType } from '@prisma/client';
+import { InventoryMode, InventoryStatus, Prisma, MovementType } from '@prisma/client';
 
 import { createAccountingEventWriteService } from '../../src/lib/application/accounting-event';
 
 function makeService(overrides?: Partial<Parameters<typeof createAccountingEventWriteService>[0]>) {
   const tx = {
-    itemUnit: {
+    accountingPositionUnit: {
       findMany: async () => [
         {
           itemId: 'item-1',
@@ -33,7 +33,7 @@ function makeService(overrides?: Partial<Parameters<typeof createAccountingEvent
     },
     transaction: {
       create: async ({ data }: any) => ({ id: 'tx-1', batchId: data.batchId, type: data.type, occurredAt: data.occurredAt }),
-      findUnique: async () => ({ id: 'tx-1', batchId: 'BAT-1', type: TxType.IN, occurredAt: new Date() }),
+      findUnique: async () => ({ id: 'tx-1', batchId: 'BAT-1', type: MovementType.IN, occurredAt: new Date() }),
     },
     transactionLine: {
       createMany: async () => ({}),
@@ -88,7 +88,7 @@ function makeService(overrides?: Partial<Parameters<typeof createAccountingEvent
 
   const db = {
     $transaction: async <T>(fn: (t: any) => Promise<T>) => fn(tx),
-    itemUnit: tx.itemUnit,
+    accountingPositionUnit: tx.accountingPositionUnit,
     inventorySession: tx.inventorySession,
   } as any;
 
@@ -104,15 +104,15 @@ function makeService(overrides?: Partial<Parameters<typeof createAccountingEvent
 test('movement: creates canonical IN movement via use-case contract', async () => {
   const service = makeService();
   const result = await service.createMovement({
-    movementType: TxType.IN,
+    movementType: MovementType.IN,
     lines: [{ itemId: 'item-1', qtyInput: 5, unitId: 'u-1' }],
     context: { actorId: 'user-1', actorRole: 'ADMIN' },
   });
 
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  assert.equal(result.data.transaction.type, TxType.IN);
-  assert.equal(result.data.projection.eventType, TxType.IN);
+  assert.equal(result.data.transaction.type, MovementType.IN);
+  assert.equal(result.data.projection.eventType, MovementType.IN);
 });
 
 test('opening: semantic guard blocks OPENING in regular movement use-case', async () => {
@@ -147,7 +147,7 @@ test('compatibility mapping/invariants: required axis absence fails', async () =
     db: {
       $transaction: async <T>(fn: (t: any) => Promise<T>) =>
         fn({
-          itemUnit: {
+          accountingPositionUnit: {
             findMany: async () => [
               {
                 itemId: 'item-1',
@@ -175,13 +175,13 @@ test('compatibility mapping/invariants: required axis absence fails', async () =
           transactionLine: { createMany: async () => ({}), findMany: async () => [] },
           auditLog: { create: async () => ({}) },
         }),
-      itemUnit: { findMany: async () => [] },
+      accountingPositionUnit: { findMany: async () => [] },
       inventorySession: { findUnique: async () => null },
     } as any,
   });
 
   const result = await service.createMovement({
-    movementType: TxType.IN,
+    movementType: MovementType.IN,
     lines: [{ itemId: 'item-1', qtyInput: 5, unitId: 'u-1' }],
     context: { actorId: 'user-1', actorRole: 'ADMIN' },
   });

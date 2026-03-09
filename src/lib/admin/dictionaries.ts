@@ -68,8 +68,8 @@ export async function listDictionary(type: DictionaryType, params: { q?: string;
       }
       if (type === 'purposes') {
         const [items, total] = await Promise.all([
-          prisma.purpose.findMany({ where, orderBy: [{ code: 'asc' }, { name: 'asc' }], take: params.limit, skip: params.offset }),
-          prisma.purpose.count({ where }),
+          prisma.section.findMany({ where, orderBy: [{ code: 'asc' }, { name: 'asc' }], take: params.limit, skip: params.offset }),
+          prisma.section.count({ where }),
         ]);
         return { items, total };
       }
@@ -88,7 +88,7 @@ export async function createDictionary(type: DictionaryType, data: unknown) {
       case 'categories': return prisma.category.create({ data: categoryCreateSchema.parse(data) });
       case 'units': return prisma.unit.create({ data: unitCreateSchema.parse(data) });
       case 'expense-articles': return prisma.expenseArticle.create({ data: codedCreateSchema.parse(data) });
-      case 'purposes': return prisma.purpose.create({ data: codedCreateSchema.parse(data) });
+      case 'purposes': return prisma.section.create({ data: codedCreateSchema.parse(data) });
       case 'reasons': return prisma.reason.create({ data: codedCreateSchema.parse(data) });
     }
   } catch (error) {
@@ -103,7 +103,7 @@ export async function updateDictionary(type: DictionaryType, id: string, data: u
       case 'categories': return prisma.category.update({ where: { id }, data: categoryUpdateSchema.parse(data) });
       case 'units': return prisma.unit.update({ where: { id }, data: unitUpdateSchema.parse(data) });
       case 'expense-articles': return prisma.expenseArticle.update({ where: { id }, data: codedUpdateSchema.parse(data) });
-      case 'purposes': return prisma.purpose.update({ where: { id }, data: codedUpdateSchema.parse(data) });
+      case 'purposes': return prisma.section.update({ where: { id }, data: codedUpdateSchema.parse(data) });
       case 'reasons': return prisma.reason.update({ where: { id }, data: codedUpdateSchema.parse(data) });
     }
   } catch (error) {
@@ -117,7 +117,7 @@ export async function toggleActive(type: DictionaryType, id: string, isActive: b
     case 'categories': return prisma.category.update({ where: { id }, data: { isActive } });
     case 'units': return prisma.unit.update({ where: { id }, data: { isActive } });
     case 'expense-articles': return prisma.expenseArticle.update({ where: { id }, data: { isActive } });
-    case 'purposes': return prisma.purpose.update({ where: { id }, data: { isActive } });
+    case 'purposes': return prisma.section.update({ where: { id }, data: { isActive } });
     case 'reasons': return prisma.reason.update({ where: { id }, data: { isActive } });
   }
 }

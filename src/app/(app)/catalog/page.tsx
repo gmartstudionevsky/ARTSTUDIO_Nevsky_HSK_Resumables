@@ -9,7 +9,7 @@ export default async function CatalogPage(): Promise<JSX.Element> {
   const [categories, expenseArticles, purposes, units] = await Promise.all([
     prisma.category.findMany({ where: { isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.expenseArticle.findMany({ where: { isActive: true }, orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } }),
-    prisma.purpose.findMany({ where: { isActive: true }, orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } }),
+    prisma.section.findMany({ where: { isActive: true }, orderBy: { code: 'asc' }, select: { id: true, code: true, name: true } }),
     prisma.unit.findMany({ where: { isActive: true }, orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ]);
 

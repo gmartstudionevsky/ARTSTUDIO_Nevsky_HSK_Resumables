@@ -1,0 +1,14 @@
+-- Canonical persistence vocabulary alignment (Step 2.3)
+--
+-- This migration is intentionally SQL no-op.
+--
+-- Canonicalization is implemented at Prisma schema/client vocabulary level via:
+-- - model renames with @@map("...") to existing physical tables
+-- - enum rename MovementType with @@map("TxType")
+-- - Purpose model renamed to Section with @@map("Purpose")
+-- - Item model renamed to AccountingPosition with @@map("Item")
+-- - ItemUnit model renamed to AccountingPositionUnit with @@map("ItemUnit")
+--
+-- Physical storage shape and data remain unchanged in this migration.
+-- Downstream substeps (2.4-2.7) consume canonical client vocabulary while
+-- legacy physical names remain localized to mapped persistence boundary.

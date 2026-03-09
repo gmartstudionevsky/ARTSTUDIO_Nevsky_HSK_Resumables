@@ -7,7 +7,7 @@ test('previewFromWorkbook: creates draft with summary/sync/outcome contract', as
   const created: { data?: unknown } = {};
   const useCase = createImportSyncUseCase({
     db: {
-      item: { findMany: async () => [] },
+      accountingPosition: { findMany: async () => [] },
       importJob: {
         create: async ({ data }: any) => {
           created.data = data;
@@ -18,11 +18,14 @@ test('previewFromWorkbook: creates draft with summary/sync/outcome contract', as
     parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [] }),
     validateImportData: () => ({
       summary: {
+        accountingPositions: 1,
         items: 1,
         categories: 1,
         units: 1,
         expenseArticles: 1,
+        sections: 1,
         purposes: 1,
+        accountingPositionUnits: 1,
         itemUnits: 1,
         openingLines: 1,
         syncMatched: 0,
@@ -53,11 +56,14 @@ test('apply: blocks commit when preview has blocking errors', async () => {
         findFirst: async () => ({
           payload: {
             summary: {
+              accountingPositions: 0,
               items: 0,
               categories: 0,
               units: 0,
               expenseArticles: 0,
+              sections: 0,
               purposes: 0,
+              accountingPositionUnits: 0,
               itemUnits: 0,
               openingLines: 0,
               syncMatched: 0,

@@ -10,7 +10,7 @@ test.beforeAll(async () => {
 
 test('core flow: intake operation -> stock check', async ({ page }) => {
   await page.goto('/stock');
-  await expect(page).toHaveURL(/\/(stock|operation|movements)$/);
+  await expect(page).toHaveURL(/\/stock$/);
 
   const initialStockPayload = await page.evaluate(async (name) => {
     const response = await fetch(`/api/stock?q=${encodeURIComponent(name)}`);

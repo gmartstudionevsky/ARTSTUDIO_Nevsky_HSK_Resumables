@@ -1,4 +1,4 @@
-import { TxType } from '@prisma/client';
+import { MovementType } from '@prisma/client';
 
 import { ReadModelRecoveryContract, ReadProjectionKind } from '@/lib/read-models/projections/contracts';
 
@@ -38,7 +38,7 @@ export interface RollbackMovementData {
   transactionId: string;
   rolledBackAt: string;
   rolledBackById: string;
-  eventType: TxType;
+  eventType: MovementType;
   affectedLines: number;
   historyPreserved: true;
 }
@@ -63,7 +63,7 @@ export interface ResyncReadModelData {
   receipts: Array<{
     kind: ReadProjectionKind;
     lastTransactionId: string | null;
-    lastEventType: TxType | null;
+    lastEventType: MovementType | null;
   }>;
 }
 

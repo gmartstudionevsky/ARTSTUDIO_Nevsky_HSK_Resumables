@@ -51,11 +51,11 @@ export interface PositionCatalogProjection {
 }
 
 interface ItemReader {
-  findMany: typeof prisma.item.findMany;
-  count: typeof prisma.item.count;
+  findMany: typeof prisma.accountingPosition.findMany;
+  count: typeof prisma.accountingPosition.count;
 }
 
-function toWhere(query: PositionCatalogProjectionQuery): Prisma.ItemWhereInput {
+function toWhere(query: PositionCatalogProjectionQuery): Prisma.AccountingPositionWhereInput {
   const activeFilter = query.active === 'all' ? undefined : query.active === 'true';
   const q = query.q?.trim();
 
@@ -78,7 +78,7 @@ function toWhere(query: PositionCatalogProjectionQuery): Prisma.ItemWhereInput {
 
 export async function getPositionCatalogProjection(
   query: PositionCatalogProjectionQuery,
-  deps: { itemReader: ItemReader } = { itemReader: prisma.item },
+  deps: { itemReader: ItemReader } = { itemReader: prisma.accountingPosition },
 ): Promise<PositionCatalogProjection> {
   const where = toWhere(query);
   const limit = query.limit ?? 100;

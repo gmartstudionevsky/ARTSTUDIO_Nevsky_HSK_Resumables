@@ -41,6 +41,7 @@ test('validateImportData: counts sections and expense articles independently', (
     unitRows: [],
   });
 
+  assert.equal(payload.summary.sections, 2);
   assert.equal(payload.summary.purposes, 2);
   assert.equal(payload.summary.expenseArticles, 1);
 });

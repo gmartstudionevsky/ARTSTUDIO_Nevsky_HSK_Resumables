@@ -37,7 +37,7 @@ async function seedReferenceData(): Promise<void> {
     update: { name: '2.1.4', isActive: true },
   });
 
-  const purpose = await prisma.purpose.upsert({
+  const section = await prisma.section.upsert({
     where: { code: '2.1.4' },
     create: { code: '2.1.4', name: '2.1.4', isActive: true },
     update: { name: '2.1.4', isActive: true },
@@ -49,14 +49,14 @@ async function seedReferenceData(): Promise<void> {
     update: { name: 'Тест', isActive: true },
   });
 
-  const item = await prisma.item.upsert({
+  const accountingPosition = await prisma.accountingPosition.upsert({
     where: { code: 'ITM-TEST' },
     create: {
       code: 'ITM-TEST',
       name: 'Тестовая позиция',
       categoryId: category.id,
       defaultExpenseArticleId: expenseArticle.id,
-      defaultPurposeId: purpose.id,
+      defaultPurposeId: section.id,
       baseUnitId: unit.id,
       defaultInputUnitId: unit.id,
       reportUnitId: unit.id,
@@ -66,7 +66,7 @@ async function seedReferenceData(): Promise<void> {
       name: 'Тестовая позиция',
       categoryId: category.id,
       defaultExpenseArticleId: expenseArticle.id,
-      defaultPurposeId: purpose.id,
+      defaultPurposeId: section.id,
       baseUnitId: unit.id,
       defaultInputUnitId: unit.id,
       reportUnitId: unit.id,
@@ -74,10 +74,10 @@ async function seedReferenceData(): Promise<void> {
     },
   });
 
-  await prisma.itemUnit.upsert({
-    where: { itemId_unitId: { itemId: item.id, unitId: unit.id } },
+  await prisma.accountingPositionUnit.upsert({
+    where: { itemId_unitId: { itemId: accountingPosition.id, unitId: unit.id } },
     create: {
-      itemId: item.id,
+      itemId: accountingPosition.id,
       unitId: unit.id,
       factorToBase: 1,
       isAllowed: true,

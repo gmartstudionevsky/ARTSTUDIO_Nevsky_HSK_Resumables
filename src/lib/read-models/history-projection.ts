@@ -1,4 +1,4 @@
-import { Prisma, RecordStatus, TxType } from '@prisma/client';
+import { Prisma, RecordStatus, MovementType } from '@prisma/client';
 
 import { prisma } from '@/lib/db/prisma';
 import { HistoryListResponse, HistoryQuery } from '@/lib/history/types';
@@ -6,7 +6,7 @@ import { HistoryListResponse, HistoryQuery } from '@/lib/history/types';
 type TxListRow = {
   id: string;
   batchId: string;
-  type: TxType;
+  type: MovementType;
   occurredAt: Date;
   createdAt: Date;
   createdById: string;
@@ -46,7 +46,7 @@ export async function getHistoryProjection(query: Required<Pick<HistoryQuery, 't
   const filters: Prisma.Sql[] = [];
   if (query.from) filters.push(Prisma.sql`tx."occurredAt" >= ${new Date(query.from)}`);
   if (query.to) filters.push(Prisma.sql`tx."occurredAt" <= ${new Date(query.to)}`);
-  if (query.type !== 'all') filters.push(Prisma.sql`tx.type = ${query.type}::"TxType"`);
+  if (query.type !== 'all') filters.push(Prisma.sql`tx.type = ${query.type}::"MovementType"`);
   if (query.status === 'active') filters.push(Prisma.sql`tx.status = 'ACTIVE'::"RecordStatus"`);
   if (query.status === 'cancelled') filters.push(Prisma.sql`tx.status = 'CANCELLED'::"RecordStatus"`);
   if (query.itemId) filters.push(Prisma.sql`EXISTS (SELECT 1 FROM "TransactionLine" tl WHERE tl."transactionId" = tx.id AND tl."itemId" = ${query.itemId}::uuid)`);
