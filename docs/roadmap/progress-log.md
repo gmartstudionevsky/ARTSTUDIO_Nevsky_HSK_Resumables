@@ -405,3 +405,18 @@
 - **Текущий статус после записи:** Подшаг 2.12 — **В реализации (verification-complete, awaiting final closure mark)**.
 - **Следующее логическое действие:** выполнить финальную closure фиксацию Шага 2 как deep-closed gate и разблокировать старт Шага 3.
 - **Доказательство завершения подшага/шага:** typecheck + targeted operation contract tests + read-model regression + route semantics checks (`/api/accounting-positions` as default, `/api/items` as explicit secondary compatibility).
+
+### 2026-03-09 / Шаг 2.13 (final contract-route canonicalization pass)
+
+- **Шаг master-plan:** 2.
+- **Подшаг:** 2.13.
+- **Суть продвижения:** canonical route family `/api/accounting-positions*` стала фактической primary implementation, а `/api/items*` понижен до explicit secondary compatibility wrappers.
+- **Какие repo artifacts были затронуты:** `src/app/api/accounting-positions/**`, `src/app/api/items/**`, `src/lib/operation/api.ts`, `src/lib/history/api.ts`, `tests/regression/contract-route-canonicalization.test.ts`, `tests/e2e/accounting-model.spec.ts`, `docs/audit/compatibility-layer-map.md`.
+- **Доказанный результат pass:**
+  - route-primary truth теперь в `/api/accounting-positions*`;
+  - `/api/items*` больше не implementation backbone и работает как compatibility alias с deprecation headers;
+  - canonical clients не используют dual payload fallback (`items`) для accounting-position каталога.
+- **Финальное решение по closure Шага 2:** **one single blocker remains**.
+- **Оставшийся блокер (ровно один):** mixed legacy-primary transaction request semantics в `src/app/api/transactions/route.ts` (`SINGLE_PURPOSE`/`DISTRIBUTE_PURPOSES`, `headerPurposeId`, `itemId`, `purposeId`) на parse/normalization boundary.
+- **Почему не закрыт в этом же pass:** устранение блокера требует отдельного contract-break/change-management прохода с расширенным integration/e2e контуром по операциям и истории; это выходит за безопасный residual scope route-only sealing-pass.
+- **Статус после записи:** Шаг 2 — **не закрыт глубоко**, Шаг 3 **не разблокирован**.

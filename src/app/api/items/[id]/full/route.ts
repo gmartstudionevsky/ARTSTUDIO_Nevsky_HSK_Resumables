@@ -1,23 +1,17 @@
 import { NextResponse } from 'next/server';
 
-import { requireManagerOrAdminApi } from '@/lib/auth/guards';
-import { prisma } from '@/lib/db/prisma';
+import { GET as canonicalGET } from '@/app/api/accounting-positions/[id]/full/route';
 
-export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
-  const authError = await requireManagerOrAdminApi();
-  if (authError) return authError;
+import { COMPAT_HEADERS } from '../../compat';
 
-  const [item, categories, expenseArticles, sections, units] = await Promise.all([
-    prisma.accountingPosition.findUnique({ where: { id: params.id } }),
-    prisma.category.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-    prisma.expenseArticle.findMany({ where: { isActive: true }, select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } }),
-    prisma.section.findMany({ where: { isActive: true }, select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } }),
-    prisma.unit.findMany({ where: { isActive: true }, select: { id: true, name: true }, orderBy: { name: 'asc' } }),
-  ]);
+export async function GET(request: Request, context: { params: { id: string } }): Promise<NextResponse> {
+  const response = await canonicalGET(request, context);
+  const payload = await response.json().catch(() => null) as { accountingPosition?: unknown; refs?: Record<string, unknown> } | null;
 
-  if (!item) return NextResponse.json({ error: 'Позиция не найдена' }, { status: 404 });
+  if (!payload || !response.ok) return new NextResponse(response.body, { status: response.status, headers: { ...Object.fromEntries(response.headers), ...COMPAT_HEADERS } });
+
   return NextResponse.json({
-    item: { ...item, defaultSectionId: item.defaultPurposeId },
-    refs: { categories, expenseArticles, sections, purposes: sections, units },
-  });
+    item: payload.accountingPosition,
+    refs: { ...payload.refs, purposes: payload.refs?.sections ?? [] },
+  }, { status: response.status, headers: COMPAT_HEADERS });
 }

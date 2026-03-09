@@ -253,3 +253,24 @@ Baseline для сравнения взят из канонов и traceability-
 
 - После 2.12 в карте не остаётся известного **product-surface blocking legacy-primary class**.
 - Оставшийся compatibility residue — узкий, явный и не-default; он не должен блокировать deep-closure gate Шага 2.
+
+## 2026-03-09 — Подшаг 2.13 (final contract-route canonicalization pass)
+
+### Что запечатано в этом проходе
+
+- `/api/accounting-positions*` переведён из thin re-export на самостоятельную primary implementation family (`route`, `[id]`, `units`, `movements`, `full`, `toggle-active`).
+- `/api/items*` переведён в явный secondary compatibility layer поверх canonical handlers с deprecation headers и explicit compatibility payload mapping.
+- В canonical route contracts удалены dual-primary outward payload формы (`items + accountingPositions`, `item + accountingPosition`) и оставлен canonical-only outward truth.
+- `src/lib/operation/api.ts` и `src/lib/history/api.ts` закреплены на canonical payload key `accountingPositions` без fallback на legacy `items`.
+
+### Актуальный остаток blocking-класса (ровно один)
+
+1. **Legacy-primary operation/history request semantics в `src/app/api/transactions/route.ts` остаются смешанными (`SINGLE_PURPOSE`/`DISTRIBUTE_PURPOSES`, `headerPurposeId`, `itemId`, `purposeId`) на parse/normalization boundary.**
+   - Это больше не route-primary проблема и не dual outward route truth, но всё ещё structural compatibility residue в mutation/filter contracts.
+   - Для полного снятия этого блокера нужен отдельный tightly-scoped pass на transaction contract schema + downstream regression pack (operation/history write+read path), чтобы не сломать интеграционные consumer payloads.
+
+### Решение по статусу шага 2 после 2.13
+
+- Статус: **не закрыт глубоко в этом pass**.
+- Причина: остаётся **один** локализованный blocker-класс, описанный выше.
+- Разблокировка шага 3: **нет**, до устранения этого единственного блокера.
