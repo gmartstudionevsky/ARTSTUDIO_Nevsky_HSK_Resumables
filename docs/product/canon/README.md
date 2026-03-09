@@ -5,6 +5,7 @@
 Состав:
 
 - [Канонические сущности](./canonical-entities.md)
+- [Карта связей канонических сущностей](./canonical-entity-relations-map.md)
 - [Сущности и границы](./entities-and-boundaries.md)
 - [Аналитические оси](./analytic-axes.md)
 - [Нативная синхронность](./native-synchronicity.md)
