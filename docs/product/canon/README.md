@@ -6,6 +6,7 @@
 
 - [Канонические сущности](./canonical-entities.md)
 - [Карта связей канонических сущностей](./canonical-entity-relations-map.md)
+- [Типы движения](./movement-types.md)
 - [Сущности и границы](./entities-and-boundaries.md)
 - [Аналитические оси](./analytic-axes.md)
 - [Нативная синхронность](./native-synchronicity.md)
