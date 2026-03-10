@@ -74,7 +74,7 @@ export function OperationForm(): JSX.Element {
   const [policies, setPolicies] = useState({ supervisorBackdateDays: 3, requireReasonOnCancel: true, allowNegativeStock: true, displayDecimals: 2, enablePeriodLocks: false });
   const [warnings, setWarnings] = useState<NonNullable<TxResult['warnings']>>([]);
   const [rollbackBusy, setRollbackBusy] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(true);
 
   const actionContext = useMemo<ActionRowContext>(() => ({
     type,
