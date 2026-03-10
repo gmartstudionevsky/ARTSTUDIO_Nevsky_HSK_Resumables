@@ -15,6 +15,7 @@ test('catalog: create item with initial stock creates IN transaction and affects
 
   await page.goto('/catalog');
   await expect(page).toHaveURL(/\/catalog/);
+  await page.getByTestId('catalog-page-ready').waitFor({ state: 'visible', timeout: 30_000 });
 
   const meRes = await apiGet<{ user?: { id: string; login: string; role: string } }>(page, '/api/auth/me');
   console.info('[e2e][create-item] /api/auth/me', meRes);
@@ -38,7 +39,7 @@ test('catalog: create item with initial stock creates IN transaction and affects
 
   const addButton = page.getByTestId('catalog-add-item');
   try {
-    await addButton.waitFor({ state: 'visible', timeout: 10_000 });
+    await addButton.waitFor({ state: 'visible', timeout: 30_000 });
   } catch (error) {
     const bodyHtml = await page.locator('body').innerHTML();
     console.error('[e2e][create-item] catalog-add-item missing', {

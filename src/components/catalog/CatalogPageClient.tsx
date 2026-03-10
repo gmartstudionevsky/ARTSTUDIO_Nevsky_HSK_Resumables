@@ -38,7 +38,7 @@ export function CatalogPageClient({ categories, expenseArticles, sections, units
   }
 
   return (
-    <section className="space-y-4">
+    <section className="space-y-4" data-testid="catalog-page-ready">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold">Каталог позиций</h1>
         <p className="text-sm text-muted">Позиции, единицы учёта и привязки к статьям затрат/разделам.</p>
