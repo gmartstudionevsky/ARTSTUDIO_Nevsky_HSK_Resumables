@@ -21,15 +21,17 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function GET(_request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  const rules = await prisma.telegramRule.findMany({ where: { channelId: params.id }, orderBy: { createdAt: 'asc' } });
+  const rules = await prisma.telegramRule.findMany({ where: { channelId: routeParams.id }, orderBy: { createdAt: 'asc' } });
   return NextResponse.json({ items: rules });
 }
 
-export async function PUT(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -37,19 +39,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
 
-  const channel = await prisma.telegramChannel.findUnique({ where: { id: params.id } });
+  const channel = await prisma.telegramChannel.findUnique({ where: { id: routeParams.id } });
   if (!channel) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
 
   await prisma.$transaction(
     parsed.data.rules.map((rule) =>
       prisma.telegramRule.upsert({
-        where: { channelId_eventType: { channelId: params.id, eventType: rule.eventType } },
-        create: { channelId: params.id, eventType: rule.eventType, isEnabled: rule.isEnabled },
+        where: { channelId_eventType: { channelId: routeParams.id, eventType: rule.eventType } },
+        create: { channelId: routeParams.id, eventType: rule.eventType, isEnabled: rule.isEnabled },
         update: { isEnabled: rule.isEnabled },
       }),
     ),
   );
 
-  const rules = await prisma.telegramRule.findMany({ where: { channelId: params.id } });
+  const rules = await prisma.telegramRule.findMany({ where: { channelId: routeParams.id } });
   return NextResponse.json({ items: rules });
 }

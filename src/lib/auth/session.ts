@@ -19,8 +19,10 @@ function shouldUseSecureSessionCookie(): boolean {
   return process.env.NODE_ENV === 'production';
 }
 
-function setSessionCookie(token: string): void {
-  cookies().set({
+async function setSessionCookie(token: string): Promise<void> {
+  const cookieStore = await cookies();
+
+  cookieStore.set({
     name: SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
@@ -31,8 +33,10 @@ function setSessionCookie(token: string): void {
   });
 }
 
-function clearSessionCookie(): void {
-  cookies().set({
+async function clearSessionCookie(): Promise<void> {
+  const cookieStore = await cookies();
+
+  cookieStore.set({
     name: SESSION_COOKIE_NAME,
     value: '',
     httpOnly: true,
@@ -55,11 +59,12 @@ export async function createSession(userId: string): Promise<void> {
     },
   });
 
-  setSessionCookie(token);
+  await setSessionCookie(token);
 }
 
 export async function getSessionFromRequestCookies() {
-  const token = cookies().get(SESSION_COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
     return null;
@@ -85,10 +90,11 @@ export async function getSessionFromRequestCookies() {
 }
 
 export async function revokeSession(): Promise<void> {
-  const token = cookies().get(SESSION_COOKIE_NAME)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!token) {
-    clearSessionCookie();
+    await clearSessionCookie();
     return;
   }
 
@@ -104,5 +110,5 @@ export async function revokeSession(): Promise<void> {
     },
   });
 
-  clearSessionCookie();
+  await clearSessionCookie();
 }

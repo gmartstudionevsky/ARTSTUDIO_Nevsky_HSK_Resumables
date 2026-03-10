@@ -16,12 +16,13 @@ function toHttpStatus(kind: 'validation' | 'invariant' | 'domain_semantic' | 'no
   return 500;
 }
 
-export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
   const item = await prisma.accountingPosition.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     select: {
       id: true,
       code: true,
@@ -54,7 +55,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }): P
   });
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireManagerOrAdminApi();
   if (authError) return authError;
 
@@ -64,7 +66,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const data = patchItemSchema.parse(body);
 
     const result = await accountingPositionWriteService.update({
-      id: params.id,
+      id: routeParams.id,
       changes: data,
       context: {
         entryPoint: 'api',

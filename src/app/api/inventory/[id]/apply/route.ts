@@ -9,7 +9,8 @@ import { registerProjectionUpdate } from '@/lib/read-models';
 
 const accountingEventWriteService = createAccountingEventWriteService();
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
   if (user.role !== Role.MANAGER && user.role !== Role.ADMIN) return NextResponse.json({ error: 'Недостаточно прав' }, { status: 403 });
@@ -18,7 +19,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const body = await request.json().catch(() => null);
     const data = applyInventorySchema.parse(body ?? {});
     const result = await accountingEventWriteService.applyInventoryResult({
-      sessionId: params.id,
+      sessionId: routeParams.id,
       reasonId: data.reasonId ?? null,
       note: data.note ?? null,
       interpretationMode: 'AFFECT_ANALYTICS',

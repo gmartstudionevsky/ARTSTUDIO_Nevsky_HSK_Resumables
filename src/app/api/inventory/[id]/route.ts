@@ -3,12 +3,13 @@ import { NextResponse } from 'next/server';
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 
-export async function GET(_: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
   const session = await prisma.inventorySession.findUnique({
-    where: { id: params.id },
+    where: { id: routeParams.id },
     include: {
       createdBy: { select: { id: true, login: true } },
       appliedBy: { select: { id: true, login: true } },

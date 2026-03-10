@@ -9,7 +9,8 @@ const querySchema = z.object({
   includeCancelled: z.enum(['true', 'false']).optional().default('true'),
 });
 
-export async function GET(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
@@ -17,7 +18,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const query = querySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
     const lines = await prisma.transactionLine.findMany({
       where: {
-        itemId: params.id,
+        itemId: routeParams.id,
         ...(query.includeCancelled === 'false' ? { status: 'ACTIVE' } : {}),
       },
       orderBy: [
