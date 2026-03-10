@@ -1,17 +1,21 @@
 import ExcelJS from 'exceljs';
 
-import { DirectoryRow, ImportIssue, UnitRow } from '@/lib/import/types';
+import { DirectoryRow, ImportCanonicalFieldMarkup, ImportIssue, ImportOpeningDetection, UnitRow } from '@/lib/import/types';
 
 const DIRECTORY_SHEET = 'Справочник';
 const UNITS_SHEET = 'Единицы';
 
 const REQUIRED_DIRECTORY_COLUMNS = ['Код позиции', 'Позиция учёта', 'Раздел', 'Ед. базовая', 'Ед. учёта (по умолчанию)', 'Ед. отчёта (по умолчанию)', 'Статья затрат'];
+const CANONICAL_DIRECTORY_COLUMNS = [...REQUIRED_DIRECTORY_COLUMNS, 'Мин. количество', 'Активно', 'Синонимы (если есть)', 'Комментарий (позиция)'];
 
 const DIRECTORY_HEADER_ALIASES: Record<string, string[]> = {
   'Позиция учёта': ['Позиция учёта', 'Номенклатура'],
   'Раздел': ['Раздел', 'Назначение'],
   'Статья затрат': ['Статья затрат', 'Статья расходов'],
 };
+
+const OPENING_HEADER_ALIASES = ['Остаток на начало учёта', 'Остаток на 01.03.2026', 'Остаток на начало', 'Стартовый остаток'];
+const OPENING_HEADER_KEYWORDS = ['остат', 'склад', 'старт', 'начал', 'учет'];
 
 function normalizeHeader(value: unknown): string {
   return String(value ?? '').trim().toLowerCase();
@@ -48,6 +52,10 @@ function mapHeaders(rowValues: ExcelJS.CellValue[]): Map<string, number> {
   return map;
 }
 
+function headerAt(rowValues: ExcelJS.CellValue[], index: number): string {
+  return String(rowValues[index] ?? '').trim();
+}
+
 function resolveHeaderName(name: string): string[] {
   return DIRECTORY_HEADER_ALIASES[name] ?? [name];
 }
@@ -64,10 +72,52 @@ function hasHeader(headers: Map<string, number>, name: string): boolean {
   return resolveHeaderName(name).some((candidate) => headers.has(normalizeHeader(candidate)));
 }
 
+function collectCanonicalMarkup(headers: Map<string, number>, headerRowValues: ExcelJS.CellValue[]): ImportCanonicalFieldMarkup[] {
+  return CANONICAL_DIRECTORY_COLUMNS.map((field) => {
+    const directIndex = headers.get(normalizeHeader(field));
+    if (directIndex) {
+      return { canonicalField: field, sourceHeader: headerAt(headerRowValues, directIndex), strategy: 'EXACT' };
+    }
+
+    const alias = (DIRECTORY_HEADER_ALIASES[field] ?? []).find((candidate) => headers.has(normalizeHeader(candidate)));
+    if (alias) {
+      const aliasIndex = headers.get(normalizeHeader(alias)) as number;
+      return { canonicalField: field, sourceHeader: headerAt(headerRowValues, aliasIndex), strategy: 'ALIAS' };
+    }
+
+    return { canonicalField: field, sourceHeader: null, strategy: 'MISSING' };
+  });
+}
+
+function detectOpeningHeader(headers: Map<string, number>, headerRowValues: ExcelJS.CellValue[]): ImportOpeningDetection {
+  for (const candidate of OPENING_HEADER_ALIASES) {
+    const index = headers.get(normalizeHeader(candidate));
+    if (!index) continue;
+    const sourceHeader = headerAt(headerRowValues, index);
+    const match = sourceHeader.match(/(\d{2}\.\d{2}\.\d{4})/);
+    return { sourceHeader, detectedDate: match?.[1] ?? null, strategy: candidate === 'Остаток на начало учёта' ? 'EXACT' : 'ALIAS' };
+  }
+
+  for (const [normalized, index] of headers.entries()) {
+    const keywordMatched = OPENING_HEADER_KEYWORDS.every((keyword) => normalized.includes(keyword))
+      || (normalized.includes('остат') && (normalized.includes('склад') || normalized.includes('начал')));
+    if (!keywordMatched) continue;
+    const sourceHeader = headerAt(headerRowValues, index);
+    const match = sourceHeader.match(/(\d{2}\.\d{2}\.\d{4})/);
+    return { sourceHeader, detectedDate: match?.[1] ?? null, strategy: 'KEYWORD' };
+  }
+
+  return { sourceHeader: null, detectedDate: null, strategy: 'MISSING' };
+}
+
 export type ParsedImportResult = {
   directoryRows: DirectoryRow[];
   unitRows: UnitRow[];
   parseErrors: ImportIssue[];
+  markup: {
+    canonicalFields: ImportCanonicalFieldMarkup[];
+    opening: ImportOpeningDetection;
+  };
 };
 
 export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedImportResult> {
@@ -82,16 +132,31 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
   if (!unitsSheet) parseErrors.push({ sheet: UNITS_SHEET, row: 1, column: '-', message: 'Не найден лист “Единицы”.' });
 
   if (!directorySheet || !unitsSheet) {
-    return { directoryRows: [], unitRows: [], parseErrors };
+    return {
+      directoryRows: [],
+      unitRows: [],
+      parseErrors,
+      markup: {
+        canonicalFields: CANONICAL_DIRECTORY_COLUMNS.map((field) => ({ canonicalField: field, sourceHeader: null, strategy: 'MISSING' })),
+        opening: { sourceHeader: null, detectedDate: null, strategy: 'MISSING' },
+      },
+    };
   }
 
-  const directoryHeaders = mapHeaders(directorySheet.getRow(1).values as ExcelJS.CellValue[]);
+  const directoryHeaderRow = directorySheet.getRow(1).values as ExcelJS.CellValue[];
+  const directoryHeaders = mapHeaders(directoryHeaderRow);
+  const canonicalFieldMarkup = collectCanonicalMarkup(directoryHeaders, directoryHeaderRow);
+  const openingDetection = detectOpeningHeader(directoryHeaders, directoryHeaderRow);
 
   for (const col of REQUIRED_DIRECTORY_COLUMNS) {
     if (!hasHeader(directoryHeaders, col)) {
       parseErrors.push({ sheet: DIRECTORY_SHEET, row: 1, column: col, message: 'Отсутствует обязательная колонка.' });
     }
   }
+
+  const openingHeaderIndex = openingDetection.sourceHeader
+    ? directoryHeaders.get(normalizeHeader(openingDetection.sourceHeader)) ?? null
+    : null;
 
   const directoryRows: DirectoryRow[] = [];
   for (let rowNumber = 2; rowNumber <= directorySheet.rowCount; rowNumber += 1) {
@@ -102,7 +167,7 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
     const activeRaw = getCell(row, directoryHeaders, 'Активно');
     const activeParsed = parseBoolean(activeRaw);
     const minQty = parseNumber(getCell(row, directoryHeaders, 'Мин. количество'));
-    const openingQty = parseNumber(getCell(row, directoryHeaders, 'Остаток на 01.03.2026')) ?? 0;
+    const openingQty = openingHeaderIndex ? parseNumber(row.getCell(openingHeaderIndex).value) ?? 0 : 0;
 
     directoryRows.push({
       rowNumber,
@@ -141,5 +206,13 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
     });
   }
 
-  return { directoryRows, unitRows, parseErrors };
+  return {
+    directoryRows,
+    unitRows,
+    parseErrors,
+    markup: {
+      canonicalFields: canonicalFieldMarkup,
+      opening: openingDetection,
+    },
+  };
 }

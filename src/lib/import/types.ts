@@ -5,6 +5,18 @@ export type ImportIssue = {
   message: string;
 };
 
+export type ImportCanonicalFieldMarkup = {
+  canonicalField: string;
+  sourceHeader: string | null;
+  strategy: 'EXACT' | 'ALIAS' | 'KEYWORD' | 'MISSING';
+};
+
+export type ImportOpeningDetection = {
+  sourceHeader: string | null;
+  detectedDate: string | null;
+  strategy: 'EXACT' | 'ALIAS' | 'KEYWORD' | 'MISSING';
+};
+
 export type DirectoryRow = {
   rowNumber: number;
   code: string;
@@ -88,11 +100,16 @@ export type NormalizedImportPayload = {
     directory: DirectoryRow[];
     units: UnitRow[];
   };
+  markup: {
+    canonicalFields: ImportCanonicalFieldMarkup[];
+    opening: ImportOpeningDetection;
+  };
   syncPlan: ImportSyncPlan;
 };
 
 export type CommitOptions = {
   createOpening?: boolean;
+  openingDate?: string;
   syncMode?: 'AUTO' | 'MANUAL';
   unresolvedBehavior?: 'CREATE' | 'SKIP';
   decisions?: Array<{ rowNumber: number; action: ImportSyncAction; accountingPositionId?: string; itemId?: string }>;

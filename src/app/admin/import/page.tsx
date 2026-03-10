@@ -8,9 +8,11 @@ import { ImportJobsList } from '@/components/admin/import/ImportJobsList';
 import { ImportSummary } from '@/components/admin/import/ImportSummary';
 import { ImportUploadCard } from '@/components/admin/import/ImportUploadCard';
 import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Toast } from '@/components/ui/Toast';
-import { ImportIssue, ImportSummary as Summary, ImportSyncAction, ImportSyncPlanRow } from '@/lib/import/types';
+import { DirectoryRow, ImportCanonicalFieldMarkup, ImportIssue, ImportOpeningDetection, ImportSummary as Summary, ImportSyncAction, ImportSyncPlanRow } from '@/lib/import/types';
 
 type JobsResponse = {
   items: Array<{
@@ -34,10 +36,15 @@ export default function AdminImportPage(): JSX.Element {
   const [errors, setErrors] = useState<ImportIssue[]>([]);
   const [warnings, setWarnings] = useState<ImportIssue[]>([]);
   const [syncRows, setSyncRows] = useState<ImportSyncPlanRow[]>([]);
+  const [canonicalMarkup, setCanonicalMarkup] = useState<ImportCanonicalFieldMarkup[]>([]);
+  const [openingDetection, setOpeningDetection] = useState<ImportOpeningDetection | null>(null);
+  const [directoryPreviewRows, setDirectoryPreviewRows] = useState<DirectoryRow[]>([]);
+  const [directoryRowsTotal, setDirectoryRowsTotal] = useState(0);
   const [syncMode, setSyncMode] = useState<'AUTO' | 'MANUAL'>('AUTO');
   const [unresolvedBehavior, setUnresolvedBehavior] = useState<'CREATE' | 'SKIP'>('CREATE');
   const [manualDecisions, setManualDecisions] = useState<Record<number, { action: ImportSyncAction; itemId?: string }>>({});
   const [createOpening, setCreateOpening] = useState(true);
+  const [openingDate, setOpeningDate] = useState('2026-03-01');
   const [toast, setToast] = useState('');
   const [jobs, setJobs] = useState<JobsResponse['items']>([]);
   const [rollingBackJobId, setRollingBackJobId] = useState<string | null>(null);
@@ -61,7 +68,16 @@ export default function AdminImportPage(): JSX.Element {
     formData.append('file', file);
 
     const response = await fetch('/api/admin/import/xlsx/preview', { method: 'POST', body: formData });
-    const json = (await response.json().catch(() => null)) as { jobId: string; summary: Summary; errors: ImportIssue[]; warnings: ImportIssue[]; syncRows: ImportSyncPlanRow[]; error?: string } | null;
+    const json = (await response.json().catch(() => null)) as {
+      jobId: string;
+      summary: Summary;
+      errors: ImportIssue[];
+      warnings: ImportIssue[];
+      syncRows: ImportSyncPlanRow[];
+      markup: { canonicalFields: ImportCanonicalFieldMarkup[]; opening: ImportOpeningDetection };
+      tablePreview: { totalRows: number; sampleRows: DirectoryRow[] };
+      error?: string;
+    } | null;
     setLoadingPreview(false);
 
     if (!response.ok || !json) {
@@ -74,6 +90,10 @@ export default function AdminImportPage(): JSX.Element {
     setErrors(json.errors);
     setWarnings(json.warnings);
     setSyncRows(json.syncRows ?? []);
+    setCanonicalMarkup(json.markup?.canonicalFields ?? []);
+    setOpeningDetection(json.markup?.opening ?? null);
+    setDirectoryRowsTotal(json.tablePreview?.totalRows ?? 0);
+    setDirectoryPreviewRows(json.tablePreview?.sampleRows ?? []);
     setManualDecisions({});
     await loadJobs();
   }
@@ -106,7 +126,7 @@ export default function AdminImportPage(): JSX.Element {
     const response = await fetch('/api/admin/import/xlsx/commit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jobId, options: { createOpening, syncMode, unresolvedBehavior, decisions } }),
+      body: JSON.stringify({ jobId, options: { createOpening, openingDate, syncMode, unresolvedBehavior, decisions } }),
     });
     const json = (await response.json().catch(() => null)) as { error?: string } | null;
     setLoadingCommit(false);
@@ -145,7 +165,66 @@ export default function AdminImportPage(): JSX.Element {
       {summary ? (
         <section className="space-y-4">
           <ImportSummary summary={summary} />
-          <p className="text-sm text-muted">Синхронизация каталога позиций со складом выполняется автоматически, при спорных совпадениях можно вручную выбрать действие.</p>
+          <p className="text-sm text-muted">Предпросмотр показывает, какие канонические поля распознаны, и какие строки импорт будет синхронизировать или создавать.</p>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Разметка канонических полей</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-muted">
+                      <th className="px-2 py-2">Каноническое поле</th>
+                      <th className="px-2 py-2">Исходная колонка</th>
+                      <th className="px-2 py-2">Стратегия</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {canonicalMarkup.map((row) => (
+                      <tr key={row.canonicalField} className="border-b border-border/60">
+                        <td className="px-2 py-2 font-medium">{row.canonicalField}</td>
+                        <td className="px-2 py-2">{row.sourceHeader ?? '—'}</td>
+                        <td className="px-2 py-2">{row.strategy}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Строки таблицы (предпросмотр)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-2 text-xs text-muted">Показано {directoryPreviewRows.length} из {directoryRowsTotal} строк листа “Справочник”.</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left text-muted">
+                      <th className="px-2 py-2">Код</th>
+                      <th className="px-2 py-2">Позиция</th>
+                      <th className="px-2 py-2">Раздел</th>
+                      <th className="px-2 py-2">Стартовый остаток</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {directoryPreviewRows.map((row) => (
+                      <tr key={row.rowNumber} className="border-b border-border/60">
+                        <td className="px-2 py-2">{row.code}</td>
+                        <td className="px-2 py-2">{row.name}</td>
+                        <td className="px-2 py-2">{row.sectionCode}</td>
+                        <td className="px-2 py-2">{row.openingQty}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid gap-3 md:grid-cols-3">
             <Select label="Режим синхронизации" value={syncMode} onChange={(event) => setSyncMode(event.target.value as 'AUTO' | 'MANUAL')}>
@@ -158,9 +237,17 @@ export default function AdminImportPage(): JSX.Element {
             </Select>
             <label className="flex items-center gap-2 text-sm text-text md:pt-8">
               <input type="checkbox" checked={createOpening} onChange={(event) => setCreateOpening(event.target.checked)} />
-              Создать открытие склада 01.03.2026
+              Импортировать стартовые остатки как OPENING
             </label>
           </div>
+
+          <Input
+            type="date"
+            label="Дата начала учёта"
+            value={openingDate}
+            onChange={(event) => setOpeningDate(event.target.value)}
+            helperText={`Распознанная колонка стартовых остатков: ${openingDetection?.sourceHeader ?? 'не найдена'}`}
+          />
 
           {hasUnresolvedRows ? (
             <div className="overflow-x-auto rounded-md border border-border p-3">

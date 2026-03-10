@@ -3,6 +3,11 @@ import test from 'node:test';
 
 import { createImportSyncUseCase } from '../../src/lib/application/import/service';
 
+const emptyMarkup = {
+  canonicalFields: [],
+  opening: { sourceHeader: null, detectedDate: null, strategy: 'MISSING' as const },
+};
+
 test('previewFromWorkbook: creates draft with summary/sync/outcome contract', async () => {
   const created: { data?: unknown } = {};
   const useCase = createImportSyncUseCase({
@@ -15,7 +20,7 @@ test('previewFromWorkbook: creates draft with summary/sync/outcome contract', as
         },
       },
     } as any,
-    parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [] }),
+    parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [], markup: emptyMarkup }),
     validateImportData: () => ({
       summary: {
         accountingPositions: 1,
@@ -36,6 +41,7 @@ test('previewFromWorkbook: creates draft with summary/sync/outcome contract', as
       errors: [],
       warnings: [],
       rows: { directory: [], units: [] },
+      markup: emptyMarkup,
       syncPlan: { mode: 'AUTO', rows: [] },
     }),
     generateNextItemCode: async () => 'IT-001',
@@ -74,12 +80,13 @@ test('apply: blocks commit when preview has blocking errors', async () => {
             errors: [{ sheet: 'Справочник', row: 2, column: 'Код позиции', message: 'Ошибка' }],
             warnings: [],
             rows: { directory: [], units: [] },
+            markup: emptyMarkup,
             syncPlan: { mode: 'AUTO', rows: [] },
           },
         }),
       },
     } as any,
-    parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [] }),
+    parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [], markup: emptyMarkup }),
     validateImportData: () => {
       throw new Error('not used');
     },
