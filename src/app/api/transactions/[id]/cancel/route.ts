@@ -12,7 +12,8 @@ const schema = z.object({
   cancelNote: z.string().trim().nullable().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -23,7 +24,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
     const now = new Date();
 
-    const transaction = await prisma.transaction.findUnique({ where: { id: params.id }, include: { lines: true } });
+    const transaction = await prisma.transaction.findUnique({ where: { id: routeParams.id }, include: { lines: true } });
     if (!transaction) return NextResponse.json({ error: 'Движение не найдено' }, { status: 404 });
     if (transaction.status === RecordStatus.CANCELLED) return NextResponse.json({ ok: true });
     const locked = await isDateLocked(transaction.occurredAt, prisma);
@@ -33,7 +34,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     await prisma.$transaction(async (tx) => {
       await tx.transaction.update({
-        where: { id: params.id },
+        where: { id: routeParams.id },
         data: {
           status: RecordStatus.CANCELLED,
           cancelledAt: now,
@@ -44,7 +45,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       });
 
       await tx.transactionLine.updateMany({
-        where: { transactionId: params.id, status: RecordStatus.ACTIVE },
+        where: { transactionId: routeParams.id, status: RecordStatus.ACTIVE },
         data: {
           status: RecordStatus.CANCELLED,
           cancelledAt: now,
@@ -59,7 +60,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
           actorId: user.id,
           action: 'CANCEL_TX',
           entity: 'Transaction',
-          entityId: params.id,
+          entityId: routeParams.id,
           payload: { reasonId: data.reasonId ?? null },
         },
       });

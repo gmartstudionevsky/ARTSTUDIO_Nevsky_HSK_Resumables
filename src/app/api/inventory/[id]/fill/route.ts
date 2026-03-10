@@ -7,7 +7,8 @@ import { prisma } from '@/lib/db/prisma';
 import { fillInventorySchema } from '@/lib/inventory/validators';
 import { getStockQtyBaseByItemIds } from '@/lib/stock/calc';
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
@@ -16,7 +17,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = fillInventorySchema.parse(body);
 
-    const session = await prisma.inventorySession.findUnique({ where: { id: params.id }, include: { _count: { select: { lines: true } } } });
+    const session = await prisma.inventorySession.findUnique({ where: { id: routeParams.id }, include: { _count: { select: { lines: true } } } });
     if (!session) return NextResponse.json({ error: 'Инвентаризация не найдена' }, { status: 404 });
     if (session.status !== InventoryStatus.DRAFT) return NextResponse.json({ error: 'Инвентаризация уже применена' }, { status: 409 });
     if (session._count.lines > 0) return NextResponse.json({ error: 'Строки уже сформированы' }, { status: 409 });

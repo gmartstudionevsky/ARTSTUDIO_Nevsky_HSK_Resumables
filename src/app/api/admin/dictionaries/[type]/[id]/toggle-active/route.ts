@@ -14,14 +14,15 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function POST(request: Request, { params }: { params: { type: string; id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ type: string; id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(params.type);
+    const type = parseDictionaryType(routeParams.type);
     const body = bodySchema.parse(await request.json().catch(() => null));
-    const item = await toggleActive(type, params.id, body.isActive);
+    const item = await toggleActive(type, routeParams.id, body.isActive);
     return NextResponse.json({ item });
   } catch (error) {
     if (error instanceof z.ZodError) {

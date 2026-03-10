@@ -24,12 +24,13 @@ function getErrorMessage(error: unknown): string {
   return 'Ошибка сервера';
 }
 
-export async function GET(request: Request, { params }: { params: { type: string } }): Promise<NextResponse> {
+export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(params.type);
+    const type = parseDictionaryType(routeParams.type);
     const query = listQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
     const response = await listDictionary(type, query);
     return NextResponse.json(response);
@@ -44,12 +45,13 @@ export async function GET(request: Request, { params }: { params: { type: string
   }
 }
 
-export async function POST(request: Request, { params }: { params: { type: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ type: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(params.type);
+    const type = parseDictionaryType(routeParams.type);
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const item = await createDictionary(type, body);

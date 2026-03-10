@@ -11,7 +11,8 @@ const schema = z.object({
   note: z.string().trim().nullable().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -20,7 +21,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const data = schema.parse(body);
 
     const result = await recoveryService.rollbackMovement({
-      transactionId: params.id,
+      transactionId: routeParams.id,
       reasonId: data.reasonId ?? null,
       note: data.note ?? null,
       context: { actorId: user.id, actorRole: user.role, entryPoint: 'api' },

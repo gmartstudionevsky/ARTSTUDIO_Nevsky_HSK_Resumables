@@ -12,7 +12,8 @@ const schema = z.object({
   cancelNote: z.string().trim().nullable().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -21,7 +22,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const data = schema.parse(body);
     const settings = await getSettings(prisma);
     if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
-    const line = await prisma.transactionLine.findUnique({ where: { id: params.id }, select: { id: true, status: true, transactionId: true, transaction: { select: { occurredAt: true } } } });
+    const line = await prisma.transactionLine.findUnique({ where: { id: routeParams.id }, select: { id: true, status: true, transactionId: true, transaction: { select: { occurredAt: true } } } });
     if (!line) return NextResponse.json({ error: 'Строка не найдена' }, { status: 404 });
     if (line.status === RecordStatus.CANCELLED) return NextResponse.json({ ok: true });
     const locked = await isDateLocked(line.transaction.occurredAt, prisma);
@@ -32,7 +33,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     await prisma.$transaction(async (tx) => {
       await tx.transactionLine.update({
-        where: { id: params.id },
+        where: { id: routeParams.id },
         data: {
           status: RecordStatus.CANCELLED,
           cancelledAt: now,
@@ -52,7 +53,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
           actorId: user.id,
           action: 'CANCEL_TX_LINE',
           entity: 'TransactionLine',
-          entityId: params.id,
+          entityId: routeParams.id,
           payload: { reasonId: data.reasonId ?? null },
         },
       });

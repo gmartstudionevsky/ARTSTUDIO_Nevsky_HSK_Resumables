@@ -13,12 +13,13 @@ function mapStatus(status: 'OK' | 'BELOW_MIN' | 'ZERO'): { label: string; varian
   return { label: 'OK', variant: 'ok' };
 }
 
-export default async function ItemReadonlyPage({ params }: { params: { id: string } }): Promise<JSX.Element> {
+export default async function ItemReadonlyPage({ params }: { params: Promise<{ id: string }> }): Promise<JSX.Element> {
+  const routeParams = await params;
   await requireSupervisorOrAbove();
 
   const [item, stock, movements] = await Promise.all([
     prisma.accountingPosition.findUnique({
-      where: { id: params.id },
+      where: { id: routeParams.id },
       select: {
         id: true,
         code: true,
@@ -35,9 +36,9 @@ export default async function ItemReadonlyPage({ params }: { params: { id: strin
         reportUnit: { select: { id: true, name: true } },
       },
     }),
-    getStockSnapshotByItemId(params.id),
+    getStockSnapshotByItemId(routeParams.id),
     prisma.transactionLine.findMany({
-      where: { itemId: params.id },
+      where: { itemId: routeParams.id },
       orderBy: [{ transaction: { occurredAt: 'desc' } }, { transaction: { createdAt: 'desc' } }],
       take: 20,
       select: {

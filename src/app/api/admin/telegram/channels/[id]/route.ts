@@ -18,7 +18,8 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireAdmin();
   if (authError) return authError;
 
@@ -27,7 +28,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   if (!parsed.success) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
 
   try {
-    const item = await prisma.telegramChannel.update({ where: { id: params.id }, data: parsed.data });
+    const item = await prisma.telegramChannel.update({ where: { id: routeParams.id }, data: parsed.data });
     return NextResponse.json({ item });
   } catch {
     return NextResponse.json({ error: 'Канал не найден или chatId уже занят' }, { status: 404 });

@@ -23,7 +23,8 @@ function makeBatchId(): string {
   return `BAT-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -36,7 +37,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
 
     const oldLine = await prisma.transactionLine.findUnique({
-      where: { id: params.id },
+      where: { id: routeParams.id },
       include: {
         transaction: true,
         item: { select: { id: true, defaultExpenseArticleId: true, defaultPurposeId: true } },

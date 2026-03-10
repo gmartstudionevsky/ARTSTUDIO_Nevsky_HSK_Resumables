@@ -14,7 +14,8 @@ function toHttpStatus(kind: 'validation' | 'invariant' | 'domain_semantic' | 'no
   return 500;
 }
 
-export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
+  const routeParams = await params;
   const authError = await requireManagerOrAdminApi();
   if (authError) return authError;
 
@@ -24,7 +25,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const data = toggleItemActiveSchema.parse(body);
 
     const result = await accountingPositionWriteService.setActiveState({
-      id: params.id,
+      id: routeParams.id,
       isActive: data.isActive,
       context: {
         entryPoint: 'api',
