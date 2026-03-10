@@ -340,8 +340,8 @@ export function OperationForm(): JSX.Element {
     <section className="space-y-4" data-testid="movements-hub-page">
       <h1 className="text-2xl font-semibold">Движения</h1>
 
-      <Card className="sticky top-4 z-20 border-accent/20 shadow-[0_16px_32px_rgba(17,24,39,0.08)] backdrop-blur" data-testid="movements-sticky-rail">
-        <CardContent className="space-y-4 p-4">
+      <Card className="sticky top-3 z-10 border-accent/20 shadow-[0_16px_32px_rgba(17,24,39,0.08)]" data-testid="movements-sticky-rail">
+        <CardContent className="space-y-3 p-3">
           <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} getItemTestId={(item) => (item.value === 'IN' ? 'op-tab-in' : item.value === 'OUT' ? 'op-tab-out' : 'op-tab-adjust')} />
 
           <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-3">
@@ -376,7 +376,11 @@ export function OperationForm(): JSX.Element {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
 
+      <Card>
+        <CardContent className="space-y-3 p-3">
           <Button variant="ghost" size="sm" onClick={() => setAdvancedOpen((prev) => !prev)}>
             {advancedOpen ? 'Скрыть дополнительные параметры' : 'Показать дополнительные параметры'}
           </Button>
@@ -414,7 +418,7 @@ export function OperationForm(): JSX.Element {
               const secondLayerAvailable = hasSecondLayerPayload(item);
 
               return (
-                <article key={item.id} className="scroll-mt-56 rounded-xl border border-border bg-bg p-3" data-testid={`movements-item-${item.id}`}>
+                <article key={item.id} className="scroll-mt-40 rounded-xl border border-border bg-bg p-3" data-testid={`movements-item-${item.id}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">{item.code} — {item.name}</p>
@@ -469,7 +473,7 @@ export function OperationForm(): JSX.Element {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className="scroll-mt-56"
+                      className="relative z-20 scroll-mt-40"
                       onClick={() => {
                         void ensureItemRowReady(item).then(() => submitParticipatingRows(item.id));
                       }}
