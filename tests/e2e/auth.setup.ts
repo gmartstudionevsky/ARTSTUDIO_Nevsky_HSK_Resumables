@@ -2,11 +2,15 @@ import { expect, test } from '@playwright/test';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { ensureE2EAdminUser } from './ensureE2EUser';
+
 const storageStatePath = path.join('playwright', '.auth', 'user.json');
 
 test('authenticate via real login and store storageState', async ({ page }) => {
   const login = process.env.E2E_USER_LOGIN ?? 'e2e_admin';
   const password = process.env.E2E_USER_PASSWORD ?? 'E2EPass12345!';
+
+  await ensureE2EAdminUser(login, password);
 
   await page.goto('/login');
   await page.getByTestId('login-login').fill(login);
