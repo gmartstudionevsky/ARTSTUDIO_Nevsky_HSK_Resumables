@@ -1,12 +1,12 @@
 import { hash } from '@node-rs/argon2';
 import { PrismaClient, Role } from '@prisma/client';
 
-export async function ensureE2EAdminUser(login: string, password: string): Promise<void> {
+export async function ensureE2EAdminUser(login: string, password: string): Promise<{ id: string; login: string; role: Role; isActive: boolean }> {
   const prisma = new PrismaClient();
 
   try {
     const passwordHash = await hash(password);
-    await prisma.user.upsert({
+    const user = await prisma.user.upsert({
       where: { login },
       create: {
         login,
@@ -21,9 +21,11 @@ export async function ensureE2EAdminUser(login: string, password: string): Promi
         isActive: true,
         forcePasswordChange: false,
       },
+      select: { id: true, login: true, role: true, isActive: true },
     });
+
+    return user;
   } finally {
     await prisma.$disconnect();
   }
 }
-

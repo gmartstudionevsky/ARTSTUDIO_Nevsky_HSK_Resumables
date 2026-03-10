@@ -16,6 +16,11 @@ test('catalog: create item with initial stock creates IN transaction and affects
   await page.goto('/catalog');
   await expect(page).toHaveURL(/\/catalog/);
 
+  const meRes = await apiGet<{ user?: { id: string; login: string; role: string } }>(page, '/api/auth/me');
+  console.info('[e2e][create-item] /api/auth/me', meRes);
+  expect(meRes.ok).toBeTruthy();
+  expect(meRes.json.user?.role === 'ADMIN' || meRes.json.user?.role === 'MANAGER').toBeTruthy();
+
   const categoriesRes = await apiGet<{ items: Array<{ id: string; name: string }> }>(page, '/api/lookup/categories?active=true');
   expect(categoriesRes.ok, `categories status=${categoriesRes.status}`).toBeTruthy();
   const categoryId = categoriesRes.json.items.find((entry) => entry.name === 'Химия')?.id;
@@ -31,7 +36,20 @@ test('catalog: create item with initial stock creates IN transaction and affects
   const sectionId = purposesRes.json.items.find((entry) => entry.code === '2.1.4')?.id;
   expect(sectionId).toBeTruthy();
 
-  await page.getByTestId('catalog-add-item').click();
+  const addButton = page.getByTestId('catalog-add-item');
+  try {
+    await addButton.waitFor({ state: 'visible', timeout: 10_000 });
+  } catch (error) {
+    const bodyHtml = await page.locator('body').innerHTML();
+    console.error('[e2e][create-item] catalog-add-item missing', {
+      url: page.url(),
+      bodyExcerpt: bodyHtml.slice(0, 1500),
+      role: meRes.json.user?.role ?? null,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+  await addButton.click();
 
   await page.getByTestId('item-name').fill(itemName);
   await page.getByTestId('item-category').selectOption(categoryId!);

@@ -45,7 +45,7 @@ export function CatalogPageClient({ categories, expenseArticles, sections, units
       </header>
 
       <CatalogFilters {...filters} categories={categories} expenseArticles={expenseArticles} onChange={(patch) => setFilters((prev) => ({ ...prev, ...patch }))} />
-      <ItemHeaderActions canManage={canManage} onOpenCreate={() => setOpen(true)} />
+      <ItemHeaderActions onOpenCreate={() => setOpen(true)} />
 
       {items.length === 0 ? <EmptyState title="Список пуст" description="Создайте первую позицию учёта." /> : null}
       {items.length > 0 ? <ItemsTable items={items} canManage={canManage} onToggle={toggle} /> : null}
