@@ -54,6 +54,7 @@ export function OperationForm(): JSX.Element {
   const [dateInput, setDateInput] = useState(nowText());
   const [headerSectionId, setHeaderSectionId] = useState('');
   const [workspaceSectionId, setWorkspaceSectionId] = useState('');
+  const [pendingSectionId, setPendingSectionId] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [items, setItems] = useState<ItemOption[]>([]);
@@ -73,6 +74,7 @@ export function OperationForm(): JSX.Element {
   const [policies, setPolicies] = useState({ supervisorBackdateDays: 3, requireReasonOnCancel: true, allowNegativeStock: true, displayDecimals: 2, enablePeriodLocks: false });
   const [warnings, setWarnings] = useState<NonNullable<TxResult['warnings']>>([]);
   const [rollbackBusy, setRollbackBusy] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const actionContext = useMemo<ActionRowContext>(() => ({
     type,
@@ -89,8 +91,21 @@ export function OperationForm(): JSX.Element {
     if (!headerSectionId && sectionRows[0]) {
       setHeaderSectionId(sectionRows[0].id);
       setWorkspaceSectionId(sectionRows[0].id);
+      setPendingSectionId(sectionRows[0].id);
     }
   }, [headerSectionId]);
+
+  useEffect(() => {
+    if (!workspaceSectionId) return;
+    if (!pendingSectionId) {
+      setPendingSectionId(workspaceSectionId);
+    }
+  }, [pendingSectionId, workspaceSectionId]);
+
+  useEffect(() => {
+    if (type !== 'IN' || intakeMode !== 'SINGLE_SECTION' || !workspaceSectionId) return;
+    setHeaderSectionId(workspaceSectionId);
+  }, [intakeMode, type, workspaceSectionId]);
 
   const loadWorkspaceItems = useCallback(async () => {
     setLoadingWorkspace(true);
@@ -317,22 +332,67 @@ export function OperationForm(): JSX.Element {
     setToast('Строка перенесена в рабочее поле для коррекции');
   }
 
+  const participatingItemIds = useMemo(() => resolveParticipatingItemIds({ rowDrafts }), [rowDrafts]);
+  const canApplyRows = participatingItemIds.length > 0;
+  const sectionTabs = sections.map((section) => ({ value: section.id, label: `${section.code} · ${section.name}` }));
+
   return (
     <section className="space-y-4" data-testid="movements-hub-page">
       <h1 className="text-2xl font-semibold">Движения</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Рабочий контекст</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <Card className="sticky top-4 z-20 border-accent/20 shadow-[0_16px_32px_rgba(17,24,39,0.08)] backdrop-blur">
+        <CardContent className="space-y-4 p-4">
           <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} getItemTestId={(item) => (item.value === 'IN' ? 'op-tab-in' : item.value === 'OUT' ? 'op-tab-out' : 'op-tab-adjust')} />
-          <Input label="Дата и время" value={dateInput} onChange={(event) => setDateInput(event.target.value)} helperText="Примеры: 1.3.26 или 01.03.2026 12:30" data-testid="op-datetime" />
-          {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_SECTION', label: 'Один раздел' }, { value: 'DISTRIBUTE_SECTIONS', label: 'Распределить' }]} getItemTestId={(item) => (item.value === 'SINGLE_SECTION' ? 'op-intake-single' : 'op-intake-distribute')} /> : null}
-          {type === 'IN' && intakeMode === 'SINGLE_SECTION' ? <Select label="Раздел для прихода" value={headerSectionId} onChange={(event) => setHeaderSectionId(event.target.value)} data-testid="op-header-section">{sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
-          <Select label="Раздел рабочего поля" value={workspaceSectionId} onChange={(event) => setWorkspaceSectionId(event.target.value)} data-testid="movements-section-select">
-            {sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
-          </Select>
+
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface p-3">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Раздел позиций учёта</p>
+              {sectionTabs.length > 0 ? (
+                <Tabs value={pendingSectionId || workspaceSectionId} onChange={(value) => setPendingSectionId(value)} items={sectionTabs} getItemTestId={(item) => (item.value === workspaceSectionId ? 'movements-section-select' : undefined)} />
+              ) : (
+                <p className="text-sm text-muted">Разделы загружаются…</p>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs text-muted">Выбрано к применению: {canApplyRows ? participatingItemIds.length : 0} строк.</p>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setWorkspaceSectionId(pendingSectionId)}
+                  disabled={!pendingSectionId || pendingSectionId === workspaceSectionId}
+                  data-testid="movements-apply-section"
+                >
+                  Применить раздел
+                </Button>
+                <Button
+                  onClick={() => { void submitParticipatingRows(); }}
+                  disabled={!canApplyRows}
+                  className={canApplyRows ? 'shadow-[0_12px_26px_rgba(227,174,90,0.34)]' : ''}
+                  data-testid="op-save"
+                >
+                  Применить
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <Button variant="ghost" size="sm" onClick={() => setAdvancedOpen((prev) => !prev)}>
+            {advancedOpen ? 'Скрыть дополнительные параметры' : 'Показать дополнительные параметры'}
+          </Button>
+
+          {advancedOpen ? (
+            <div className="space-y-3 rounded-xl border border-border bg-surface p-3">
+              <Input label="Дата и время" value={dateInput} onChange={(event) => setDateInput(event.target.value)} helperText="Примеры: 1.3.26 или 01.03.2026 12:30" data-testid="op-datetime" />
+              {type === 'IN' ? <Tabs value={intakeMode} onChange={(value) => setIntakeMode(value)} items={[{ value: 'SINGLE_SECTION', label: 'Один раздел' }, { value: 'DISTRIBUTE_SECTIONS', label: 'Распределить' }]} getItemTestId={(item) => (item.value === 'SINGLE_SECTION' ? 'op-intake-single' : 'op-intake-distribute')} /> : null}
+              {type === 'IN' && intakeMode === 'SINGLE_SECTION' ? <Select label="Раздел для прихода" value={headerSectionId} onChange={(event) => setHeaderSectionId(event.target.value)} data-testid="op-header-section">{sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select> : null}
+              <div className="flex gap-2">
+                <Input label="Поиск в текущем разделе" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} data-testid="op-item-search" />
+                <Button className="mt-7" variant="secondary" onClick={() => setSearchQuery(searchInput)} data-testid="op-search-item">Найти</Button>
+                <Button className="mt-7" variant="ghost" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>Сброс</Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 
@@ -341,11 +401,6 @@ export function OperationForm(): JSX.Element {
           <CardTitle>Рабочее поле позиций</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex gap-2">
-            <Input label="Поиск в текущем разделе" value={searchInput} onChange={(event) => setSearchInput(event.target.value)} data-testid="op-item-search" />
-            <Button className="mt-7" variant="secondary" onClick={() => setSearchQuery(searchInput)} data-testid="op-search-item">Найти</Button>
-            <Button className="mt-7" variant="ghost" onClick={() => { setSearchInput(''); setSearchQuery(''); }}>Сброс</Button>
-          </div>
           <p className="text-xs text-muted">Поиск остаётся вспомогательным: рабочее поле строится по выбранному разделу, а участие строки определяется фактом ввода количества.</p>
           {loadingWorkspace ? <p className="text-sm text-muted">Загрузка позиций...</p> : null}
           <div className="space-y-2" data-testid="movements-workspace-list">
@@ -509,7 +564,6 @@ export function OperationForm(): JSX.Element {
       </Card>
 
       {workspaceError ? <p className="text-sm text-critical">{workspaceError}</p> : null}
-      <Button onClick={() => { void submitParticipatingRows(); }} data-testid="op-save">Провести заполненные строки</Button>
       {warnings.length > 0 ? <div className="rounded border border-warn p-3 text-sm">Внимание: списание увело остаток в минус<ul className="list-inside list-disc">{warnings.map((w) => <li key={w.accountingPositionName}>{w.accountingPositionName}</li>)}</ul></div> : null}
 
       {postAction ? (
