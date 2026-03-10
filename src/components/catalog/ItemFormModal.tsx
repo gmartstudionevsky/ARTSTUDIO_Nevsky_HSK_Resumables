@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 
 import { RefOption } from '@/components/catalog/types';
 import { Button } from '@/components/ui/Button';
+import { extractCreatedAccountingPosition } from '@/components/catalog/contracts';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 
@@ -68,17 +69,18 @@ export function ItemFormModal({ open, categories, expenseArticles, sections, uni
         },
       }),
     });
-    const payload = (await response.json().catch(() => null)) as { error?: string; item?: { id: string }; transactionId?: string } | null;
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    const created = extractCreatedAccountingPosition(payload);
     setLoading(false);
 
-    if (!response.ok || !payload?.item) {
+    if (!response.ok || !created) {
       setError(payload?.error ?? 'Не удалось создать позицию');
       return;
     }
 
     onCreated({
-      id: payload.item.id,
-      transactionId: payload.transactionId,
+      id: created.id,
+      transactionId: created.transactionId,
       initialStockNote: openingEnabled ? `Создан приход на ${openingQty} ${selectedOpeningUnitName}` : '',
     });
   }
@@ -89,7 +91,7 @@ export function ItemFormModal({ open, categories, expenseArticles, sections, uni
         <h2 className="text-xl font-semibold">Новая позиция</h2>
         <div className="grid gap-3 md:grid-cols-3">
           <Input label="Название" data-testid="item-name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-          <Select label="Раздел" data-testid="item-category" value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
+          <Select label="Категория" data-testid="item-category" value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}>{categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
           <Select label="Статья затрат" data-testid="item-expense-article" value={form.defaultExpenseArticleId} onChange={(e) => setForm((p) => ({ ...p, defaultExpenseArticleId: e.target.value }))}>{expenseArticles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
           <Select label="Раздел" data-testid="item-section" value={form.defaultSectionId} onChange={(e) => setForm((p) => ({ ...p, defaultSectionId: e.target.value }))}>{sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
           <Select label="Базовая единица" data-testid="item-base-unit" value={form.baseUnitId} onChange={(e) => setForm((p) => ({ ...p, baseUnitId: e.target.value, defaultInputUnitId: e.target.value, reportUnitId: e.target.value }))}>{units.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>

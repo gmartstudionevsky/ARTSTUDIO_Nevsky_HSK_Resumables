@@ -8,6 +8,7 @@ import { ItemCards } from '@/components/catalog/ItemCards';
 import { ItemFormModal } from '@/components/catalog/ItemFormModal';
 import { ItemHeaderActions } from '@/components/catalog/ItemHeaderActions';
 import { ItemsTable } from '@/components/catalog/ItemsTable';
+import { buildCatalogListQuery } from '@/components/catalog/contracts';
 import { CatalogItem, RefOption } from '@/components/catalog/types';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Toast } from '@/components/ui/Toast';
@@ -20,10 +21,9 @@ export function CatalogPageClient({ categories, expenseArticles, sections, units
   const [items, setItems] = useState<CatalogItem[]>([]);
 
   const load = useCallback(async () => {
-    const params = new URLSearchParams({ ...filters, limit: '100', offset: '0' });
-    const response = await fetch(`/api/accounting-positions?${params.toString()}`, { cache: 'no-store' });
-    const payload = (await response.json()) as { items: CatalogItem[] };
-    if (response.ok) setItems(payload.items ?? []);
+    const response = await fetch(`/api/accounting-positions?${buildCatalogListQuery(filters)}`, { cache: 'no-store' });
+    const payload = (await response.json()) as { accountingPositions?: CatalogItem[] };
+    if (response.ok) setItems(payload.accountingPositions ?? []);
   }, [filters]);
 
   useEffect(() => {

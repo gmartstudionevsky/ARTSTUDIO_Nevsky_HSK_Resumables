@@ -56,6 +56,7 @@ test('catalog: create item with initial stock creates IN transaction and affects
   await page.getByTestId('item-initial-unit').selectOption(unitId);
 
   await page.getByTestId('item-save').click();
+  await expect(page.getByText('Не удалось создать позицию')).toHaveCount(0);
   await page.waitForURL(/\/catalog\/[0-9a-f-]+\?transactionId=[0-9a-f-]+/);
   await expect(page.getByRole('link', { name: 'Открыть историю прихода' })).toBeVisible();
 
