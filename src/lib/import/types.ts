@@ -84,6 +84,11 @@ export type NormalizedImportPayload = {
   summary: ImportSummary;
   errors: ImportIssue[];
   warnings: ImportIssue[];
+  markup: {
+    openingColumn: string | null;
+    directorySheet: string | null;
+    unitsSheet: string | null;
+  };
   rows: {
     directory: DirectoryRow[];
     units: UnitRow[];
@@ -93,7 +98,13 @@ export type NormalizedImportPayload = {
 
 export type CommitOptions = {
   createOpening?: boolean;
+  openingDate?: string;
   syncMode?: 'AUTO' | 'MANUAL';
   unresolvedBehavior?: 'CREATE' | 'SKIP';
-  decisions?: Array<{ rowNumber: number; action: ImportSyncAction; accountingPositionId?: string; itemId?: string }>;
+  decisions?: Array<{
+    rowNumber: number;
+    action: ImportSyncAction;
+    accountingPositionId?: string;
+    itemId?: string;
+  }>;
 };

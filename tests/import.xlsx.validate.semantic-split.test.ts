@@ -39,6 +39,8 @@ test('validateImportData: counts sections and expense articles independently', (
       },
     ],
     unitRows: [],
+    detectedOpeningColumn: 'остаток склада',
+    detectedSheetNames: { directory: 'Справочник', units: 'Единицы' },
   });
 
   assert.equal(payload.summary.sections, 2);

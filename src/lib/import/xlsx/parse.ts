@@ -5,16 +5,28 @@ import { DirectoryRow, ImportIssue, UnitRow } from '@/lib/import/types';
 const DIRECTORY_SHEET = 'Справочник';
 const UNITS_SHEET = 'Единицы';
 
-const REQUIRED_DIRECTORY_COLUMNS = ['Код позиции', 'Позиция учёта', 'Раздел', 'Ед. базовая', 'Ед. учёта (по умолчанию)', 'Ед. отчёта (по умолчанию)', 'Статья затрат'];
+const REQUIRED_DIRECTORY_COLUMNS = [
+  'Код позиции',
+  'Позиция учёта',
+  'Раздел',
+  'Ед. базовая',
+  'Ед. учёта (по умолчанию)',
+  'Ед. отчёта (по умолчанию)',
+  'Статья затрат',
+];
 
 const DIRECTORY_HEADER_ALIASES: Record<string, string[]> = {
   'Позиция учёта': ['Позиция учёта', 'Номенклатура'],
-  'Раздел': ['Раздел', 'Назначение'],
+  Раздел: ['Раздел', 'Назначение'],
   'Статья затрат': ['Статья затрат', 'Статья расходов'],
 };
 
+const OPENING_KEYWORDS = ['остат', 'склад', 'начал', 'старт', 'opening'];
+
 function normalizeHeader(value: unknown): string {
-  return String(value ?? '').trim().toLowerCase();
+  return String(value ?? '')
+    .trim()
+    .toLowerCase();
 }
 
 function parseBoolean(value: unknown): boolean | null {
@@ -23,7 +35,9 @@ function parseBoolean(value: unknown): boolean | null {
     if (value === 1) return true;
     if (value === 0) return false;
   }
-  const text = String(value ?? '').trim().toLowerCase();
+  const text = String(value ?? '')
+    .trim()
+    .toLowerCase();
   if (!text) return null;
   if (['да', 'true', '1', 'y', 'yes'].includes(text)) return true;
   if (['нет', 'false', '0', 'n', 'no'].includes(text)) return false;
@@ -64,10 +78,62 @@ function hasHeader(headers: Map<string, number>, name: string): boolean {
   return resolveHeaderName(name).some((candidate) => headers.has(normalizeHeader(candidate)));
 }
 
+function getDirectoryMatchScore(headers: Map<string, number>): number {
+  return REQUIRED_DIRECTORY_COLUMNS.reduce(
+    (sum, column) => (hasHeader(headers, column) ? sum + 1 : sum),
+    0,
+  );
+}
+
+function getUnitsMatchScore(headers: Map<string, number>): number {
+  const required = ['Код позиции', 'Ед. изм.', 'Коэффициент к базовой'];
+  return required.reduce(
+    (sum, column) => (headers.has(normalizeHeader(column)) ? sum + 1 : sum),
+    0,
+  );
+}
+
+function findBestSheet(
+  workbook: ExcelJS.Workbook,
+  targetName: string,
+  scoreFn: (headers: Map<string, number>) => number,
+): ExcelJS.Worksheet | undefined {
+  const named = workbook.getWorksheet(targetName);
+  if (named) return named;
+
+  let bestSheet: ExcelJS.Worksheet | undefined;
+  let bestScore = 0;
+
+  workbook.worksheets.forEach((sheet) => {
+    const headers = mapHeaders(sheet.getRow(1).values as ExcelJS.CellValue[]);
+    const score = scoreFn(headers);
+    if (score > bestScore) {
+      bestScore = score;
+      bestSheet = sheet;
+    }
+  });
+
+  return bestScore > 0 ? bestSheet : undefined;
+}
+
+function detectOpeningColumn(headers: Map<string, number>): string | null {
+  const headerNames = Array.from(headers.keys());
+  const exact = headerNames.find((name) => name.includes('остаток на 01.03.2026'));
+  if (exact) return exact;
+  return (
+    headerNames.find((name) => OPENING_KEYWORDS.some((keyword) => name.includes(keyword))) ?? null
+  );
+}
+
 export type ParsedImportResult = {
   directoryRows: DirectoryRow[];
   unitRows: UnitRow[];
   parseErrors: ImportIssue[];
+  detectedOpeningColumn: string | null;
+  detectedSheetNames: {
+    directory: string | null;
+    units: string | null;
+  };
 };
 
 export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedImportResult> {
@@ -75,22 +141,59 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
   await workbook.xlsx.load(buffer);
 
   const parseErrors: ImportIssue[] = [];
-  const directorySheet = workbook.getWorksheet(DIRECTORY_SHEET);
-  const unitsSheet = workbook.getWorksheet(UNITS_SHEET);
+  const directorySheet = findBestSheet(workbook, DIRECTORY_SHEET, getDirectoryMatchScore);
+  const unitsSheet = findBestSheet(workbook, UNITS_SHEET, getUnitsMatchScore);
 
-  if (!directorySheet) parseErrors.push({ sheet: DIRECTORY_SHEET, row: 1, column: '-', message: 'Не найден лист “Справочник”.' });
-  if (!unitsSheet) parseErrors.push({ sheet: UNITS_SHEET, row: 1, column: '-', message: 'Не найден лист “Единицы”.' });
+  if (!directorySheet)
+    parseErrors.push({
+      sheet: DIRECTORY_SHEET,
+      row: 1,
+      column: '-',
+      message: 'Не найден лист с колонками справочника (код, позиция, раздел, единицы).',
+    });
+  if (!unitsSheet)
+    parseErrors.push({
+      sheet: UNITS_SHEET,
+      row: 1,
+      column: '-',
+      message: 'Не найден лист с колонками единиц измерения.',
+    });
 
   if (!directorySheet || !unitsSheet) {
-    return { directoryRows: [], unitRows: [], parseErrors };
+    return {
+      directoryRows: [],
+      unitRows: [],
+      parseErrors,
+      detectedOpeningColumn: null,
+      detectedSheetNames: {
+        directory: directorySheet?.name ?? null,
+        units: unitsSheet?.name ?? null,
+      },
+    };
   }
 
   const directoryHeaders = mapHeaders(directorySheet.getRow(1).values as ExcelJS.CellValue[]);
 
   for (const col of REQUIRED_DIRECTORY_COLUMNS) {
     if (!hasHeader(directoryHeaders, col)) {
-      parseErrors.push({ sheet: DIRECTORY_SHEET, row: 1, column: col, message: 'Отсутствует обязательная колонка.' });
+      parseErrors.push({
+        sheet: directorySheet.name,
+        row: 1,
+        column: col,
+        message: 'Отсутствует обязательная колонка.',
+      });
     }
+  }
+
+  const openingColumn = detectOpeningColumn(directoryHeaders);
+  if (!openingColumn) {
+    parseErrors.push({
+      sheet: directorySheet.name,
+      row: 1,
+      column: 'Остаток/Склад',
+      message:
+        'Не найдена колонка стартового остатка (ищем по словам “остаток”, “склад”, “начальный”, “старт”).',
+    });
   }
 
   const directoryRows: DirectoryRow[] = [];
@@ -102,7 +205,9 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
     const activeRaw = getCell(row, directoryHeaders, 'Активно');
     const activeParsed = parseBoolean(activeRaw);
     const minQty = parseNumber(getCell(row, directoryHeaders, 'Мин. количество'));
-    const openingQty = parseNumber(getCell(row, directoryHeaders, 'Остаток на 01.03.2026')) ?? 0;
+    const openingQty = openingColumn
+      ? (parseNumber(row.getCell(directoryHeaders.get(openingColumn) as number).value) ?? 0)
+      : 0;
 
     directoryRows.push({
       rowNumber,
@@ -110,7 +215,9 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
       name: String(getCell(row, directoryHeaders, 'Позиция учёта') ?? '').trim(),
       sectionCode: String(getCell(row, directoryHeaders, 'Раздел') ?? '').trim(),
       baseUnit: String(getCell(row, directoryHeaders, 'Ед. базовая') ?? '').trim(),
-      defaultInputUnit: String(getCell(row, directoryHeaders, 'Ед. учёта (по умолчанию)') ?? '').trim(),
+      defaultInputUnit: String(
+        getCell(row, directoryHeaders, 'Ед. учёта (по умолчанию)') ?? '',
+      ).trim(),
       reportUnit: String(getCell(row, directoryHeaders, 'Ед. отчёта (по умолчанию)') ?? '').trim(),
       minQtyBase: minQty,
       openingQty,
@@ -137,9 +244,19 @@ export async function parseImportWorkbook(buffer: ArrayBuffer): Promise<ParsedIm
       factorToBase: parseNumber(getCell(row, unitHeaders, 'Коэффициент к базовой')) ?? Number.NaN,
       isAllowed: parseBoolean(getCell(row, unitHeaders, 'Доступно')) ?? true,
       isDefaultInput: parseBoolean(getCell(row, unitHeaders, 'По умолчанию (для ввода)')) ?? false,
-      isDefaultReport: parseBoolean(getCell(row, unitHeaders, 'По умолчанию (для отчёта)')) ?? false,
+      isDefaultReport:
+        parseBoolean(getCell(row, unitHeaders, 'По умолчанию (для отчёта)')) ?? false,
     });
   }
 
-  return { directoryRows, unitRows, parseErrors };
+  return {
+    directoryRows,
+    unitRows,
+    parseErrors,
+    detectedOpeningColumn: openingColumn,
+    detectedSheetNames: {
+      directory: directorySheet.name,
+      units: unitsSheet.name,
+    },
+  };
 }

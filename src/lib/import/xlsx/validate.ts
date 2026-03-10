@@ -3,12 +3,21 @@ import { AccountingPosition } from '@prisma/client';
 import { ImportSyncPlanRow, NormalizedImportPayload, ImportIssue } from '@/lib/import/types';
 import { ParsedImportResult } from '@/lib/import/xlsx/parse';
 
-function pushError(list: ImportIssue[], sheet: string, row: number, column: string, message: string): void {
+function pushError(
+  list: ImportIssue[],
+  sheet: string,
+  row: number,
+  column: string,
+  message: string,
+): void {
   list.push({ sheet, row, column, message });
 }
 
 function normalize(value: string | null | undefined): string {
-  return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
 }
 
 function parseSynonyms(value: string | null | undefined): string[] {
@@ -19,7 +28,14 @@ function parseSynonyms(value: string | null | undefined): string[] {
     .filter(Boolean);
 }
 
-function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<AccountingPosition, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & { category: { name: string } }>): ImportSyncPlanRow[] {
+function pickSyncRows(
+  parsed: ParsedImportResult,
+  existingItems: Array<
+    Pick<AccountingPosition, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & {
+      category: { name: string };
+    }
+  >,
+): ImportSyncPlanRow[] {
   const rows: ImportSyncPlanRow[] = [];
 
   for (const row of parsed.directoryRows) {
@@ -105,7 +121,11 @@ function pickSyncRows(parsed: ParsedImportResult, existingItems: Array<Pick<Acco
 
 export function validateImportData(
   parsed: ParsedImportResult,
-  existingItems: Array<Pick<AccountingPosition, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & { category: { name: string } }> = []
+  existingItems: Array<
+    Pick<AccountingPosition, 'id' | 'code' | 'name' | 'synonyms' | 'categoryId'> & {
+      category: { name: string };
+    }
+  > = [],
 ): NormalizedImportPayload {
   const errors: ImportIssue[] = [...parsed.parseErrors];
   const warnings: ImportIssue[] = [];
@@ -138,10 +158,16 @@ export function validateImportData(
       pushError(errors, 'Справочник', row.rowNumber, 'Мин. количество', 'Некорректное число.');
     }
     if (!Number.isFinite(row.openingQty)) {
-      pushError(errors, 'Справочник', row.rowNumber, 'Остаток на 01.03.2026', 'Некорректное число.');
+      pushError(errors, 'Справочник', row.rowNumber, 'Остаток/Склад', 'Некорректное число.');
     }
     if (row.openingQty < 0) {
-      pushError(errors, 'Справочник', row.rowNumber, 'Остаток на 01.03.2026', 'Отрицательные остатки запрещены.');
+      pushError(
+        errors,
+        'Справочник',
+        row.rowNumber,
+        'Остаток/Склад',
+        'Отрицательные остатки запрещены.',
+      );
     }
   }
 
@@ -155,10 +181,22 @@ export function validateImportData(
       pushError(errors, 'Единицы', row.rowNumber, 'Ед. изм.', 'Поле обязательно.');
     }
     if (!Number.isFinite(row.factorToBase) || row.factorToBase <= 0) {
-      pushError(errors, 'Единицы', row.rowNumber, 'Коэффициент к базовой', 'Коэффициент должен быть > 0.');
+      pushError(
+        errors,
+        'Единицы',
+        row.rowNumber,
+        'Коэффициент к базовой',
+        'Коэффициент должен быть > 0.',
+      );
     }
     if (!row.isAllowed && (row.isDefaultInput || row.isDefaultReport)) {
-      pushError(errors, 'Единицы', row.rowNumber, 'Доступно', 'Недоступная единица не может быть по умолчанию.');
+      pushError(
+        errors,
+        'Единицы',
+        row.rowNumber,
+        'Доступно',
+        'Недоступная единица не может быть по умолчанию.',
+      );
     }
   }
 
@@ -175,7 +213,9 @@ export function validateImportData(
   }
 
   const sectionSet = new Set(parsed.directoryRows.map((row) => row.sectionCode).filter(Boolean));
-  const expenseArticleSet = new Set(parsed.directoryRows.map((row) => row.expenseArticleCode).filter(Boolean));
+  const expenseArticleSet = new Set(
+    parsed.directoryRows.map((row) => row.expenseArticleCode).filter(Boolean),
+  );
   const unitSet = new Set<string>();
 
   for (const row of parsed.directoryRows) {
@@ -191,6 +231,11 @@ export function validateImportData(
   const syncRows = pickSyncRows(parsed, existingItems);
 
   return {
+    markup: {
+      openingColumn: parsed.detectedOpeningColumn,
+      directorySheet: parsed.detectedSheetNames.directory,
+      unitsSheet: parsed.detectedSheetNames.units,
+    },
     summary: {
       accountingPositions: parsed.directoryRows.length,
       items: parsed.directoryRows.length,

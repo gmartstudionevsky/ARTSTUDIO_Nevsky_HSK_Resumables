@@ -15,7 +15,13 @@ test('previewFromWorkbook: creates draft with summary/sync/outcome contract', as
         },
       },
     } as any,
-    parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [] }),
+    parseImportWorkbook: async () => ({
+      directoryRows: [],
+      unitRows: [],
+      parseErrors: [],
+      detectedOpeningColumn: 'остаток склада',
+      detectedSheetNames: { directory: 'Справочник', units: 'Единицы' },
+    }),
     validateImportData: () => ({
       summary: {
         accountingPositions: 1,
@@ -35,13 +41,22 @@ test('previewFromWorkbook: creates draft with summary/sync/outcome contract', as
       },
       errors: [],
       warnings: [],
+      markup: {
+        openingColumn: 'остаток склада',
+        directorySheet: 'Справочник',
+        unitsSheet: 'Единицы',
+      },
       rows: { directory: [], units: [] },
       syncPlan: { mode: 'AUTO', rows: [] },
     }),
     generateNextItemCode: async () => 'IT-001',
   });
 
-  const result = await useCase.previewFromWorkbook({ userId: 'u-1', filename: 'import.xlsx', buffer: new ArrayBuffer(0) });
+  const result = await useCase.previewFromWorkbook({
+    userId: 'u-1',
+    filename: 'import.xlsx',
+    buffer: new ArrayBuffer(0),
+  });
 
   assert.equal(result.jobId, 'job-1');
   assert.equal(result.summary.openingLines, 1);
@@ -73,13 +88,24 @@ test('apply: blocks commit when preview has blocking errors', async () => {
             },
             errors: [{ sheet: 'Справочник', row: 2, column: 'Код позиции', message: 'Ошибка' }],
             warnings: [],
+            markup: {
+              openingColumn: 'остаток склада',
+              directorySheet: 'Справочник',
+              unitsSheet: 'Единицы',
+            },
             rows: { directory: [], units: [] },
             syncPlan: { mode: 'AUTO', rows: [] },
           },
         }),
       },
     } as any,
-    parseImportWorkbook: async () => ({ directoryRows: [], unitRows: [], parseErrors: [] }),
+    parseImportWorkbook: async () => ({
+      directoryRows: [],
+      unitRows: [],
+      parseErrors: [],
+      detectedOpeningColumn: 'остаток склада',
+      detectedSheetNames: { directory: 'Справочник', units: 'Единицы' },
+    }),
     validateImportData: () => {
       throw new Error('not used');
     },
