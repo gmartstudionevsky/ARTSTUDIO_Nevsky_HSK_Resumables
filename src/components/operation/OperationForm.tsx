@@ -340,7 +340,7 @@ export function OperationForm(): JSX.Element {
     <section className="space-y-4" data-testid="movements-hub-page">
       <h1 className="text-2xl font-semibold">Движения</h1>
 
-      <Card className="sticky top-4 z-20 border-accent/20 shadow-[0_16px_32px_rgba(17,24,39,0.08)] backdrop-blur">
+      <Card className="sticky top-4 z-20 border-accent/20 shadow-[0_16px_32px_rgba(17,24,39,0.08)] backdrop-blur" data-testid="movements-sticky-rail">
         <CardContent className="space-y-4 p-4">
           <Tabs value={type} onChange={(value) => setType(value)} items={[{ value: 'IN', label: 'Приход' }, { value: 'OUT', label: 'Расход' }, { value: 'ADJUST', label: 'Коррекция' }]} getItemTestId={(item) => (item.value === 'IN' ? 'op-tab-in' : item.value === 'OUT' ? 'op-tab-out' : 'op-tab-adjust')} />
 
@@ -414,7 +414,7 @@ export function OperationForm(): JSX.Element {
               const secondLayerAvailable = hasSecondLayerPayload(item);
 
               return (
-                <article key={item.id} className="rounded-xl border border-border bg-bg p-3" data-testid={`movements-item-${item.id}`}>
+                <article key={item.id} className="scroll-mt-56 rounded-xl border border-border bg-bg p-3" data-testid={`movements-item-${item.id}`}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium">{item.code} — {item.name}</p>
@@ -469,6 +469,7 @@ export function OperationForm(): JSX.Element {
                     <Button
                       size="sm"
                       variant="secondary"
+                      className="scroll-mt-56"
                       onClick={() => {
                         void ensureItemRowReady(item).then(() => submitParticipatingRows(item.id));
                       }}
