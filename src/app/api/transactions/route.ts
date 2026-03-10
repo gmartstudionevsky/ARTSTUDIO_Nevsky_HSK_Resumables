@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createAccountingEventWriteService } from '@/lib/application/accounting-event';
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 import { getHistoryProjection, registerProjectionUpdate } from '@/lib/read-models';
@@ -67,7 +68,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Некорректные параметры запроса' }, { status: 400 });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error);
   }
 }
 
@@ -164,6 +165,6 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Некорректные данные операции' }, { status: 400 });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error);
   }
 }

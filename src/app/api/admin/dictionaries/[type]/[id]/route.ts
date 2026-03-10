@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { ZodError } from 'zod';
 
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
 import { parseDictionaryType, updateDictionary } from '@/lib/admin/dictionaries';
 
@@ -12,16 +13,15 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ type: string; id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function PATCH(request: Request, { params }: { params: { type: string; id: string } }): Promise<NextResponse> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(routeParams.type);
+    const type = parseDictionaryType(params.type);
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
-    const item = await updateDictionary(type, routeParams.id, body);
+    const item = await updateDictionary(type, params.id, body);
     return NextResponse.json({ item });
   } catch (error) {
     if (error instanceof ZodError) {
@@ -33,6 +33,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ ty
     if (error instanceof Error && error.message === 'Неизвестный тип справочника') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error, 'Ошибка справочника');
   }
 }

@@ -84,7 +84,7 @@ export function ItemDetailsClient(): JSX.Element {
 
       <div className="grid gap-3 md:grid-cols-2">
         <Input label="Название" value={itemData.item.name} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, name: e.target.value } } : prev)} />
-        <Select label="Раздел" value={itemData.item.categoryId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, categoryId: e.target.value } } : prev)}>{itemData.refs.categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
+        <Select label="Категория" value={itemData.item.categoryId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, categoryId: e.target.value } } : prev)}>{itemData.refs.categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</Select>
         <Select label="Статья затрат" value={itemData.item.defaultExpenseArticleId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, defaultExpenseArticleId: e.target.value } } : prev)}>{itemData.refs.expenseArticles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
         <Select label="Раздел" value={itemData.item.defaultSectionId} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, defaultSectionId: e.target.value } } : prev)}>{itemData.refs.sections.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</Select>
         <Input label="Мин. остаток" type="number" value={itemData.item.minQtyBase ?? ''} onChange={(e) => setData((prev) => prev ? { ...prev, item: { ...prev.item, minQtyBase: e.target.value } } : prev)} />

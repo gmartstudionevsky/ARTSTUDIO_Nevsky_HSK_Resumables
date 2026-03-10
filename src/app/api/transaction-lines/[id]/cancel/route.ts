@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { prisma } from '@/lib/db/prisma';
 import { isDateLocked } from '@/lib/period-locks/service';
 import { getSettings } from '@/lib/settings/service';
@@ -12,8 +13,7 @@ const schema = z.object({
   cancelNote: z.string().trim().nullable().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -22,7 +22,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const data = schema.parse(body);
     const settings = await getSettings(prisma);
     if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
-    const line = await prisma.transactionLine.findUnique({ where: { id: routeParams.id }, select: { id: true, status: true, transactionId: true, transaction: { select: { occurredAt: true } } } });
+    const line = await prisma.transactionLine.findUnique({ where: { id: params.id }, select: { id: true, status: true, transactionId: true, transaction: { select: { occurredAt: true } } } });
     if (!line) return NextResponse.json({ error: 'Строка не найдена' }, { status: 404 });
     if (line.status === RecordStatus.CANCELLED) return NextResponse.json({ ok: true });
     const locked = await isDateLocked(line.transaction.occurredAt, prisma);
@@ -33,7 +33,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     await prisma.$transaction(async (tx) => {
       await tx.transactionLine.update({
-        where: { id: routeParams.id },
+        where: { id: params.id },
         data: {
           status: RecordStatus.CANCELLED,
           cancelledAt: now,
@@ -53,7 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           actorId: user.id,
           action: 'CANCEL_TX_LINE',
           entity: 'TransactionLine',
-          entityId: routeParams.id,
+          entityId: params.id,
           payload: { reasonId: data.reasonId ?? null },
         },
       });
@@ -62,6 +62,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error);
   }
 }

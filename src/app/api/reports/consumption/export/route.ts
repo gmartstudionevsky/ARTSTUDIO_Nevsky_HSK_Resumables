@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs';
 import { NextResponse } from 'next/server';
 import { z, ZodError } from 'zod';
 
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { requireManagerOrAdminApi } from '@/lib/auth/guards';
 import { ConsumptionReportResponse } from '@/lib/reports/types';
 
@@ -118,9 +119,6 @@ export async function GET(request: Request): Promise<NextResponse> {
   } catch (error) {
     if (error instanceof ZodError)
       return NextResponse.json({ error: 'Некорректные параметры запроса' }, { status: 400 });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Ошибка сервера' },
-      { status: 500 },
-    );
+    return safeServerErrorResponse(error, 'Ошибка формирования выгрузки');
   }
 }

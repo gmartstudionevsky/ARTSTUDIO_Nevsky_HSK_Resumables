@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createImportSyncUseCase } from '@/lib/application/import';
+import { sanitizeApiErrorMessage } from '@/lib/api/errors';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
 
 const importSyncUseCase = createImportSyncUseCase();
@@ -38,7 +39,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Некорректные параметры запроса' }, { status: 400 });
     }
-    const message = error instanceof Error ? error.message : 'Ошибка импорта';
+    const message = sanitizeApiErrorMessage(error, 'Ошибка импорта');
     const status = message.includes('не найден') || message.includes('содержит ошибки') || message.includes('уже импортировано') ? 400 : 500;
     return NextResponse.json({ error: message }, { status });
   }

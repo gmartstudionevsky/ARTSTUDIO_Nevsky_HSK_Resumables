@@ -53,7 +53,7 @@ export function HistoryFilters({ value, onChange, onPreset, items, expenseArticl
             <option value="">Все</option>
             {expenseArticles.map((item) => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}
           </Select>
-          <Select label="Раздел" value={value.categoryId} onChange={(event) => onChange({ categoryId: event.target.value })}>
+          <Select label="Категория" value={value.categoryId} onChange={(event) => onChange({ categoryId: event.target.value })}>
             <option value="">Все</option>
             {categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </Select>

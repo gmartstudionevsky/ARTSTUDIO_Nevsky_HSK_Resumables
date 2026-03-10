@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { ZodError, z } from 'zod';
 
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
 import { createDictionary, listDictionary, parseDictionaryType } from '@/lib/admin/dictionaries';
 
@@ -19,18 +20,12 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return 'Ошибка сервера';
-}
-
-export async function GET(request: Request, { params }: { params: Promise<{ type: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function GET(request: Request, { params }: { params: { type: string } }): Promise<NextResponse> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(routeParams.type);
+    const type = parseDictionaryType(params.type);
     const query = listQuerySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
     const response = await listDictionary(type, query);
     return NextResponse.json(response);
@@ -41,17 +36,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ type
     if (error instanceof Error && error.message === 'Неизвестный тип справочника') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return safeServerErrorResponse(error, 'Ошибка справочника');
   }
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ type: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(request: Request, { params }: { params: { type: string } }): Promise<NextResponse> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(routeParams.type);
+    const type = parseDictionaryType(params.type);
     const body = await request.json().catch(() => null);
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const item = await createDictionary(type, body);
@@ -66,6 +60,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ typ
     if (error instanceof Error && error.message === 'Неизвестный тип справочника') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
+    return safeServerErrorResponse(error, 'Ошибка справочника');
   }
 }

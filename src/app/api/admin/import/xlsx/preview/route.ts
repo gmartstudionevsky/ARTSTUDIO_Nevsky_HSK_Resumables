@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 
 import { createImportSyncUseCase } from '@/lib/application/import';
+import { sanitizeApiErrorMessage } from '@/lib/api/errors';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
 
 const importSyncUseCase = createImportSyncUseCase();
@@ -17,18 +18,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   const admin = await requireAdmin();
   if (admin instanceof NextResponse) return admin;
 
-  const formData = await request.formData().catch(() => null);
-  const file = formData?.get('file');
-  if (!(file instanceof File)) {
-    return NextResponse.json({ error: 'Файл не передан' }, { status: 400 });
+  try {
+    const formData = await request.formData().catch(() => null);
+    const file = formData?.get('file');
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: 'Файл не передан' }, { status: 400 });
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const preview = await importSyncUseCase.previewFromWorkbook({
+      userId: admin.id,
+      filename: file.name || 'import.xlsx',
+      buffer: arrayBuffer,
+    });
+
+    return NextResponse.json(preview);
+  } catch (error) {
+    return NextResponse.json({ error: sanitizeApiErrorMessage(error, 'Ошибка предпросмотра импорта') }, { status: 500 });
   }
-
-  const arrayBuffer = await file.arrayBuffer();
-  const preview = await importSyncUseCase.previewFromWorkbook({
-    userId: admin.id,
-    filename: file.name || 'import.xlsx',
-    buffer: arrayBuffer,
-  });
-
-  return NextResponse.json(preview);
 }

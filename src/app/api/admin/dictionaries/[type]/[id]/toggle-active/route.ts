@@ -2,6 +2,7 @@ import { Role } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
 import { parseDictionaryType, toggleActive } from '@/lib/admin/dictionaries';
 
@@ -14,15 +15,14 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ type: string; id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(request: Request, { params }: { params: { type: string; id: string } }): Promise<NextResponse> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
-    const type = parseDictionaryType(routeParams.type);
+    const type = parseDictionaryType(params.type);
     const body = bodySchema.parse(await request.json().catch(() => null));
-    const item = await toggleActive(type, routeParams.id, body.isActive);
+    const item = await toggleActive(type, params.id, body.isActive);
     return NextResponse.json({ item });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -31,6 +31,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ typ
     if (error instanceof Error && error.message === 'Неизвестный тип справочника') {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error, 'Ошибка справочника');
   }
 }

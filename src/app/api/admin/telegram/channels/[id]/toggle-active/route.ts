@@ -11,14 +11,13 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(_request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  const item = await prisma.telegramChannel.findUnique({ where: { id: routeParams.id } });
+  const item = await prisma.telegramChannel.findUnique({ where: { id: params.id } });
   if (!item) return NextResponse.json({ error: 'Канал не найден' }, { status: 404 });
 
-  const updated = await prisma.telegramChannel.update({ where: { id: routeParams.id }, data: { isActive: !item.isActive } });
+  const updated = await prisma.telegramChannel.update({ where: { id: params.id }, data: { isActive: !item.isActive } });
   return NextResponse.json({ item: updated });
 }

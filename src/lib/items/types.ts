@@ -1,6 +1,22 @@
 import { StockItemSnapshot } from '@/lib/stock/types';
 
 export interface ItemDetailsResponse {
+  accountingPosition?: {
+    id: string;
+    code: string;
+    name: string;
+    isActive: boolean;
+    category: { id: string; name: string };
+    defaultExpenseArticle: { id: string; code: string; name: string };
+    defaultSection: { id: string; code: string; name: string };
+    defaultPurpose?: { id: string; code: string; name: string };
+    baseUnit: { id: string; name: string };
+    defaultInputUnit: { id: string; name: string };
+    reportUnit: { id: string; name: string };
+    minQtyBase: string | null;
+    synonyms: string | null;
+    note: string | null;
+  };
   item: {
     id: string;
     code: string;
@@ -8,7 +24,8 @@ export interface ItemDetailsResponse {
     isActive: boolean;
     category: { id: string; name: string };
     defaultExpenseArticle: { id: string; code: string; name: string };
-    defaultPurpose: { id: string; code: string; name: string };
+    defaultSection: { id: string; code: string; name: string };
+    defaultPurpose?: { id: string; code: string; name: string };
     baseUnit: { id: string; name: string };
     defaultInputUnit: { id: string; name: string };
     reportUnit: { id: string; name: string };
@@ -26,12 +43,14 @@ export interface ItemMovement {
   unit: { id: string; name: string };
   qtyBase: string;
   expenseArticle: { id: string; code: string; name: string };
-  purpose: { id: string; code: string; name: string };
+  section: { id: string; code: string; name: string };
+  purpose?: { id: string; code: string; name: string };
   status: 'ACTIVE' | 'CANCELLED';
 }
 
 export interface ItemMovementsResponse {
   items: ItemMovement[];
+  movements?: ItemMovement[];
 }
 
 export interface ItemPageData {
@@ -39,7 +58,6 @@ export interface ItemPageData {
   stock: StockItemSnapshot;
   movements: ItemMovement[];
 }
-
 
 export interface CreateItemResponse {
   item: { id: string };

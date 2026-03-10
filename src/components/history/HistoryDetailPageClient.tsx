@@ -60,7 +60,7 @@ export function HistoryDetailPageClient(): JSX.Element {
   }, [id]);
 
   useEffect(() => {
-    void Promise.all([fetchLookup('reasons'), fetchLookup('expense-articles'), fetchLookup('purposes')]).then(([reasonRows, articleRows, sectionRows]) => {
+    void Promise.all([fetchLookup('reasons'), fetchLookup('expense-articles'), fetchLookup('sections')]).then(([reasonRows, articleRows, sectionRows]) => {
       setReasons(reasonRows);
       setArticles(articleRows);
       setSections(sectionRows);

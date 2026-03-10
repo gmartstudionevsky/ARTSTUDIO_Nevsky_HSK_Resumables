@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { ZodError, z } from 'zod';
 
+import { COMPAT_ROUTE_HEADERS } from '@/app/api/accounting-positions/shared';
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 
@@ -9,8 +11,11 @@ const querySchema = z.object({
   includeCancelled: z.enum(['true', 'false']).optional().default('true'),
 });
 
-export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+function responseHeaders(request: Request): HeadersInit | undefined {
+  return new URL(request.url).pathname.includes('/api/items/') ? COMPAT_ROUTE_HEADERS : undefined;
+}
+
+export async function GET(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
@@ -18,7 +23,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const query = querySchema.parse(Object.fromEntries(new URL(request.url).searchParams.entries()));
     const lines = await prisma.transactionLine.findMany({
       where: {
-        itemId: routeParams.id,
+        itemId: params.id,
         ...(query.includeCancelled === 'false' ? { status: 'ACTIVE' } : {}),
       },
       orderBy: [
@@ -38,20 +43,22 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       },
     });
 
-    return NextResponse.json({
-      items: lines.map((line) => ({
-        lineId: line.id,
-        occurredAt: line.transaction.occurredAt.toISOString(),
-        tx: line.transaction,
-        qtyInput: line.qtyInput.toString(),
-        unit: line.unit,
-        qtyBase: line.qtyBase.toString(),
-        expenseArticle: line.expenseArticle,
-        purpose: line.purpose,
-        status: line.status,
-      })),
-    });
-  } catch {
-    return NextResponse.json({ error: 'Некорректные параметры' }, { status: 400 });
+    const movements = lines.map((line) => ({
+      lineId: line.id,
+      occurredAt: line.transaction.occurredAt.toISOString(),
+      tx: line.transaction,
+      qtyInput: line.qtyInput.toString(),
+      unit: line.unit,
+      qtyBase: line.qtyBase.toString(),
+      expenseArticle: line.expenseArticle,
+      section: line.purpose,
+      purpose: line.purpose,
+      status: line.status,
+    }));
+
+    return NextResponse.json({ items: movements, movements }, { headers: responseHeaders(request) });
+  } catch (error) {
+    if (error instanceof ZodError) return NextResponse.json({ error: 'Некорректные параметры' }, { status: 400, headers: responseHeaders(request) });
+    return safeServerErrorResponse(error, 'Ошибка загрузки движений');
   }
 }
