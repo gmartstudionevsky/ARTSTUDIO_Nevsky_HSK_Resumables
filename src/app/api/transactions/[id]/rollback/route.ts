@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { createRecoveryService } from '@/lib/application/recovery';
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
+import { safeServerErrorResponse } from '@/lib/api/errors';
 
 const recoveryService = createRecoveryService();
 
@@ -11,8 +12,7 @@ const schema = z.object({
   note: z.string().trim().nullable().optional(),
 });
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const data = schema.parse(body);
 
     const result = await recoveryService.rollbackMovement({
-      transactionId: routeParams.id,
+      transactionId: params.id,
       reasonId: data.reasonId ?? null,
       note: data.note ?? null,
       context: { actorId: user.id, actorRole: user.role, entryPoint: 'api' },
@@ -38,6 +38,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Некорректные данные rollback' }, { status: 400 });
     }
 
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка rollback' }, { status: 500 });
+    return safeServerErrorResponse(error, 'Ошибка rollback');
   }
 }

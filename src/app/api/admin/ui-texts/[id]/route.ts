@@ -22,12 +22,11 @@ async function requireAdmin(): Promise<NextResponse | null> {
   return null;
 }
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function PATCH(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  const parsedParams = paramsSchema.safeParse(routeParams);
+  const parsedParams = paramsSchema.safeParse(params);
   if (!parsedParams.success) return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
 
   const body = await request.json().catch(() => null);

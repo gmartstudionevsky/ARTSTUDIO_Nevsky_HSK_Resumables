@@ -14,16 +14,20 @@ export function ItemMovementsList({ items }: { items: ItemMovement[] }): JSX.Ele
 
   return (
     <div className="space-y-2">
-      {items.map((item) => (
-        <div key={item.lineId} className="rounded-md border border-border p-3 text-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-medium">{new Date(item.occurredAt).toLocaleString('ru-RU')}</p>
-            <Badge variant={item.status === 'CANCELLED' ? 'neutral' : 'ok'}>{item.status === 'CANCELLED' ? 'Отменено' : 'Активно'}</Badge>
+      {items.map((item) => {
+        const section = item.section ?? item.purpose;
+
+        return (
+          <div key={item.lineId} className="rounded-md border border-border p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-medium">{new Date(item.occurredAt).toLocaleString('ru-RU')}</p>
+              <Badge variant={item.status === 'CANCELLED' ? 'neutral' : 'ok'}>{item.status === 'CANCELLED' ? 'Отменено' : 'Активно'}</Badge>
+            </div>
+            <p>{mapMovementType(item.tx.type)} · {item.qtyInput} {item.unit.name}</p>
+            <p className="text-muted">{item.expenseArticle.code} — {item.expenseArticle.name}{section ? ` · ${section.code} — ${section.name}` : ''}</p>
           </div>
-          <p>{mapMovementType(item.tx.type)} · {item.qtyInput} {item.unit.name}</p>
-          <p className="text-muted">{item.expenseArticle.code} — {item.expenseArticle.name} · {item.purpose.code} — {item.purpose.name}</p>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

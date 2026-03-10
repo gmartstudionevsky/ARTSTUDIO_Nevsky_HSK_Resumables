@@ -25,7 +25,7 @@ export function StockFilters({ value, categories, expenseArticles, onChange }: S
   return (
     <div className="grid gap-3 rounded-lg border border-border bg-surface p-4 md:grid-cols-2 xl:grid-cols-3">
       <Input label="Поиск" placeholder="Название или синоним" data-testid="stock-search" value={value.q} onChange={(event) => onChange({ ...value, q: event.target.value })} />
-      <Select label="Раздел" value={value.categoryId} onChange={(event) => onChange({ ...value, categoryId: event.target.value })}>
+      <Select label="Категория" value={value.categoryId} onChange={(event) => onChange({ ...value, categoryId: event.target.value })}>
         <option value="">Все</option>
         {categories.map((item) => (
           <option key={item.id} value={item.id}>{item.name}</option>

@@ -82,7 +82,7 @@ export function OperationForm(): JSX.Element {
   }), [headerSectionId, intakeMode, type, workspaceSectionId]);
 
   const loadLookups = useCallback(async () => {
-    const [articleRows, sectionRows, reasonRows] = await Promise.all([fetchLookup('expense-articles'), fetchLookup('purposes'), fetchLookup('reasons')]);
+    const [articleRows, sectionRows, reasonRows] = await Promise.all([fetchLookup('expense-articles'), fetchLookup('sections'), fetchLookup('reasons')]);
     setArticles(articleRows);
     setSections(sectionRows);
     setReasons(reasonRows);

@@ -3,11 +3,12 @@ import { httpGet, httpPost, parseResponse } from '@/lib/http/client';
 
 const lookupCache = new Map<string, LookupItem[]>();
 
-export async function fetchLookup(type: 'expense-articles' | 'purposes' | 'reasons'): Promise<LookupItem[]> {
-  const cached = lookupCache.get(type);
+export async function fetchLookup(type: 'expense-articles' | 'sections' | 'purposes' | 'reasons'): Promise<LookupItem[]> {
+  const routeType = type === 'purposes' ? 'sections' : type;
+  const cached = lookupCache.get(routeType);
   if (cached) return cached;
-  const payload = await httpGet<{ items: LookupItem[] }>(`/api/lookup/${type}?active=true`);
-  lookupCache.set(type, payload.items);
+  const payload = await httpGet<{ items: LookupItem[] }>(`/api/lookup/${routeType}?active=true`);
+  lookupCache.set(routeType, payload.items);
   return payload.items;
 }
 
@@ -39,18 +40,7 @@ export async function fetchItemUnits(accountingPositionId: string): Promise<Unit
 }
 
 export async function createTransaction(payload: { type: OperationType; occurredAt?: string | null; note?: string; intakeMode?: IntakeMode; headerSectionId?: string; lines: Array<{ accountingPositionId: string; qtyInput: string | number; unitId: string; expenseArticleId?: string; sectionId?: string; comment?: string; sectionDistributions?: Array<{ sectionId: string; qtyInput: string | number }> }> }): Promise<TxResult> {
-  return httpPost<TxResult>('/api/transactions', {
-    ...payload,
-    lines: payload.lines.map((line) => ({
-      accountingPositionId: line.accountingPositionId,
-      qtyInput: line.qtyInput,
-      unitId: line.unitId,
-      expenseArticleId: line.expenseArticleId,
-      sectionId: line.sectionId,
-      comment: line.comment,
-      sectionDistributions: line.sectionDistributions,
-    })),
-  });
+  return httpPost<TxResult>('/api/transactions', payload);
 }
 
 export async function rollbackMovement(id: string, payload: { reasonId?: string; note?: string }): Promise<{ ok: boolean; message: string }> {

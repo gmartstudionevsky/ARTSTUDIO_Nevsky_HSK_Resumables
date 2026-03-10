@@ -6,8 +6,7 @@ import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
 import { prisma } from '@/lib/db/prisma';
 import { patchInventoryLinesSchema } from '@/lib/inventory/validators';
 
-export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function PATCH(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
@@ -16,14 +15,14 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!body) return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     const data = patchInventoryLinesSchema.parse(body);
 
-    const session = await prisma.inventorySession.findUnique({ where: { id: routeParams.id } });
+    const session = await prisma.inventorySession.findUnique({ where: { id: params.id } });
     if (!session) return NextResponse.json({ error: 'Инвентаризация не найдена' }, { status: 404 });
     if (session.status !== InventoryStatus.DRAFT) return NextResponse.json({ error: 'Редактирование доступно только для черновика' }, { status: 409 });
 
     await prisma.$transaction(async (tx) => {
       for (const update of data.updates) {
         const line = await tx.inventoryLine.findUnique({ where: { id: update.lineId }, include: { item: { select: { id: true } } } });
-        if (!line || line.sessionId !== routeParams.id) throw new Error('LINE_NOT_FOUND');
+        if (!line || line.sessionId !== params.id) throw new Error('LINE_NOT_FOUND');
 
         const nextUnitId = update.unitId === undefined ? line.unitId : update.unitId;
         let factor = new Prisma.Decimal(1);

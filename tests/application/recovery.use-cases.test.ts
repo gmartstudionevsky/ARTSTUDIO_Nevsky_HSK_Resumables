@@ -67,7 +67,7 @@ function createFakeDeps(seed?: { transactions?: FakeTx[]; items?: FakeItem[]; li
         },
       },
       transactionLine: {},
-      accountingPosition: {
+      item: {
         findFirst: async () => {
           const sorted = [...items].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
           return sorted[0] ? { id: sorted[0].id } : null;

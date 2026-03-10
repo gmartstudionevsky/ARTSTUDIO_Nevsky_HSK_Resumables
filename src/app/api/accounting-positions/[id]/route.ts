@@ -1,1 +1,9 @@
-export { GET, PATCH } from '@/app/api/items/[id]/route';
+import { getAccountingPosition, updateAccountingPosition } from '@/app/api/accounting-positions/shared';
+
+export async function GET(request: Request, context: { params: { id: string } }) {
+  return getAccountingPosition(request, context);
+}
+
+export async function PATCH(request: Request, context: { params: { id: string } }) {
+  return updateAccountingPosition(request, context);
+}

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { prisma } from '@/lib/db/prisma';
 import { isDateLocked } from '@/lib/period-locks/service';
 import { getSettings } from '@/lib/settings/service';
@@ -23,8 +24,7 @@ function makeBatchId(): string {
   return `BAT-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}-${Math.floor(Math.random() * 9000 + 1000)}`;
 }
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const { user, error } = await requireSupervisorOrAboveApi();
   if (error || !user) return error ?? NextResponse.json({ error: 'Не авторизован' }, { status: 401 });
 
@@ -37,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (settings.requireReasonOnCancel && !data.reasonId) return NextResponse.json({ error: 'Укажите причину.' }, { status: 400 });
 
     const oldLine = await prisma.transactionLine.findUnique({
-      where: { id: routeParams.id },
+      where: { id: params.id },
       include: {
         transaction: true,
         item: { select: { id: true, defaultExpenseArticleId: true, defaultPurposeId: true } },
@@ -113,9 +113,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return { tx: newTx, line: newLine };
     });
 
-    return NextResponse.json({ transaction: { id: created.tx.id, batchId: created.tx.batchId, type: created.tx.type, occurredAt: created.tx.occurredAt }, line: { ...created.line, accountingPosition: created.line.item, section: created.line.purpose }, correctedFromLineId: oldLine.id });
+    return NextResponse.json({ transaction: { id: created.tx.id, batchId: created.tx.batchId, type: created.tx.type, occurredAt: created.tx.occurredAt }, line: { ...created.line, accountingPosition: created.line.item, section: created.line.purpose, item: created.line.item, purpose: created.line.purpose }, correctedFromLineId: oldLine.id });
   } catch (error) {
     if (error instanceof z.ZodError) return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 });
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error);
   }
 }

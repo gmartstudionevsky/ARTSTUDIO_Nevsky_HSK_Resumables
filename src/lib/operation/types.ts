@@ -1,6 +1,5 @@
 export type OperationType = 'IN' | 'OUT' | 'ADJUST';
-export type IntakeMode = 'SINGLE_SECTION' | 'DISTRIBUTE_SECTIONS' | 'SINGLE_PURPOSE' | 'DISTRIBUTE_PURPOSES';
-export type CanonicalIntakeMode = 'SINGLE_SECTION' | 'DISTRIBUTE_SECTIONS';
+export type IntakeMode = 'SINGLE_SECTION' | 'DISTRIBUTE_SECTIONS';
 
 export interface LookupItem {
   id: string;

@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 
 import { requireSupervisorOrAboveApi } from '@/lib/auth/guards';
+import { safeServerErrorResponse } from '@/lib/api/errors';
 import { prisma } from '@/lib/db/prisma';
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function GET(_request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const { error } = await requireSupervisorOrAboveApi();
   if (error) return error;
 
   try {
     const tx = await prisma.transaction.findUnique({
-      where: { id: routeParams.id },
+      where: { id: params.id },
       include: {
         createdBy: { select: { id: true, login: true } },
         cancelledBy: { select: { id: true, login: true } },
@@ -53,11 +53,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       },
       lines: lines.map((line) => ({
         id: line.id,
+        accountingPosition: line.item,
         item: line.item,
         qtyInput: line.qtyInput.toString(),
         unit: line.unit,
         qtyBase: line.qtyBase.toString(),
         expenseArticle: line.expenseArticle,
+        section: line.purpose,
         purpose: line.purpose,
         comment: line.comment,
         status: line.status,
@@ -70,6 +72,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       uiStatus,
     });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Ошибка сервера' }, { status: 500 });
+    return safeServerErrorResponse(error);
   }
 }

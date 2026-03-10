@@ -17,12 +17,11 @@ async function requireAdmin(): Promise<{ id: string } | NextResponse> {
   return { id: session.user.id };
 }
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }): Promise<NextResponse> {
-  const routeParams = await params;
+export async function POST(_request: Request, { params }: { params: { id: string } }): Promise<NextResponse> {
   const admin = await requireAdmin();
   if (admin instanceof NextResponse) return admin;
 
-  const parsedParams = paramsSchema.safeParse(routeParams);
+  const parsedParams = paramsSchema.safeParse(params);
   if (!parsedParams.success) return NextResponse.json({ error: 'Некорректный идентификатор пользователя' }, { status: 400 });
 
   try {

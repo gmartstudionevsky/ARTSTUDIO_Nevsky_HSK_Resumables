@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { createImportSyncUseCase } from '@/lib/application/import';
+import { sanitizeApiErrorMessage } from '@/lib/api/errors';
 import { getSessionFromRequestCookies } from '@/lib/auth/session';
 
 const importSyncUseCase = createImportSyncUseCase();
