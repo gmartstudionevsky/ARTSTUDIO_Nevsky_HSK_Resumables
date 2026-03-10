@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
 import { ItemUnitsEditor } from '@/components/catalog/ItemUnitsEditor';
+import { CatalogDetailsItem, extractCatalogDetailsItem } from '@/components/catalog/contracts';
 import { ItemUnitRow, RefOption } from '@/components/catalog/types';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -13,21 +14,7 @@ import { Select } from '@/components/ui/Select';
 import { Toast } from '@/components/ui/Toast';
 
 type ItemPayload = {
-  item: {
-    id: string;
-    code: string;
-    name: string;
-    isActive: boolean;
-    categoryId: string;
-    defaultExpenseArticleId: string;
-    defaultSectionId: string;
-    baseUnitId: string;
-    defaultInputUnitId: string;
-    reportUnitId: string;
-    minQtyBase: string | null;
-    synonyms: string | null;
-    note: string | null;
-  };
+  item: CatalogDetailsItem;
   refs: {
     categories: RefOption[];
     expenseArticles: RefOption[];
@@ -51,9 +38,11 @@ export function ItemDetailsClient(): JSX.Element {
         fetch(`/api/accounting-positions/${params.id}/units`, { cache: 'no-store' }),
       ]);
       if (!itemResponse.ok) return;
-      const itemPayload = (await itemResponse.json()) as ItemPayload;
+      const itemResponsePayload = (await itemResponse.json()) as { accountingPosition?: CatalogDetailsItem; item?: CatalogDetailsItem; refs: ItemPayload['refs'] };
       const unitsPayload = (await unitsResponse.json()) as { units: Array<{ unitId: string; factorToBase: string; isAllowed: boolean; isDefaultInput: boolean; isDefaultReport: boolean }> };
-      setData(itemPayload);
+      const item = extractCatalogDetailsItem(itemResponsePayload);
+      if (!item) return;
+      setData({ item, refs: itemResponsePayload.refs });
       setUnits(unitsPayload.units.map((row) => ({ ...row, factorToBase: Number(row.factorToBase) })));
     }
     void load();
