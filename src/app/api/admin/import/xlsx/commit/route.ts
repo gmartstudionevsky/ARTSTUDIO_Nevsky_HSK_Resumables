@@ -13,6 +13,7 @@ const schema = z.object({
   options: z.object({
     createOpening: z.boolean().optional(),
     openingEventMode: z.enum(['OPENING', 'IN']).optional(),
+    openingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     syncMode: z.enum(['AUTO', 'MANUAL']).optional(),
     unresolvedBehavior: z.enum(['CREATE', 'SKIP']).optional(),
     decisions: z.array(z.object({ rowNumber: z.number().int(), action: z.enum(['AUTO', 'CREATE', 'SKIP']), itemId: z.string().uuid().optional() })).optional(),

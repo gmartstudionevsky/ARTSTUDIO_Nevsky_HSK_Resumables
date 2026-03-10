@@ -39,6 +39,10 @@ test('validateImportData: counts sections and expense articles independently', (
       },
     ],
     unitRows: [],
+    markup: {
+      canonicalFields: [],
+      opening: { sourceHeader: 'Остаток на начало учёта', detectedDate: null, strategy: 'EXACT' },
+    },
   });
 
   assert.equal(payload.summary.sections, 2);

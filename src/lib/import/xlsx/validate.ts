@@ -137,11 +137,12 @@ export function validateImportData(
     if (row.minQtyBase !== null && !Number.isFinite(row.minQtyBase)) {
       pushError(errors, 'Справочник', row.rowNumber, 'Мин. количество', 'Некорректное число.');
     }
+    const openingColumn = parsed.markup.opening.sourceHeader ?? 'Остаток на начало учёта';
     if (!Number.isFinite(row.openingQty)) {
-      pushError(errors, 'Справочник', row.rowNumber, 'Остаток на 01.03.2026', 'Некорректное число.');
+      pushError(errors, 'Справочник', row.rowNumber, openingColumn, 'Некорректное число.');
     }
     if (row.openingQty < 0) {
-      pushError(errors, 'Справочник', row.rowNumber, 'Остаток на 01.03.2026', 'Отрицательные остатки запрещены.');
+      pushError(errors, 'Справочник', row.rowNumber, openingColumn, 'Отрицательные остатки запрещены.');
     }
   }
 
@@ -213,6 +214,7 @@ export function validateImportData(
       directory: parsed.directoryRows,
       units: parsed.unitRows,
     },
+    markup: parsed.markup,
     syncPlan: {
       mode: 'AUTO',
       rows: syncRows,

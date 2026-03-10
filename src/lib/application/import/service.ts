@@ -108,10 +108,15 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
         errors: payload.errors,
         warnings: payload.warnings,
         syncRows: payload.syncPlan.rows,
+        markup: payload.markup,
+        tablePreview: {
+          totalRows: payload.rows.directory.length,
+          sampleRows: payload.rows.directory.slice(0, 50),
+        },
         openingSemantics: {
           detectedOpeningRows: payload.summary.openingLines,
           defaultMode: 'OPENING',
-          assumption: 'Строки с количеством в колонке остатка трактуются как opening-init; режим можно переключить в apply options.',
+          assumption: 'Стартовые остатки трактуются как каноническая стартовая инвентаризация: фиксирующий факт OPENING без normal-flow прихода/расхода.',
         },
       };
     },
@@ -123,6 +128,9 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
     async apply(command: ImportApplyCommand): Promise<ImportApplyResult> {
       const createOpening = command.options?.createOpening ?? true;
       const openingEventMode = command.options?.openingEventMode ?? 'OPENING';
+      const openingDateRaw = command.options?.openingDate;
+      const openingDate = openingDateRaw ? new Date(`${openingDateRaw}T00:00:00.000Z`) : new Date('2026-03-01T00:00:00.000Z');
+      if (Number.isNaN(openingDate.getTime())) throw new Error('Некорректная дата начала учёта.');
       const payload = await loadDraftPayload(deps.db, command.jobId, command.userId);
       if (payload.errors.length > 0) throw new Error('Импорт содержит ошибки. Исправьте файл и повторите предпросмотр.');
 
@@ -382,8 +390,8 @@ export function createImportSyncUseCase(deps: ImportSyncDeps = {
             data: {
               batchId: openingBatchId(),
               type: openingEventMode === 'IN' ? MovementType.IN : MovementType.OPENING,
-              occurredAt: new Date('2026-03-01T00:00:00.000Z'),
-              note: `Открытие склада 01.03.2026 (Import #${command.jobId})`,
+              occurredAt: openingDate,
+              note: `Стартовая инвентаризация: фиксация начальных остатков (${openingDate.toISOString().slice(0, 10)}, Import #${command.jobId})`,
               createdById: command.userId,
               status: RecordStatus.ACTIVE,
             },

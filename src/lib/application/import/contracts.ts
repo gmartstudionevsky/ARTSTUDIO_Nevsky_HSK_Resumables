@@ -1,6 +1,6 @@
 import { MovementType } from '@prisma/client';
 
-import { CommitOptions, ImportIssue, ImportSummary, ImportSyncPlanRow, NormalizedImportPayload } from '@/lib/import/types';
+import { CommitOptions, DirectoryRow, ImportCanonicalFieldMarkup, ImportIssue, ImportOpeningDetection, ImportSummary, ImportSyncPlanRow, NormalizedImportPayload } from '@/lib/import/types';
 import { ProjectionUpdateReceipt } from '@/lib/read-models/projections/contracts';
 
 export interface ImportPreviewResult {
@@ -9,6 +9,15 @@ export interface ImportPreviewResult {
   errors: ImportIssue[];
   warnings: ImportIssue[];
   syncRows: ImportSyncPlanRow[];
+
+  markup: {
+    canonicalFields: ImportCanonicalFieldMarkup[];
+    opening: ImportOpeningDetection;
+  };
+  tablePreview: {
+    totalRows: number;
+    sampleRows: DirectoryRow[];
+  };
   openingSemantics: {
     detectedOpeningRows: number;
     defaultMode: 'OPENING' | 'IN';
