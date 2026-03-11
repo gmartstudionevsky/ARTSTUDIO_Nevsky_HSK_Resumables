@@ -71,14 +71,9 @@ function resolveInventoryEventType(mode: InventoryMode): MovementType {
 
 type TransactionClient = Prisma.TransactionClient;
 
-const INTERACTIVE_TRANSACTION_OPTIONS = {
-  maxWait: 10_000,
-  timeout: 20_000,
-} as const;
-
 interface AccountingEventWriteServiceDeps {
   db: {
-    $transaction<T>(fn: (tx: TransactionClient) => Promise<T>, options?: { maxWait?: number; timeout?: number }): Promise<T>;
+    $transaction<T>(fn: (tx: TransactionClient) => Promise<T>): Promise<T>;
     accountingPositionUnit: typeof prisma.accountingPositionUnit;
     inventorySession: typeof prisma.inventorySession;
   };
@@ -362,7 +357,7 @@ export function createAccountingEventWriteService(
           });
 
           return buildResult(tx, createdTx.id, 'AFFECT_ANALYTICS', undefined, warnings, command.context);
-        }, INTERACTIVE_TRANSACTION_OPTIONS);
+        });
         return result;
       } catch (error) {
         if (error instanceof Error && error.message.startsWith('INVARIANT_POSITION')) {
@@ -425,7 +420,7 @@ export function createAccountingEventWriteService(
           });
 
           return buildResult(tx, createdTx.id, 'AFFECT_ANALYTICS', undefined, undefined, command.context);
-        }, INTERACTIVE_TRANSACTION_OPTIONS);
+        });
       } catch (error) {
         if (error instanceof Error && error.message.startsWith('INVARIANT_POSITION')) {
           return failure(OPENING_SCENARIO, 'invariant', 'Инварианты позиции нарушены для opening-сценария', command.context, { cause: error.message });
@@ -542,7 +537,7 @@ export function createAccountingEventWriteService(
             undefined,
             command.context,
           );
-        }, INTERACTIVE_TRANSACTION_OPTIONS);
+        });
       } catch (error) {
         return failure(APPLY_INVENTORY_SCENARIO, 'unexpected', error instanceof Error ? error.message : 'Ошибка сервера', command.context);
       }
